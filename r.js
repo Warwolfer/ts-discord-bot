@@ -1790,9 +1790,10 @@ async function handleHeal(message, args, comment) {
   // Triggers
   const aoeActive = typeof comment === 'string' && /\baoe\b/i.test(comment);
   const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
+  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
 
-  // Precedence: Versatile overrides AoE
-  const appliedMode = versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null);
+  // Precedence: Simulcast > Versatile > AoE
+  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
 
   // NG trigger (only NG1 enabled)
   let ngBonus = 0;
@@ -1835,8 +1836,8 @@ async function handleHeal(message, args, comment) {
     (modifiers.total || 0) +
     ngBonus;
 
-  // Split healing: Versatile ÷2, AoE ÷3, or no split
-  const perAlly = versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total);
+  // Split healing: Simulcast ÷2, Versatile ÷2, AoE ÷3, or no split
+  const perAlly = simulcastActive ? Math.floor(total / 2) : (versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total));
 
   // Calculation string
   const annotatedDice = dice.map(v => (v >= EXPLODE_ON ? `${v}⋅EX` : `${v}`)).join(', ');
@@ -1851,7 +1852,8 @@ async function handleHeal(message, args, comment) {
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
 
   let calculation = parts.join(' + ');
-  if (versatileActive) calculation += ' ÷ 2';
+  if (simulcastActive) calculation += ' ÷ 2';
+  else if (versatileActive) calculation += ' ÷ 2';
   else if (aoeActive) calculation += ' ÷ 3';
 
   // Embed
@@ -1864,11 +1866,13 @@ async function handleHeal(message, args, comment) {
 
   let description =
     `\`${calculation}\`\n\n` +
-    (versatileActive
-      ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-      : (aoeActive
-        ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-        : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`)) +
+    (simulcastActive
+      ? `**+${perAlly} HP to 1 of the 2 targets** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+      : (versatileActive
+        ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+        : (aoeActive
+          ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+          : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
     (ngNote ? `${ngNote}\n` : '') +
     `\n► Free Action: Healing Cleanse. Whenever you heal, cleanse 1 curable condition after healing from an ally within range.\n`;
 
@@ -1905,9 +1909,10 @@ async function handlePowerHeal(message, args, comment) {
   // Triggers
   const aoeActive = typeof comment === 'string' && /\baoe\b/i.test(comment);
   const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
+  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
 
-  // Precedence: Versatile overrides AoE
-  const appliedMode = versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null);
+  // Precedence: Simulcast > Versatile > AoE
+  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
 
   // NG trigger (only NG1 enabled)
   let ngBonus = 0;
@@ -1950,8 +1955,8 @@ async function handlePowerHeal(message, args, comment) {
     (modifiers.total || 0) +
     ngBonus;
 
-  // Split healing: Versatile ÷2, AoE ÷3, or no split
-  const perAlly = versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total);
+  // Split healing: Simulcast ÷2, Versatile ÷2, AoE ÷3, or no split
+  const perAlly = simulcastActive ? Math.floor(total / 2) : (versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total));
 
   // MR rank -> cleanse charges X
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
@@ -1975,7 +1980,8 @@ async function handlePowerHeal(message, args, comment) {
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
 
   let calculation = parts.join(' + ');
-  if (versatileActive) calculation += ' ÷ 2';
+  if (simulcastActive) calculation += ' ÷ 2';
+  else if (versatileActive) calculation += ' ÷ 2';
   else if (aoeActive) calculation += ' ÷ 3';
 
   // Embed
@@ -1988,11 +1994,13 @@ async function handlePowerHeal(message, args, comment) {
 
   let description =
     `\`${calculation}\`\n\n` +
-    (versatileActive
-      ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-      : (aoeActive
-        ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-        : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`)) +
+    (simulcastActive
+      ? `**+${perAlly} HP to 1 of the 2 targets** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+      : (versatileActive
+        ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+        : (aoeActive
+          ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+          : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
     `\n► You are vulnerable.\n` +
     `► Free Action: Power Healing Cleanse. After healing, cleanse **${cleanseX}** (${mrRankUp}-rank) curable conditions from between and up to 3 allies within range. Manually add **5** per unused cleanse charge to your heal amount.\n` +
     (ngNote ? `${ngNote}\n` : '');
@@ -2034,9 +2042,10 @@ async function handleBuff(message, args, comment) {
   // Triggers
   const aoeActive       = typeof comment === 'string' && /\baoe\b/i.test(comment);
   const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
+  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
 
-  // Precedence: Versatile overrides AoE
-  const appliedMode = versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null);
+  // Precedence: Simulcast > Versatile > AoE
+  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
 
   // NG trigger (only NG1 enabled)
   let ngBonus = 0;
@@ -2056,7 +2065,7 @@ async function handleBuff(message, args, comment) {
   const BUFF_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
   const buffBonus = BUFF_BONUS[mrRank] ?? 0;
 
-  // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile)
+  // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile/Simulcast)
   const SINGLE_TARGET_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
   const singleTargetBonusTotal = (appliedMode === null) ? (SINGLE_TARGET_BONUS[mrRank] ?? 0) : 0;
 
@@ -2100,27 +2109,28 @@ async function handleBuff(message, args, comment) {
     ngBonus;
 
   const multipliedTotal = Math.round(totalBeforeMult * multiplier);
-  const perCharge = Math.floor(multipliedTotal / 3); // ALWAYS divide by 3 (3-charge system)
 
-  // Targeting / distribution text
-  let descriptionLines = [];
+  // Targeting / distribution: Simulcast and Versatile divide by 2, AoE divides by 3, otherwise divide by 3 for charges
+  let perTarget;
   let displayBlock = '';
 
-  if (appliedMode === 'Versatile') {
-    const twoCharges = perCharge * 2;
-    const oneCharge = perCharge;
-    displayBlock =
-      `**+${twoCharges} damage buff to 1 target**\n` +
-      `**+${oneCharge} damage buff to 1 target**\n` +
-      `\n► Versatile activated. Grant 3 charges to 2 targets (2+1) instead of 3 targets (1 each).\n`;
+  if (appliedMode === 'Simulcast') {
+    perTarget = Math.floor(multipliedTotal / 2);
+    displayBlock = `**+${perTarget} damage buff to 1 of the 2 targets**\n`;
+  } else if (appliedMode === 'Versatile') {
+    perTarget = Math.floor(multipliedTotal / 2);
+    displayBlock = `**+${perTarget} damage buff to 2 targets**\n`;
   } else if (appliedMode === 'AoE') {
+    const perCharge = Math.floor(multipliedTotal / 3);
     displayBlock = `**+${perCharge} damage buff to 3 targets**\n`;
+    perTarget = perCharge; // For calculation display consistency
   } else {
+    const perCharge = Math.floor(multipliedTotal / 3);
     displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n\n► Single-target bonus activated. ${singleTargetBonusTotal} added (${wrData.rank}-rank).\n`;
+    perTarget = perCharge; // For calculation display consistency
   }
 
-  // MODIFICATION START
-  // Calculation string: show × multiplier only if >1, then always show ÷ 3
+  // Calculation string: show × multiplier only if >1, then show appropriate divisor
   const parts = [
     `1d100 (${r})`,
     `${mrData.value} (MR⋅${mrData.rank})`,
@@ -2130,11 +2140,16 @@ async function handleBuff(message, args, comment) {
   if (singleTargetBonusTotal > 0) parts.push(`${singleTargetBonusTotal} (ST bonus)`);
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
   if (hasMods && modsClean.length > 0) parts.push(`${modsClean} (mods)`);
-  // MODIFICATION END
 
   let calcTail = '';
   if (multiplier !== 1) calcTail += ` × ${multiplier}`;
-  calcTail += ' ÷ 3';
+
+  // Show correct divisor based on mode
+  if (appliedMode === 'Simulcast' || appliedMode === 'Versatile') {
+    calcTail += ' ÷ 2';
+  } else {
+    calcTail += ' ÷ 3';
+  }
 
   const calculation = parts.join(' + ') + calcTail;
 
@@ -2164,7 +2179,7 @@ async function handleBuff(message, args, comment) {
 // Buff bonus by MR rank: D/C=+10, B/A=+15, S=+20  (printed as "(buff bonus)" in calc)
 // Crits (2d100 set): STAR BREAKER, WORLD ENDER, schrodinger crit!, crit!, crit fail...
 // Comment Triggers:
-//   "AoE"        → distribute as 3 equal charges across 3 targets
+//   "AoE" → distribute as 3 equal charges across 3 targets
 //   "Vers-AoE" or "Versatile" → same 3 total charges to 2 targets (2+1). If both are present, Versatile wins.
 // NOTE: All buffing is applied over 3 charges, even when targeting a single ally.
 // Extras (tests in comment):
@@ -2194,9 +2209,10 @@ async function handlePowerBuff(message, args, comment) {
   // Triggers
   const aoeActive       = typeof comment === 'string' && /\baoe\b/i.test(comment);
   const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
+  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
 
-  // Precedence: Versatile overrides AoE
-  const appliedMode = versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null);
+  // Precedence: Simulcast > Versatile > AoE
+  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
 
   // NG trigger (only NG1 enabled)
   let ngBonus = 0;
@@ -2216,7 +2232,7 @@ async function handlePowerBuff(message, args, comment) {
   const BUFF_BONUS = { d: 20, c: 20, b: 30, a:30, s: 40 };
   const buffBonus = BUFF_BONUS[mrRank] ?? 0;
 
-  // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile)
+  // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile/Simulcast)
   const SINGLE_TARGET_BONUS = { d: 20, c: 20, b: 30, a:30, s: 40 };
   const singleTargetBonusTotal = (appliedMode === null) ? (SINGLE_TARGET_BONUS[mrRank] ?? 0) : 0;
 
@@ -2294,24 +2310,28 @@ async function handlePowerBuff(message, args, comment) {
     ngBonus;
 
   const multipliedTotal = Math.round(totalBeforeMult * multiplier);
-  const perCharge = Math.floor(multipliedTotal / 3); // ALWAYS divide by 3 (3-charge system)
 
-  // Targeting / distribution text
+  // Targeting / distribution: Simulcast and Versatile divide by 2, AoE divides by 3, otherwise divide by 3 for charges
+  let perTarget;
   let displayBlock = '';
-  if (appliedMode === 'Versatile') {
-    const twoCharges = perCharge * 2;
-    const oneCharge  = perCharge;
-    displayBlock =
-      `**+${twoCharges} damage buff to 1 target**\n` +
-      `**+${oneCharge} damage buff to 1 target**\n` +
-      `\n► Versatile activated. Grant 3 charges to 2 targets (2+1) instead of 3 targets (1 each).\n`;
+
+  if (appliedMode === 'Simulcast') {
+    perTarget = Math.floor(multipliedTotal / 2);
+    displayBlock = `**+${perTarget} damage buff to 1 of the 2 targets**\n`;
+  } else if (appliedMode === 'Versatile') {
+    perTarget = Math.floor(multipliedTotal / 2);
+    displayBlock = `**+${perTarget} damage buff to 2 targets**\n`;
   } else if (appliedMode === 'AoE') {
+    const perCharge = Math.floor(multipliedTotal / 3);
     displayBlock = `**+${perCharge} damage buff to 3 targets**\n`;
+    perTarget = perCharge; // For calculation display consistency
   } else {
+    const perCharge = Math.floor(multipliedTotal / 3);
     displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n\n► Single-target bonus activated. ${singleTargetBonusTotal} added (${wrData.rank}-rank).\n`;
+    perTarget = perCharge; // For calculation display consistency
   }
 
-  // Calculation string: show ×multiplier only if >1, then always show ÷ 3
+  // Calculation string: show ×multiplier only if >1, then show appropriate divisor
   const parts = [
     `2d100 (${r1}, ${r2})`,
     `${mrData.value} (MR⋅${mrData.rank})`,
@@ -2324,7 +2344,13 @@ async function handlePowerBuff(message, args, comment) {
 
   let calcTail = '';
   if (multiplier !== 1) calcTail += ` × ${multiplier}`;
-  calcTail += ' ÷ 3';
+
+  // Show correct divisor based on mode
+  if (appliedMode === 'Simulcast' || appliedMode === 'Versatile') {
+    calcTail += ' ÷ 2';
+  } else {
+    calcTail += ' ÷ 3';
+  }
 
   const calculation = parts.join(' + ') + calcTail;
 
@@ -2528,7 +2554,7 @@ async function handleRevive(message, args, comment) {
 // Rolls: No. NG1: No. Crit: No.
 // Comment Trigger: "Cleanse" -> Title becomes "Cleanse" and grants the bonus action.
 // Rank requirement: Unavailable for MR=E.
-async function handleCure(message, args, comment) {
+async function handleCleanse(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
 
@@ -3271,6 +3297,305 @@ async function handleAcceleration(message, args, comment) {
   return sendReply(message, embed, comment);
 }
 
+// Sub-Action: Exceed — Free Action to gain attack/heal/buff bonus by reducing max HP.
+// Rolls: No. NG1: No. Crit: No.
+// Rank requirement: None (available at all ranks).
+async function handleExceed(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  if (!mrData) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('Please provide a valid Mastery Rank.');
+    return sendReply(message, embed, comment);
+  }
+
+  // Define bonus values based on rank
+  const EXCEED_BONUS = { e: 5, d: 10, c: 15, b: 20, a: 25, s: 30 };
+  const bonusAmount = EXCEED_BONUS[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Exceed')
+    .setThumbnail('https://terrarp.com/db/action/exceed.png');
+
+  let description = `► **Free Action.** Reduce your maximum HP by **15 HP** to gain a **+${bonusAmount}** (MR⋅${mrRankUp}) bonus modifier on your next attacks, heals, or buffs.\n`;
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Engage — Bonus Action with two modes: Redo or Accretion.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Triggers: "Accretion" -> switches to Accretion mode; "Regalia" -> reduces HP cost.
+// Rank requirement: Minimum MR=C.
+async function handleEngage(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum C rank)
+  const restrictedRanks = ['e', 'd'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Engage** is not available below Mastery Rank (C).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for triggers
+  const accretionActive = /\baccretion\b/i.test(commentString);
+  const regaliaActive = /\bregalia\b/i.test(commentString);
+
+  // Calculate HP cost reduction from Regalia
+  const REGALIA_REDUCTION = { e: 0, d: 5, c: 5, b: 10, a: 10, s: 15 };
+  const reduction = regaliaActive ? (REGALIA_REDUCTION[mrRank] ?? 0) : 0;
+
+  // HP costs
+  const baseRedoHPCost = 50;
+  const baseAccretionHPCost = 35;
+  const finalRedoHPCost = baseRedoHPCost - reduction;
+  const finalAccretionHPCost = baseAccretionHPCost - reduction;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(accretionActive ? 'Engage - Accretion' : 'Engage - Redo')
+    .setThumbnail('https://terrarp.com/db/action/engage.png');
+
+  let description;
+  if (accretionActive) {
+    if (regaliaActive && reduction > 0) {
+      description = `► **Bonus Action: Accretion.** Lose **${finalAccretionHPCost} HP** (35 - ${reduction} Regalia) to make your Save Roll with advantage.\n`;
+    } else {
+      description = `► **Bonus Action: Accretion.** Lose **35 HP** to make your Save Roll with advantage.\n`;
+    }
+  } else {
+    if (regaliaActive && reduction > 0) {
+      description = `► **Bonus Action: Redo.** Lose **${finalRedoHPCost} HP** (50 - ${reduction} Regalia) to reroll your main action, you must take the new result. Redo Critical Attack uses **1d100** instead of **2d100kh1**.\n`;
+    } else {
+      description = `► **Bonus Action: Redo.** Lose **50 HP** to reroll your main action, you must take the new result. Redo Critical Attack uses **1d100** instead of **2d100kh1**.\n`;
+    }
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Empower — Free Action to gain extra bonus action by reducing HP.
+// Rolls: No. NG1: No. Crit: No.
+// Rank requirement: Minimum MR=A.
+async function handleEmpower(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum A rank)
+  const restrictedRanks = ['e', 'd', 'c', 'b'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Empower** is not available below Mastery Rank (A).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Empower')
+    .setThumbnail('https://terrarp.com/db/action/empower.png');
+
+  let description = `► **Free Action.** Once per cycle, reduce your HP by **50 HP** and gain **1 extra bonus action**, you cannot use the same BA twice.\n`;
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Mark — Bonus Action to mark enemy for damage bonus.
+// Rolls: No. NG1: No. Crit: No.
+// Rank requirement: Minimum MR=D.
+async function handleMark(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Mark** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Define damage modifier based on rank
+  const MARK_BONUS = { d: 10, c: 15, b: 20, a: 25, s: 30 };
+  const damageBonus = MARK_BONUS[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Mark')
+    .setThumbnail('https://terrarp.com/db/action/mark.png');
+
+  let description = `► **Bonus Action.** The next **2 attacks** to your marked enemy gains a **+${damageBonus}** (MR⋅${mrRankUp}) damage modifier. You cannot recast Mark until all charges are expended, if there are multiple Hyper Sense users, Marks may stack.\n`;
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Hyper Insight — Free Action to grant break damage and imbue.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Ultra Insight" -> doubles break damage bonus.
+// Rank requirement: Minimum MR=D. Ultra Insight requires minimum MR=A.
+async function handleHyperInsight(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Hyper Insight** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for Ultra Insight trigger
+  const ultraInsightActive = /\bultra\s*insight\b/i.test(commentString);
+
+  // Ultra Insight requires minimum A rank
+  if (ultraInsightActive) {
+    const ultraRestrictedRanks = ['e', 'd', 'c', 'b'];
+    if (ultraRestrictedRanks.includes(mrRank)) {
+      const embed = new EmbedBuilder()
+        .setColor('Red')
+        .setTitle('Invalid Rank')
+        .setDescription('**Ultra Insight** is not available below Mastery Rank (A).');
+      return sendReply(message, embed, comment);
+    }
+  }
+
+  // Define break damage based on rank
+  const INSIGHT_BONUS = { d: 15, c: 15, b: 20, a: 20, s: 25 };
+  const baseBreakDamage = INSIGHT_BONUS[mrRank] ?? 0;
+  const finalBreakDamage = ultraInsightActive ? baseBreakDamage * 2 : baseBreakDamage;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(ultraInsightActive ? 'Hyper Insight - Ultra' : 'Hyper Insight')
+    .setThumbnail('https://terrarp.com/db/action/hyper-insight.png');
+
+  let description;
+  if (ultraInsightActive) {
+    description = `► **Free Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (${baseBreakDamage} × 2) Break damage and imbue the attack with one of your masteries this cycle.\n`;
+  } else {
+    description = `► **Free Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (MR⋅${mrRankUp}) Break damage and imbue the attack with one of your masteries this cycle.\n`;
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Hyper Instinct — Passive to gain save roll bonus.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Ultra Instinct" -> doubles save bonus.
+// Rank requirement: Minimum MR=D. Ultra Instinct requires minimum MR=A.
+async function handleHyperInstinct(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Hyper Instinct** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for Ultra Instinct trigger
+  const ultraInstinctActive = /\bultra\s*instinct\b/i.test(commentString);
+
+  // Ultra Instinct requires minimum A rank
+  if (ultraInstinctActive) {
+    const ultraRestrictedRanks = ['e', 'd', 'c', 'b'];
+    if (ultraRestrictedRanks.includes(mrRank)) {
+      const embed = new EmbedBuilder()
+        .setColor('Red')
+        .setTitle('Invalid Rank')
+        .setDescription('**Ultra Instinct** is not available below Mastery Rank (A).');
+      return sendReply(message, embed, comment);
+    }
+  }
+
+  // Define save bonus based on rank
+  const INSTINCT_BONUS = { d: 5, c: 5, b: 10, a: 10, s: 15 };
+  const baseSaveBonus = INSTINCT_BONUS[mrRank] ?? 0;
+  const finalSaveBonus = ultraInstinctActive ? baseSaveBonus * 2 : baseSaveBonus;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(ultraInstinctActive ? 'Hyper Instinct - Ultra' : 'Hyper Instinct')
+    .setThumbnail('https://terrarp.com/db/action/hyper-instinct.png');
+
+  let description;
+  if (ultraInstinctActive) {
+    description = `► **Passive.** Gain **+${finalSaveBonus}** (${baseSaveBonus} × 2) to a save roll in the next damage phase.\n`;
+  } else {
+    description = `► **Passive.** Gain **+${finalSaveBonus}** (MR⋅${mrRankUp}) to a save roll in the next damage phase.\n`;
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
 /////////////////Bot Version
 async function handleVersion(message, args, comment) {
     const embed = new EmbedBuilder()
@@ -3310,7 +3635,7 @@ const commandHandlers = {
     'versatile' : handleVersatile,
     'smite' : handleSmite,
     'revive' : handleRevive,
-    'cure' : handleCure,
+    'cleanse' : handleCleanse,
     'haste' : handleHaste,
     'inspire' : handleInspire,
     'guardian' : handleGuardian,
@@ -3322,6 +3647,12 @@ const commandHandlers = {
     'momentum' : handleMomentum,
     'rover' : handleRover,
     'acceleration' : handleAcceleration,
+    'exceed' : handleExceed,
+    'engage' : handleEngage,
+    'empower' : handleEmpower,
+    'mark' : handleMark,
+    'hyperinsight' : handleHyperInsight,
+    'hyperinstinct' : handleHyperInstinct,
     'version': handleVersion,
     // TODO: Add all other command handlers here following the pattern above.
     // e.g., 'ultracounter': handleUltraCounter, 'save': handleSave, etc.
