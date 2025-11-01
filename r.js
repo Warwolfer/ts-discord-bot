@@ -3596,6 +3596,358 @@ async function handleHyperInstinct(message, args, comment) {
   return sendReply(message, embed, comment);
 }
 
+// Sub-Action: Regenerate — Passive HP regen or bonus action to share healing.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Power Regenerate" -> switches to bonus action mode.
+// Rank requirement: Minimum MR=D.
+async function handleRegenerate(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Regenerate** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for Power Regenerate trigger
+  const powerRegenerateActive = /\bpower\s*regenerate\b/i.test(commentString);
+
+  // Define HP regen based on rank
+  const REGEN_HP = { d: 5, c: 5, b: 10, a: 10, s: 15 };
+  const regenAmount = REGEN_HP[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(powerRegenerateActive ? 'Power Regenerate' : 'Regenerate')
+    .setThumbnail('https://terrarp.com/db/action/regenerate.png');
+
+  let description;
+  if (powerRegenerateActive) {
+    description = `► **Bonus Action: Power Regenerate.** Gain the rolled HP and grant an ally the same amount, or forgo your own regeneration and grant an ally double the rolled HP.\n`;
+    description += `◦ *Base Regen:* **${regenAmount} HP** (MR⋅${mrRankUp})\n`;
+  } else {
+    description = `► **Passive.** Gain **${regenAmount} HP** (MR⋅${mrRankUp}) every cycle.\n`;
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Infuse — Free Action to heal multiple allies.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "AoE" -> distributes heal in increments of 5.
+// Rank requirement: Minimum MR=D. A-rank unlocks 3 targets.
+async function handleInfuse(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Infuse** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for AoE trigger
+  const aoeActive = /\baoe\b/i.test(commentString);
+
+  // Define heal amount based on rank
+  const INFUSE_HP = { d: 5, c: 10, b: 15, a: 20, s: 25 };
+  const healAmount = INFUSE_HP[mrRank] ?? 0;
+
+  // Determine target count (A+ rank allows 3 targets)
+  const targetCount = (mrRank === 'a' || mrRank === 's') ? 3 : 2;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Infuse')
+    .setThumbnail('https://terrarp.com/db/action/infuse.png');
+
+  let description;
+  if (aoeActive) {
+    description = `► **Free Action.** Heal up to **${targetCount} allies** within range, distributing **${healAmount} HP** (MR⋅${mrRankUp}) in increments of **5 HP**.\n`;
+  } else {
+    description = `► **Free Action.** Heal up to **${targetCount} allies** within range for **${healAmount} HP** (MR⋅${mrRankUp}).\n`;
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Adapt — Passive HP boost or bonus actions with different modes.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Triggers: "Prowl" -> movement bonus; "Fend" -> save bonus.
+// Rank requirement: Minimum MR=D. Prowl A-rank upgrade available.
+async function handleAdapt(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Adapt** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for mode triggers
+  const prowlActive = /\bprowl\b/i.test(commentString);
+  const fendActive = /\bfend\b/i.test(commentString);
+
+  // Define values based on rank
+  const ADAPT_HP = { d: 30, c: 30, b: 40, a: 40, s: 50 };
+  const FEND_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
+  const hpBoost = ADAPT_HP[mrRank] ?? 0;
+  const fendBonus = FEND_BONUS[mrRank] ?? 0;
+
+  // Check if A-rank or higher for Prowl upgrade
+  const hasARankProwlUpgrade = (mrRank === 'a' || mrRank === 's');
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(prowlActive ? 'Adapt - Prowl' : (fendActive ? 'Adapt - Fend' : 'Adapt'))
+    .setThumbnail('https://terrarp.com/db/action/adapt.png');
+
+  let description;
+  if (prowlActive) {
+    description = `► **Bonus Action: Prowl.** Ignore difficult terrain this cycle.`;
+    if (hasARankProwlUpgrade) {
+      description += ` And divide movement damage by 2.`;
+    }
+    description += `\n`;
+  } else if (fendActive) {
+    description = `► **Bonus Action: Fend.** **+${fendBonus}** (MR⋅${mrRankUp}) to a save roll this cycle.\n`;
+  } else {
+    description = `► **Passive.** On the first post of a thread, add **${hpBoost} HP** (MR⋅${mrRankUp}) to your current HP. This is not a heal nor does it expand your max HP.\n`;
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Evolve — Passive bonus at beginning of thread.
+// Rolls: No. NG1: No. Crit: No.
+// Rank requirement: Minimum MR=D.
+async function handleEvolve(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Evolve** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Define bonus based on rank
+  const EVOLVE_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
+  const bonus = EVOLVE_BONUS[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Evolve')
+    .setThumbnail('https://terrarp.com/db/action/evolve.png');
+
+  let description = `► **Passive.** At the beginning of the thread, **+${bonus}** (MR⋅${mrRankUp}) bonus to your actions.\n`;
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Coordinate — Free Action to grant modifier to targets.
+// Rolls: No. NG1: No. Crit: No.
+// Rank requirement: Minimum MR=D. S-rank grants 3 targets instead of 2.
+async function handleCoordinate(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Coordinate** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Define modifier based on rank
+  const COORDINATE_BONUS = { d: 5, c: 10, b: 15, a: 20, s: 25 };
+  const bonus = COORDINATE_BONUS[mrRank] ?? 0;
+
+  // Determine target count (S rank allows 3 targets)
+  const targetCount = (mrRank === 's') ? 3 : 2;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Coordinate')
+    .setThumbnail('https://terrarp.com/db/action/sba.png');
+
+  let description = `► **Free Action.** Grant **${targetCount} targets** a **+${bonus}** (MR⋅${mrRankUp}) modifier to their next attack, heal, or buff action.\n`;
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Aid — Passive HP grant or bonus action to grant modifier.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Assist" -> switches to bonus action mode.
+// Rank requirement: Minimum MR=D. B-rank upgrades passive to 10 HP.
+async function handleAid(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Aid** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for Assist trigger
+  const assistActive = /\bassist\b/i.test(commentString);
+
+  // Define values based on rank
+  const passiveHP = (mrRank === 'b' || mrRank === 'a' || mrRank === 's') ? 10 : 5;
+  const ASSIST_BONUS = { d: 5, c: 5, b: 10, a: 10, s: 15 };
+  const assistBonus = ASSIST_BONUS[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(assistActive ? 'Aid - Assist' : 'Aid')
+    .setThumbnail('https://terrarp.com/db/action/sba.png');
+
+  let description;
+  if (assistActive) {
+    description = `► **Bonus Action: Assist.** Grant **+${assistBonus}** (MR⋅${mrRankUp}) modifier to the next mastery check made by any of your Coordinate targets.\n`;
+  } else {
+    description = `► **Passive.** Once per cycle, if your Coordinate target takes damage, they gain **${passiveHP} HP**`;
+    if (passiveHP === 10) {
+      description += ` (B+ rank bonus)`;
+    }
+    description += `.\n`;
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Sub-Action: Charge — Passive charge pool or bonus actions to charge/release.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Triggers: "Charge" -> add to pool; "Release" -> use pool for modifier.
+// Rank requirement: Minimum MR=D.
+async function handleCharge(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Charge** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Check for mode triggers
+  const chargeActive = /\bcharge\b/i.test(commentString) && !/\brelease\b/i.test(commentString);
+  const releaseActive = /\brelease\b/i.test(commentString);
+
+  // Define dice based on rank
+  const PASSIVE_DICE = { d: '1d20', c: '1d20', b: '2d20', a: '2d20', s: '3d20' };
+  const CHARGE_DICE = { d: '1d20', c: '1d20', b: '2d20', a: '2d20', s: '2d20' };
+  const passiveDice = PASSIVE_DICE[mrRank] ?? '1d20';
+  const chargeDice = CHARGE_DICE[mrRank] ?? '1d20';
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(releaseActive ? 'Charge - Release' : (chargeActive ? 'Charge - Charge' : 'Charge'))
+    .setThumbnail('https://terrarp.com/db/action/sba.png');
+
+  let description;
+  if (releaseActive) {
+    description = `► **Bonus Action: Release.** Roll your entire Charge Pool and gain the roll result as a modifier for your attack, buff, heal, or mastery check involving your weapon.\n`;
+  } else if (chargeActive) {
+    description = `► **Bonus Action: Charge.** Add an extra **${chargeDice}** (MR⋅${mrRankUp}) to your Charge Pool.\n`;
+  } else {
+    description = `► **Passive.** Add **${passiveDice}** (MR⋅${mrRankUp}) to your Charge Pool at the start of your turn when combat begins.\n`;
+  }
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
 /////////////////Bot Version
 async function handleVersion(message, args, comment) {
     const embed = new EmbedBuilder()
@@ -3653,6 +4005,13 @@ const commandHandlers = {
     'mark' : handleMark,
     'hyperinsight' : handleHyperInsight,
     'hyperinstinct' : handleHyperInstinct,
+    'regenerate' : handleRegenerate,
+    'infuse' : handleInfuse,
+    'adapt' : handleAdapt,
+    'evolve' : handleEvolve,
+    'coordinate' : handleCoordinate,
+    'aid' : handleAid,
+    'charge' : handleCharge,
     'version': handleVersion,
     // TODO: Add all other command handlers here following the pattern above.
     // e.g., 'ultracounter': handleUltraCounter, 'save': handleSave, etc.

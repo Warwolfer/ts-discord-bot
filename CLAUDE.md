@@ -115,6 +115,13 @@ Examples:
 - `mark` - Mark enemy for damage bonus
 - `hyperinsight` - Grant break damage and imbue (Ultra mode available)
 - `hyperinstinct` - Gain save roll bonus (Ultra mode available)
+- `regenerate` - Passive HP regen (Power Regenerate mode available)
+- `infuse` - Free action to heal multiple allies
+- `adapt` - Passive HP boost (Prowl/Fend modes available)
+- `evolve` - Passive bonus at thread start
+- `coordinate` - Free action to grant modifier to targets
+- `aid` - Passive HP grant to Coordinate targets (Assist mode available)
+- `charge` - Passive charge pool system (Charge/Release modes available)
 
 **Utility:**
 - `version` - Display bot version
