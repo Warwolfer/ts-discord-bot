@@ -3276,10 +3276,13 @@ async function handleAcceleration(message, args, comment) {
   // Parse Speed trigger from the comment
   const speedMatch = /\bspeed\s*\((\d+)\)/i.exec(commentString);
 
-  // --- Calculate Reflex Bonus (X) ---
-  let reflexBonus = 'X'; // Default value if Speed(X) is not provided
+  // --- Calculate bonuses based on Speed ---
+  let fortWillBonus = '+2';
+  let reflexBonus = '+5';
+
   if (speedMatch && speedMatch[1]) {
     const speedValueX = parseInt(speedMatch[1], 10);
+    fortWillBonus = `**+${speedValueX * 2}**`;
     reflexBonus = `**+${speedValueX * 5}**`;
   }
 
@@ -3290,7 +3293,7 @@ async function handleAcceleration(message, args, comment) {
     .setTitle('(Alter) Acceleration')
     .setThumbnail('https://terrarp.com/db/action/acceleration.png');
 
-  let description = `► **Free Action.** Gain a +2 bonus to Fortitude and Will, and ${reflexBonus} to Reflex Save in the next damage phase.\n`;
+  let description = `► **Free Action.** Gain a ${fortWillBonus} bonus to Fortitude and Will, and ${reflexBonus} to Reflex Save per unspent movement in the next damage phase.\n`;
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
