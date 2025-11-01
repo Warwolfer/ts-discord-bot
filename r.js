@@ -1787,8 +1787,12 @@ async function handleHeal(message, args, comment) {
   const modsClean = rawMods.replace(/^\s*\+\s*/, '').trim();
   const hasMods = /\d/.test(modifiers.display);
 
-  // Trigger: AoE
+  // Triggers
   const aoeActive = typeof comment === 'string' && /\baoe\b/i.test(comment);
+  const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
+
+  // Precedence: Versatile overrides AoE
+  const appliedMode = versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null);
 
   // NG trigger (only NG1 enabled)
   let ngBonus = 0;
@@ -1831,8 +1835,8 @@ async function handleHeal(message, args, comment) {
     (modifiers.total || 0) +
     ngBonus;
 
-  // AoE split (÷3 per ally)
-  const perAlly = aoeActive ? Math.floor(total / 3) : total;
+  // Split healing: Versatile ÷2, AoE ÷3, or no split
+  const perAlly = versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total);
 
   // Calculation string
   const annotatedDice = dice.map(v => (v >= EXPLODE_ON ? `${v}⋅EX` : `${v}`)).join(', ');
@@ -1847,7 +1851,8 @@ async function handleHeal(message, args, comment) {
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
 
   let calculation = parts.join(' + ');
-  if (aoeActive) calculation += ' ÷ 3';
+  if (versatileActive) calculation += ' ÷ 2';
+  else if (aoeActive) calculation += ' ÷ 3';
 
   // Embed
   const displayName = message.member?.displayName ?? message.author.username;
@@ -1859,9 +1864,11 @@ async function handleHeal(message, args, comment) {
 
   let description =
     `\`${calculation}\`\n\n` +
-    (aoeActive
-      ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-      : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`) +
+    (versatileActive
+      ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+      : (aoeActive
+        ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+        : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`)) +
     (ngNote ? `${ngNote}\n` : '') +
     `\n► Free Action: Healing Cleanse. Whenever you heal, cleanse 1 curable condition after healing from an ally within range.\n`;
 
@@ -1895,8 +1902,12 @@ async function handlePowerHeal(message, args, comment) {
   const modsClean = rawMods.replace(/^\s*\+\s*/, '').trim();
   const hasMods = /\d/.test(modifiers.display);
 
-  // Trigger: AoE
+  // Triggers
   const aoeActive = typeof comment === 'string' && /\baoe\b/i.test(comment);
+  const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
+
+  // Precedence: Versatile overrides AoE
+  const appliedMode = versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null);
 
   // NG trigger (only NG1 enabled)
   let ngBonus = 0;
@@ -1939,8 +1950,8 @@ async function handlePowerHeal(message, args, comment) {
     (modifiers.total || 0) +
     ngBonus;
 
-  // AoE split (÷3 per ally)
-  const perAlly = aoeActive ? Math.floor(total / 3) : total;
+  // Split healing: Versatile ÷2, AoE ÷3, or no split
+  const perAlly = versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total);
 
   // MR rank -> cleanse charges X
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
@@ -1964,7 +1975,8 @@ async function handlePowerHeal(message, args, comment) {
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
 
   let calculation = parts.join(' + ');
-  if (aoeActive) calculation += ' ÷ 3';
+  if (versatileActive) calculation += ' ÷ 2';
+  else if (aoeActive) calculation += ' ÷ 3';
 
   // Embed
   const displayName = message.member?.displayName ?? message.author.username;
@@ -1976,9 +1988,11 @@ async function handlePowerHeal(message, args, comment) {
 
   let description =
     `\`${calculation}\`\n\n` +
-    (aoeActive
-      ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-      : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`) +
+    (versatileActive
+      ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+      : (aoeActive
+        ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
+        : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`)) +
     `\n► You are vulnerable.\n` +
     `► Free Action: Power Healing Cleanse. After healing, cleanse **${cleanseX}** (${mrRankUp}-rank) curable conditions from between and up to 3 allies within range. Manually add **5** per unused cleanse charge to your heal amount.\n` +
     (ngNote ? `${ngNote}\n` : '');
@@ -2396,23 +2410,23 @@ async function handleImbue(message, args, comment) {
   return sendReply(message, embed);
 }
 
-// Sub-Action: Versatile — Change targeting to 2; optional "Ultra Versatile" bonus mode.
+// Sub-Action: Versatile — Change targeting to 2; optional "Simulcast" bonus mode.
 // Rolls: None. NG1: No. Crit: No.
-// Comment Trigger: "Ultra Versatile" -> Title becomes "Ultra Versatile" and grants the bonus action effect.
+// Comment Trigger: "Simulcast" -> Title becomes "Simulcast" and grants the bonus action effect.
 // Display:
 //   Base:  ► *Free Action.* Apply the effects to 2 targets (instead of 3) and apply the last heal/buff amount to one of those targets.
 //   Ultra: ► *Bonus Action.* Roll both actions (both must be special or non-special) using the AoE command and choose if each target gets either the heal or buff.
 async function handleVersatile(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
-  // Trigger: Ultra Versatile
-  const ultraActive = typeof comment === 'string' && /\bultra\s*versatile\b/i.test(comment);
+  // Trigger: Simulcast
+  const ultraActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
 
   // Embed
   const embed = new EmbedBuilder()
     .setColor('#5f6587')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(ultraActive ? 'Ultra Versatile' : 'Versatile')
+    .setTitle(ultraActive ? 'Simulcast' : 'Versatile')
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
@@ -3175,11 +3189,46 @@ async function handleMomentum(message, args, comment) {
   return sendReply(message, embed);
 }
 
-// Alter Sub-Action: Rover — Passive save bonus or an active damage reduction.
+// Alter Sub-Action: Rover — Bonus Action for damage reduction.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Spare (Y)" -> Calculates save bonus. "Activate" -> Activates bonus action.
-// Rank Requirements: Activate unlocks at MR=C.
+// Rank Requirements: Minimum MR=C.
 async function handleRover(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // --- Rank validation (minimum C rank) ---
+  const restrictedRanks = ['e', 'd'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const err = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Rover** is not available below Mastery Rank (C).');
+    return sendReply(message, err, comment);
+  }
+
+  // --- Embed setup ---
+  const embed = new EmbedBuilder()
+    .setColor('#6845a2')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('(Alter) Rover')
+    .setThumbnail('https://terrarp.com/db/action/rover.png');
+
+  let description = `► **Bonus Action.** Damage resulting from moving is halved.\n`;
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed, comment);
+}
+
+// Alter Sub-Action: Acceleration — Free Action for save bonuses.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Speed(X)" -> Calculates Reflex bonus.
+// Rank Requirements: Minimum MR=D.
+async function handleAcceleration(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
 
@@ -3188,58 +3237,38 @@ async function handleRover(message, args, comment) {
   const mrRank = mrData?.rank?.toLowerCase();
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
-  // Parse triggers from the comment
-  const activateActive = /\bactivate\b/i.test(commentString);
-  const spareMatch = /\bspare\s*\((\d+)\)/i.exec(commentString);
+  // --- Rank validation (minimum D rank) ---
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const err = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Acceleration** is not available below Mastery Rank (D).');
+    return sendReply(message, err, comment);
+  }
 
-  // --- Rank validation for Activate ---
-  if (activateActive) {
-    const restrictedRanks = ['e', 'd'];
-    if (!mrRank || restrictedRanks.includes(mrRank)) {
-      const err = new EmbedBuilder()
-        .setColor('Red')
-        .setTitle('Invalid Rank')
-        .setDescription('The **Activate** Bonus Action is not available below Mastery Rank (C).');
-      return sendReply(message, err, comment);
-    }
+  // Parse Speed trigger from the comment
+  const speedMatch = /\bspeed\s*\((\d+)\)/i.exec(commentString);
+
+  // --- Calculate Reflex Bonus (X) ---
+  let reflexBonus = 'X'; // Default value if Speed(X) is not provided
+  if (speedMatch && speedMatch[1]) {
+    const speedValueX = parseInt(speedMatch[1], 10);
+    reflexBonus = `**+${speedValueX * 5}**`;
   }
 
   // --- Embed setup ---
   const embed = new EmbedBuilder()
     .setColor('#6845a2')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setThumbnail('https://terrarp.com/db/action/rover.png');
+    .setTitle('(Alter) Acceleration')
+    .setThumbnail('https://terrarp.com/db/action/acceleration.png');
 
-  let description = '';
-
-  // --- Handle which action is active ---
-  if (activateActive) {
-    // Activate (Bonus Action)
-    embed.setTitle('(Alter) Rover - Activated');
-    description += `► **Bonus Action.** Damage resulting from moving is halved.\n`;
-
-  } else {
-    // Rover (Passive)
-    embed.setTitle('(Alter) Rover');
-
-    // Calculate Save Bonus (X) from Spare(Y)
-    let saveBonus = 'X'; // Default value if Spare(Y) is not provided
-    if (spareMatch && spareMatch[1]) {
-      const spareValueY = parseInt(spareMatch[1], 10);
-      saveBonus = `**${spareValueY * 2}**`;
-    }
-
-    description += `► ***Passive.*** +${saveBonus} to all Saves for per unused movement in the next damage phase.\n`;
-  }
-
-  if (comment) {
-    description += `\n${comment}`;
-  }
-
+  let description = `► **Free Action.** Gain a +2 bonus to Fortitude and Will, and ${reflexBonus} to Reflex Save in the next damage phase.\n`;
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed);
+  return sendReply(message, embed, comment);
 }
 
 /////////////////Bot Version
@@ -3292,6 +3321,7 @@ const commandHandlers = {
     'wagerfuture' : handleWagerFuture,
     'momentum' : handleMomentum,
     'rover' : handleRover,
+    'acceleration' : handleAcceleration,
     'version': handleVersion,
     // TODO: Add all other command handlers here following the pattern above.
     // e.g., 'ultracounter': handleUltraCounter, 'save': handleSave, etc.

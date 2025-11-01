@@ -177,3 +177,6 @@ This is a command module, not a standalone bot. It should be:
 3. Configured with required environment variables
 
 Note: The repository name suggests TypeScript, but the current implementation is JavaScript (CommonJS). No build step is currently needed.
+
+let me fix my instruction, it should still be divided by 2, however change the wording to "1 of the 2 targets"
+so the purpose for simulcast is that people can cast buff and heal at the same time for 2 targets, but it's half the value, and
