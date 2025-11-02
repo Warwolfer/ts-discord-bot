@@ -4102,8 +4102,8 @@ async function handleCharge(message, args, comment) {
 
 // Sub-Action: Follow-up — Free Action for combo damage with ally.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Normal" -> reduces modifier for normal attacks.
-// Rank requirement: Minimum MR=C (D for normal attacks).
+// Comment Trigger: "Target(X)" -> specifies ally name.
+// Rank requirement: Minimum MR=C.
 async function handleFollowUp(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
@@ -4113,20 +4113,19 @@ async function handleFollowUp(message, args, comment) {
   const mrRank = mrData?.rank?.toLowerCase();
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
-  // Check for Normal trigger
-  const normalActive = /\bnormal\b/i.test(commentString);
-
-  // Rank validation
-  const restrictedRanks = normalActive ? ['e'] : ['e', 'd'];
+  // Rank validation (minimum C rank)
+  const restrictedRanks = ['e', 'd'];
   if (!mrRank || restrictedRanks.includes(mrRank)) {
     const embed = new EmbedBuilder()
       .setColor('Red')
       .setTitle('Invalid Rank')
-      .setDescription(normalActive
-        ? '**Follow-up** with Normal attacks is not available below Mastery Rank (D).'
-        : '**Follow-up** is not available below Mastery Rank (C).');
+      .setDescription('**Follow-up** is not available below Mastery Rank (C).');
     return sendReply(message, embed, comment);
   }
+
+  // Parse Target from comment
+  const targetMatch = /\btarget\s*\(([^)]+)\)/i.exec(commentString);
+  const targetName = targetMatch && targetMatch[1] ? targetMatch[1].trim() : 'an ally';
 
   // Define modifier values based on rank
   const SPECIAL_MODIFIER = { d: 20, c: 25, b: 30, a: 35, s: 40 };
@@ -4139,15 +4138,10 @@ async function handleFollowUp(message, args, comment) {
   const embed = new EmbedBuilder()
     .setColor('#8b5cf6')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(normalActive ? 'Follow-up - Normal' : 'Follow-up')
+    .setTitle('Follow-up')
     .setThumbnail('https://terrarp.com/db/action/follow-up.png');
 
-  let description;
-  if (normalActive) {
-    description = `► **Free Action.** Whenever an ally within range performs a normal attack action, either you or your ally may use a **${normalMod}** (MR⋅${mrRankUp}) damage modifier in either of your posts (which must narratively feature both). If one follow-up partner crits, this value scales with the crit.\n`;
-  } else {
-    description = `► **Free Action.** Whenever an ally within range performs a special attack action, either you or your ally may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier in either of your posts (which must narratively feature both). If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
-  }
+  let description = `► **Free Action.** You or **${targetName}** may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier when **${targetName}** performs a special attack action within range. If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
 
   if (comment) {
     description += `${comment}`;
