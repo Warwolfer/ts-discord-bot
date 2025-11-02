@@ -480,7 +480,7 @@ async function handleUltraCounter(message, args, comment) {
         .setThumbnail('https://terrarp.com/db/action/ucounter.png')
         let description = `\`${calculation}\`\n\n**${total} damage**\n\n${counterComment}\n${meleeNote}`;
         if (comment){
-          description += `\n${comment}`;
+          description += `${comment}`;
           }
 
         embed.setDescription(description);
@@ -615,6 +615,8 @@ async function handleCover(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -638,6 +640,8 @@ async function handleTaunt(message, args, comment) {
     `**Free Action.** When you perform an attack action on an enemy, taunt that enemy ${rankLabel}.\n`;
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -740,6 +744,8 @@ async function handleStable(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '');
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -853,6 +859,8 @@ async function handleBurst(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -941,6 +949,8 @@ async function handleSneak(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '');
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -1090,6 +1100,8 @@ async function handleCritical(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '');
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -1293,6 +1305,8 @@ async function handleSharp(message, args, comment) {
     (testScenario ? testNote : '');
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -1561,6 +1575,8 @@ async function handleReckless(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -1611,6 +1627,8 @@ async function handleAreaEffect(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -1660,6 +1678,8 @@ async function handleDuelist(message, args, comment) {
   }
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -1732,6 +1752,8 @@ async function handleSharpshooter(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -1761,6 +1783,8 @@ async function handleRange(message, args, comment) {
   }
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -1877,6 +1901,8 @@ async function handleHeal(message, args, comment) {
     `\n► Free Action: Healing Cleanse. Whenever you heal, cleanse 1 curable condition after healing from an ally within range.\n`;
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -2006,6 +2032,8 @@ async function handlePowerHeal(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '');
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -2169,6 +2197,8 @@ async function handleBuff(message, args, comment) {
     testNote;
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -2371,6 +2401,8 @@ async function handlePowerBuff(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -2432,6 +2464,8 @@ async function handleImbue(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -2464,6 +2498,8 @@ async function handleVersatile(message, args, comment) {
 
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -2485,6 +2521,8 @@ async function handleSmite(message, args, comment) {
   let description = `► ***Passive.*** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
 
   if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -2546,6 +2584,8 @@ async function handleRevive(message, args, comment) {
      description += `${comment}`;
   }
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -2595,6 +2635,8 @@ async function handleCleanse(message, args, comment) {
   if (comment) {
     description += `${comment}`;
   }
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -2976,6 +3018,8 @@ async function handleRage(message, args, comment) {
   // Echo original comment if provided (keeps parity with your other handlers)
   if (comment) description += `${comment}`;
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -3206,7 +3250,7 @@ async function handleMomentum(message, args, comment) {
   }
 
   if (comment) {
-    description += `\n${comment}`;
+    description += `${comment}`;
   }
 
   description += ` · *[Roll Link](${message.url})*`;
@@ -3244,10 +3288,15 @@ async function handleRover(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/rover.png');
 
   let description = `► **Bonus Action.** Damage resulting from moving is halved.\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Alter Sub-Action: Acceleration — Free Action for save bonuses.
@@ -3294,10 +3343,15 @@ async function handleAcceleration(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/acceleration.png');
 
   let description = `► **Free Action.** Gain a ${fortWillBonus} bonus to Fortitude and Will, and ${reflexBonus} to Reflex Save per unspent movement in the next damage phase.\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Exceed — Free Action to gain attack/heal/buff bonus by reducing max HP.
@@ -3331,10 +3385,15 @@ async function handleExceed(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/exceed.png');
 
   let description = `► **Free Action.** Reduce your maximum HP by **15 HP** to gain a **+${bonusAmount}** (MR⋅${mrRankUp}) bonus modifier on your next attacks, heals, or buffs.\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Engage — Bonus Action with two modes: Redo or Accretion.
@@ -3395,10 +3454,15 @@ async function handleEngage(message, args, comment) {
       description = `► **Bonus Action: Redo.** Lose **50 HP** to reroll your main action, you must take the new result. Redo Critical Attack uses **1d100** instead of **2d100kh1**.\n`;
     }
   }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Empower — Free Action to gain extra bonus action by reducing HP.
@@ -3430,17 +3494,24 @@ async function handleEmpower(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/empower.png');
 
   let description = `► **Free Action.** Once per cycle, reduce your HP by **50 HP** and gain **1 extra bonus action**, you cannot use the same BA twice.\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Mark — Bonus Action to mark enemy for damage bonus.
 // Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Target(X)" -> specifies target name.
 // Rank requirement: Minimum MR=D.
 async function handleMark(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
 
   // Get rank data
   const mrData = getRankData(args[1], 'mastery');
@@ -3457,6 +3528,10 @@ async function handleMark(message, args, comment) {
     return sendReply(message, embed, comment);
   }
 
+  // Parse Target from comment
+  const targetMatch = /\btarget\s*\(([^)]+)\)/i.exec(commentString);
+  const targetName = targetMatch && targetMatch[1] ? targetMatch[1].trim() : 'your marked enemy';
+
   // Define damage modifier based on rank
   const MARK_BONUS = { d: 10, c: 15, b: 20, a: 25, s: 30 };
   const damageBonus = MARK_BONUS[mrRank] ?? 0;
@@ -3468,11 +3543,16 @@ async function handleMark(message, args, comment) {
     .setTitle('Mark')
     .setThumbnail('https://terrarp.com/db/action/mark.png');
 
-  let description = `► **Bonus Action.** The next **2 attacks** to your marked enemy gains a **+${damageBonus}** (MR⋅${mrRankUp}) damage modifier. You cannot recast Mark until all charges are expended, if there are multiple Hyper Sense users, Marks may stack.\n`;
+  let description = `► **Bonus Action.** The next **2 attacks** to **${targetName}** gains a **+${damageBonus}** (MR⋅${mrRankUp}) damage modifier. You cannot recast Mark until all charges are expended, if there are multiple Hyper Sense users, Marks may stack.\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Hyper Insight — Free Action to grant break damage and imbue.
@@ -3527,14 +3607,18 @@ async function handleHyperInsight(message, args, comment) {
 
   let description;
   if (ultraInsightActive) {
-    description = `► **Free Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (${baseBreakDamage} × 2) Break damage and imbue the attack with one of your masteries this cycle.\n`;
+    description = `► **Bonus Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (${baseBreakDamage} × 2) Break damage and imbue the attack with one of your masteries this cycle.\n`;
   } else {
     description = `► **Free Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (MR⋅${mrRankUp}) Break damage and imbue the attack with one of your masteries this cycle.\n`;
   }
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Hyper Instinct — Passive to gain save roll bonus.
@@ -3589,14 +3673,19 @@ async function handleHyperInstinct(message, args, comment) {
 
   let description;
   if (ultraInstinctActive) {
-    description = `► **Passive.** Gain **+${finalSaveBonus}** (${baseSaveBonus} × 2) to a save roll in the next damage phase.\n`;
+    description = `► **Bonus Action.** Gain **+${finalSaveBonus}** (${baseSaveBonus} × 2) to a save roll in the next damage phase.\n`;
   } else {
     description = `► **Passive.** Gain **+${finalSaveBonus}** (MR⋅${mrRankUp}) to a save roll in the next damage phase.\n`;
   }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Regenerate — Passive HP regen or bonus action to share healing.
@@ -3643,10 +3732,15 @@ async function handleRegenerate(message, args, comment) {
   } else {
     description = `► **Passive.** Gain **${regenAmount} HP** (MR⋅${mrRankUp}) every cycle.\n`;
   }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Infuse — Free Action to heal multiple allies.
@@ -3695,10 +3789,15 @@ async function handleInfuse(message, args, comment) {
   } else {
     description = `► **Free Action.** Heal up to **${targetCount} allies** within range for **${healAmount} HP** (MR⋅${mrRankUp}).\n`;
   }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Adapt — Passive HP boost or bonus actions with different modes.
@@ -3756,17 +3855,24 @@ async function handleAdapt(message, args, comment) {
   } else {
     description = `► **Passive.** On the first post of a thread, add **${hpBoost} HP** (MR⋅${mrRankUp}) to your current HP. This is not a heal nor does it expand your max HP.\n`;
   }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Evolve — Passive bonus at beginning of thread.
 // Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Mastery(X)" -> specifies the mastery name.
 // Rank requirement: Minimum MR=D.
 async function handleEvolve(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
 
   // Get rank data
   const mrData = getRankData(args[1], 'mastery');
@@ -3783,6 +3889,13 @@ async function handleEvolve(message, args, comment) {
     return sendReply(message, embed, comment);
   }
 
+  // Parse Mastery from comment
+  const masteryMatch = /\bmastery\s*\(([^)]+)\)/i.exec(commentString);
+  const masteryName = masteryMatch && masteryMatch[1] ? masteryMatch[1].trim() : 'X';
+
+  // Check for Shift tag
+  const shiftActive = /\bshift\b/i.test(commentString);
+
   // Define bonus based on rank
   const EVOLVE_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
   const bonus = EVOLVE_BONUS[mrRank] ?? 0;
@@ -3794,11 +3907,21 @@ async function handleEvolve(message, args, comment) {
     .setTitle('Evolve')
     .setThumbnail('https://terrarp.com/db/action/evolve.png');
 
-  let description = `► **Passive.** At the beginning of the thread, **+${bonus}** (MR⋅${mrRankUp}) bonus to your actions.\n`;
+  let description;
+  if (shiftActive) {
+    description = `► **Passive.** Evolved Mastery changed to **${masteryName}**, **+${bonus}** (MR⋅${mrRankUp}) bonus to main action rolls made with this mastery.\n`;
+  } else {
+    description = `► **Passive.** Evolved **${masteryName}**, **+${bonus}** (MR⋅${mrRankUp}) bonus to main action rolls made with this mastery.\n`;
+  }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Coordinate — Free Action to grant modifier to targets.
@@ -3834,13 +3957,18 @@ async function handleCoordinate(message, args, comment) {
     .setColor('#8b5cf6')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Coordinate')
-    .setThumbnail('https://terrarp.com/db/action/sba.png');
+    .setThumbnail('https://terrarp.com/db/action/coordinate.png');
 
   let description = `► **Free Action.** Grant **${targetCount} targets** a **+${bonus}** (MR⋅${mrRankUp}) modifier to their next attack, heal, or buff action.\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Aid — Passive HP grant or bonus action to grant modifier.
@@ -3879,22 +4007,23 @@ async function handleAid(message, args, comment) {
     .setColor('#8b5cf6')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle(assistActive ? 'Aid - Assist' : 'Aid')
-    .setThumbnail('https://terrarp.com/db/action/sba.png');
+    .setThumbnail('https://terrarp.com/db/action/aid.png');
 
   let description;
   if (assistActive) {
     description = `► **Bonus Action: Assist.** Grant **+${assistBonus}** (MR⋅${mrRankUp}) modifier to the next mastery check made by any of your Coordinate targets.\n`;
   } else {
-    description = `► **Passive.** Once per cycle, if your Coordinate target takes damage, they gain **${passiveHP} HP**`;
-    if (passiveHP === 10) {
-      description += ` (B+ rank bonus)`;
-    }
-    description += `.\n`;
+    description = `► **Passive.** Once per cycle, if your Coordinate target takes damage, they gain **${passiveHP} HP** (MR⋅${mrRankUp}).\n`;
   }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
 }
 
 // Sub-Action: Charge — Passive charge pool or bonus actions to charge/release.
@@ -3921,34 +4050,113 @@ async function handleCharge(message, args, comment) {
   }
 
   // Check for mode triggers
-  const chargeActive = /\bcharge\b/i.test(commentString) && !/\brelease\b/i.test(commentString);
-  const releaseActive = /\brelease\b/i.test(commentString);
+  const chargingActive = /\bcharging\b/i.test(commentString);
+  const releaseMatch = /\brelease\s*\((\d+)\)/i.exec(commentString);
+  const releaseActive = releaseMatch !== null;
 
   // Define dice based on rank
-  const PASSIVE_DICE = { d: '1d20', c: '1d20', b: '2d20', a: '2d20', s: '3d20' };
-  const CHARGE_DICE = { d: '1d20', c: '1d20', b: '2d20', a: '2d20', s: '2d20' };
-  const passiveDice = PASSIVE_DICE[mrRank] ?? '1d20';
-  const chargeDice = CHARGE_DICE[mrRank] ?? '1d20';
+  const PASSIVE_DICE = { d: '1', c: '1', b: '2', a: '2', s: '3' };
+  const CHARGING_DICE = { d: '1', c: '1', b: '2', a: '2', s: '2' };
+  const passiveDice = PASSIVE_DICE[mrRank] ?? '1';
+  const chargingDice = CHARGING_DICE[mrRank] ?? '1';
+
+  // Handle Release with dice rolling
+  let rollResult = 0;
+  let calculation = '';
+  if (releaseActive) {
+    const numDice = parseInt(releaseMatch[1], 10);
+    const rolls = [];
+    for (let i = 0; i < numDice; i++) {
+      rolls.push(roll(1, 20));
+    }
+    rollResult = rolls.reduce((sum, r) => sum + r, 0);
+    calculation = `${numDice}d20 (${rolls.join(', ')})`;
+  }
 
   // Embed
   const embed = new EmbedBuilder()
     .setColor('#8b5cf6')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(releaseActive ? 'Charge - Release' : (chargeActive ? 'Charge - Charge' : 'Charge'))
-    .setThumbnail('https://terrarp.com/db/action/sba.png');
+    .setTitle(releaseActive ? 'Charge - Release' : (chargingActive ? 'Charge - Charging' : 'Charge'))
+    .setThumbnail('https://terrarp.com/db/action/charge.png');
 
   let description;
   if (releaseActive) {
-    description = `► **Bonus Action: Release.** Roll your entire Charge Pool and gain the roll result as a modifier for your attack, buff, heal, or mastery check involving your weapon.\n`;
-  } else if (chargeActive) {
-    description = `► **Bonus Action: Charge.** Add an extra **${chargeDice}** (MR⋅${mrRankUp}) to your Charge Pool.\n`;
+    description = `\`${calculation}\`\n\n`;
+    description += `► **Bonus Action: Release.** Gain the **+${rollResult}** as a modifier for your attack, buff, heal, or mastery check involving your weapon.\n`;
+  } else if (chargingActive) {
+    description = `► **Bonus Action: Charging.** Add an extra **${chargingDice}** (MR⋅${mrRankUp}) to your Charge Pool.\n`;
   } else {
     description = `► **Passive.** Add **${passiveDice}** (MR⋅${mrRankUp}) to your Charge Pool at the start of your turn when combat begins.\n`;
   }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
   description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
-  return sendReply(message, embed, comment);
+  return sendReply(message, embed);
+}
+
+// Sub-Action: Follow-up — Free Action for combo damage with ally.
+// Rolls: No. NG1: No. Crit: No.
+// Comment Trigger: "Normal" -> reduces modifier for normal attacks.
+// Rank requirement: Minimum MR=C (D for normal attacks).
+async function handleFollowUp(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Check for Normal trigger
+  const normalActive = /\bnormal\b/i.test(commentString);
+
+  // Rank validation
+  const restrictedRanks = normalActive ? ['e'] : ['e', 'd'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription(normalActive
+        ? '**Follow-up** with Normal attacks is not available below Mastery Rank (D).'
+        : '**Follow-up** is not available below Mastery Rank (C).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Define modifier values based on rank
+  const SPECIAL_MODIFIER = { d: 20, c: 25, b: 30, a: 35, s: 40 };
+  const NORMAL_MODIFIER = { d: 0, c: 15, b: 15, a: 20, s: 25 };
+
+  const specialMod = SPECIAL_MODIFIER[mrRank] ?? 0;
+  const normalMod = NORMAL_MODIFIER[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(normalActive ? 'Follow-up - Normal' : 'Follow-up')
+    .setThumbnail('https://terrarp.com/db/action/follow-up.png');
+
+  let description;
+  if (normalActive) {
+    description = `► **Free Action.** Whenever an ally within range performs a normal attack action, either you or your ally may use a **${normalMod}** (MR⋅${mrRankUp}) damage modifier in either of your posts (which must narratively feature both). If one follow-up partner crits, this value scales with the crit.\n`;
+  } else {
+    description = `► **Free Action.** Whenever an ally within range performs a special attack action, either you or your ally may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier in either of your posts (which must narratively feature both). If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
+  }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
 }
 
 /////////////////Bot Version
@@ -4015,6 +4223,7 @@ const commandHandlers = {
     'coordinate' : handleCoordinate,
     'aid' : handleAid,
     'charge' : handleCharge,
+    'followup' : handleFollowUp,
     'version': handleVersion,
     // TODO: Add all other command handlers here following the pattern above.
     // e.g., 'ultracounter': handleUltraCounter, 'save': handleSave, etc.
