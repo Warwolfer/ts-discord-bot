@@ -478,10 +478,12 @@ async function handleUltraCounter(message, args, comment) {
         .setAuthor({ name: `${displayName}'s Special Action`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Ultra Counter ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/ucounter.png')
-        let description = `\`${calculation}\`\n\n**${total} damage**\n\n${counterComment}\n${meleeNote}`;
+        let description = `\`${calculation}\`\n\n**${total} damage**\n\n${counterComment}\n${meleeNote}\n`;
         if (comment){
           description += `${comment}`;
           }
+
+        description += ` · *[Roll Link](${message.url})*`;
 
         embed.setDescription(description);
 
@@ -557,6 +559,8 @@ async function handleTorment(message, args, comment) {
       (modeNote ? `► ${modeNote}\n` : '');
 
     if (comment) description += `${comment}`;
+
+    description += ` · *[Roll Link](${message.url})*`;
 
     embed.setDescription(description);
     return sendReply(message, embed);
@@ -2681,6 +2685,8 @@ async function handleHaste(message, args, comment) {
     description += `${comment}`;
   }
 
+  description += ` · *[Roll Link](${message.url})*`;
+
   embed.setDescription(description);
   return sendReply(message, embed);
 }
@@ -2723,6 +2729,8 @@ async function handleInspire(message, args, comment) {
   if (comment) {
     description += `${comment}`;
   }
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
