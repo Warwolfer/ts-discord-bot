@@ -413,8 +413,13 @@ async function handleUltraCounter(message, args, comment) {
     const modifiers = parseModifiers(args, 3);
     const roll1 = roll(1, 100);
 
-    // Success check uses the MR rank's counterCheck
-    const success = roll1 >= mrData.counterCheck;
+    // New rank-based thresholds: 35 (D), 30 (B), 25 (S)
+    const mrRank = mrData.rank.toLowerCase();
+    const COUNTER_THRESHOLDS = { e: 40, d: 35, c: 30, b: 30, a: 25, s: 25 };
+    const threshold = COUNTER_THRESHOLDS[mrRank] ?? 30;
+
+    // Success check
+    const success = roll1 >= threshold;
 
     // On success, use the MR rank's counterDMG; on failure, 0
     const counterDmg = success ? mrData.counterDMG : 0;
@@ -464,8 +469,8 @@ async function handleUltraCounter(message, args, comment) {
 
     // Messages
     const counterComment = success
-        ? `► Successful counter! ${mrData.counterDMG} damage added. Vulnerability negated.`
-        : `► Skill issue. 0 damage added. You are vulnerable.`;
+        ? `► Successful counter on ${threshold}+! ${mrData.counterDMG} damage added. Vulnerability negated.`
+        : `► Failed counter (need ${threshold}+). 0 damage added. You are vulnerable.`;
 
     const meleeNote = meleeActive
         ? `► Melee triggered. 30 damage added.`
@@ -507,8 +512,8 @@ async function handleTorment(message, args, comment) {
     const baseTorment = TORMENT_DMG[mrRank] ?? 0;
 
     // Bonus action toggles from the comment
-    const ultraActive  = typeof comment === 'string' && /\bultra\s*torment\b/i.test(comment);
-    const radialActive = typeof comment === 'string' && /\bradial\s*torment\b/i.test(comment);
+    const ultraActive  = typeof comment === 'string' && /\bultra\b/i.test(comment);
+    const radialActive = typeof comment === 'string' && /\bradial\b/i.test(comment);
 
     // Enforce: only one bonus action per go (prefer Ultra if both found)
     let appliedMode = null;
@@ -884,9 +889,11 @@ async function handleSneak(message, args, comment) {
 
   const modifiers = parseModifiers(args, 3);
 
-  // Roll + success check uses MR's sneakCheck (fallback to 30 if missing)
+  // Roll + success check with rank-based thresholds: 35 (D), 30 (B), 25 (S)
   const r = roll(1, 100);
-  const threshold = Number.isFinite(mrData.sneakCheck) ? mrData.sneakCheck : 30;
+  const mrRankLower = mrData.rank.toLowerCase();
+  const SNEAK_THRESHOLDS = { e: 40, d: 35, c: 30, b: 30, a: 25, s: 25 };
+  const threshold = SNEAK_THRESHOLDS[mrRankLower] ?? 30;
   const success = r >= threshold;
 
   // Success bonus by MR rank on success; otherwise +10
@@ -1540,11 +1547,12 @@ async function handleReckless(message, args, comment) {
   const parts = [
     `1d200 (${r200})`
   ];
-  for (let i = 0; i < baseHundreds.length; i++) {
-    parts.push(`1d100 (${baseHundreds[i]})`);
-  }
+  // For S rank: show 2d100kh1 before 1d100
   if (isS && sPairKept !== null && sPairDropped !== null) {
     parts.push(`2d100kh1 (${sPairDropped}, ${sPairKept}⋅KP)`);
+  }
+  for (let i = 0; i < baseHundreds.length; i++) {
+    parts.push(`1d100 (${baseHundreds[i]})`);
   }
   if (riskyRolls.length > 0) parts.push(`${riskyRolls.length}d100 (${riskyRolls.join(', ')})`);
   parts.push(`${mrData.value} (MR⋅${mrData.rank})`, `${wrData.value} (WR⋅${wrData.rank})`);
@@ -2031,7 +2039,8 @@ async function handlePowerHeal(message, args, comment) {
         : (aoeActive
           ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
           : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
-    `\n► You are vulnerable.\n` +
+    `\n► Explosions occur on 16+ rolls (25% chance per die).\n` +
+    `► You are vulnerable.\n` +
     `► Free Action: Power Healing Cleanse. After healing, cleanse **${cleanseX}** (${mrRankUp}-rank) curable conditions from between and up to 3 allies within range. Manually add **5** per unused cleanse charge to your heal amount.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
@@ -2805,6 +2814,50 @@ async function handleGuardian(message, args, comment) {
   return sendReply(message, embed);
 }
 
+// Alter Sub-Action: Agress — Free action taunt with priority rolls.
+// Rolls: 1d100 (only if two Agress target same enemy). NG1: No. Crit: No.
+// Minimum Rank: D
+async function handleAgress(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D)
+  if (!mrRank) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('Check your Mastery rank input.');
+    return sendReply(message, embed, comment);
+  }
+
+  // Priority roll (1d100)
+  const priorityRoll = roll(1, 100);
+
+  // Embed setup
+  const embed = new EmbedBuilder()
+    .setColor('#8C6BC2')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('**(Alter) Agress**')
+    .setThumbnail('https://terrarp.com/db/action/agress.png');
+
+  let description = `\`1d100 (${priorityRoll})\`\n\n`;
+  description += `► **Free Action.** Taunt an enemy. Agress takes higher priority than regular Taunt. If two Agress is used on the same target, roll a 1d100, the higher result takes priority.\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}
+
 // Alter Sub-Action: Savior — Passive save roll bonus; optional "Share Aura" bonus mode.
 // Rolls: No. NG1: No. Crit: No.
 // Comment Trigger: "Share Aura" -> Title changes, action becomes Bonus, bonus is shared with allies.
@@ -2864,6 +2917,69 @@ async function handleSavior(message, args, comment) {
 
   // Add a link to the original message command
   description += ` · *[Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}
+
+// Alter Sub-Action: Acrimony — Damage and heal while vulnerable; optional "Meliorate" bonus mode.
+// Rolls: No. NG1: No. Crit: No.
+// Minimum Rank: D
+// Comment Trigger: "Meliorate" (replaces "placeholder") -> Bonus action that grants HP when target dies
+async function handleAcrimony(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D)
+  if (!mrRank) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('Check your Mastery rank input.');
+    return sendReply(message, embed, comment);
+  }
+
+  // Trigger: "Meliorate"
+  const meliorateActive = /\bmeliorate\b/i.test(commentString);
+
+  // Define values by rank
+  const DAMAGE_VALUES = { d: 15, c: 15, b: 25, a: 25, s: 35 };
+  const HEAL_VALUES = { d: 10, c: 10, b: 15, a: 15, s: 20 };
+  const MELIORATE_VALUES = { d: 15, c: 15, b: 25, a: 25, s: 35 };
+
+  const damageAmount = DAMAGE_VALUES[mrRank] ?? 15;
+  const healAmount = HEAL_VALUES[mrRank] ?? 10;
+  const meliorateAmount = MELIORATE_VALUES[mrRank] ?? 15;
+
+  // Embed setup
+  const embed = new EmbedBuilder()
+    .setColor('#8C6BC2')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setThumbnail('https://terrarp.com/db/action/acrimony.png');
+
+  let description = '';
+
+  // Handle which action is active
+  if (meliorateActive) {
+    // Meliorate (Bonus Action)
+    embed.setTitle('**(Alter) Acrimony**');
+    description += `► **Bonus Action: Meliorate.** When your Acrimony target dies this cycle, gain **${meliorateAmount} HP** (MR⋅${mrRankUp}).\n`;
+  } else {
+    // Acrimony (Free Action)
+    embed.setTitle('**(Alter) Acrimony**');
+    description += `► **Free Action.** While Vulnerable, deal an instance of **${damageAmount} damage** (MR⋅${mrRankUp}) to an enemy you are adjacent to or share a space with and regain **${healAmount} HP** (MR⋅${mrRankUp}). You cannot gain the Protected State.\n`;
+  }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
@@ -3035,7 +3151,11 @@ async function handleRage(message, args, comment) {
 // Sub-Action: Exchange — Convert defense into offense/utility for next damage phase.
 // Rolls: None. NG1: No. Crit: No.
 // Trigger: "Renewal" -> Bonus Action + roll Yd20 with advantage (per-die) and inline dice string.
-async function handleExchange(message, args, comment) {
+// Alter Sub-Action: Defile (replaces Exchange) — Mark targets with bonus/damage.
+// Rolls: 1d20 per mark (Free Action), 1d20 per Vilify target (Bonus Action).
+// Minimum Rank: C
+// Comment Triggers: "Enemy" for enemy marking, "Vilify" for Bonus Action mode
+async function handleDefile(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
     const embed = new EmbedBuilder()
@@ -3046,85 +3166,102 @@ async function handleExchange(message, args, comment) {
   }
 
   const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
 
   // Rank parsing
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
   const mrRank = mrRankRaw.toLowerCase();
   const mrRankUp = mrRankRaw.toUpperCase();
 
-  // Trigger: Renewal (advantage & becomes Bonus Action)
-  const renewalActive = typeof comment === 'string' && /\bdefile\b/i.test(comment);
-
-  // Only available at C/B/S
-  const DICE_BY_RANK = { c: 1, b: 2, s: 3 };
-  const yDice = DICE_BY_RANK[mrRank];
-  if (!yDice) {
+  // Rank validation: minimum C
+  const restrictedRanks = ['e', 'd'];
+  if (restrictedRanks.includes(mrRank)) {
     const embed = new EmbedBuilder()
       .setColor('Red')
       .setTitle('Unavailable MR Rank')
-      .setDescription('**Exchange** is available at **MR=C, MR=B, MR=S** only.\nY = 1d20 (C), 2d20 (B), 3d20 (S).');
+      .setDescription('**Defile** is available at **MR=C+** only.');
     return sendReply(message, embed, comment);
   }
 
-  // MR weight (tweak later if you define values)
-  const MR_WEIGHT = { c: 0, b: 0, s: 0 };
-  const mrWeight = MR_WEIGHT[mrRank] ?? 0;
+  // Triggers
+  const enemyActive = /\benemy\b/i.test(commentString);
+  const vilifyActive = /\bvilify\b/i.test(commentString);
 
-  // --- Roll Yd20 (sum) with per-die advantage if Renewal is active ---
-  let sumY = 0;
-  let rolledDisplayInline = ''; // e.g., "10, ~~3~~, 14, ~~1~~, 20, ~~12~~" or "10, 4"
-  if (renewalActive) {
-    const parts = [];
-    for (let i = 0; i < yDice; i++) {
-      const a = roll(1, 20);
-      const b = roll(1, 20);
-      const chosen = Math.max(a, b);
-      const other  = a === chosen ? b : a;
-      sumY += chosen;
-      // Show chosen first, then strikethrough the non-chosen
-      parts.push(`${chosen}`, `~~${other}~~`);
-    }
-    rolledDisplayInline = parts.join(', ');
-  } else {
-    const rolls = Array.from({ length: yDice }, () => roll(1, 20));
-    sumY = rolls.reduce((a, b) => a + b, 0);
-    rolledDisplayInline = rolls.join(', ');
-  }
+  // Number of targets by rank
+  const TARGETS_BY_RANK = { c: 2, b: 3, a: 3, s: 4 };
+  const numTargets = TARGETS_BY_RANK[mrRank] ?? 2;
 
-  // X = Yd20 - MR_weight; clamp at 0
-  const X = Math.max(0, sumY - mrWeight);
+  // Vilify targets by rank (C: 1, A+: 2)
+  const VILIFY_TARGETS = { c: 1, b: 1, a: 2, s: 2 };
+  const vilifyTargets = VILIFY_TARGETS[mrRank] ?? 1;
 
-  // Build embed
+  // Embed setup
   const embed = new EmbedBuilder()
     .setColor('#6845a2')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(renewalActive ? '(Alter) Defiled Exchange' : '(Alter) Exchange')
-    .setThumbnail('https://terrarp.com/db/action/exchange.png');
-
-  // Description — inline dice string inside the main sentence
-  const actionLead = renewalActive ? '**Bonus Action.**' : '**Free Action.**';
-  const diceTerm  = `${yDice}d20${renewalActive ? `kh` + `${yDice}` : ''}`;
+    .setThumbnail('https://terrarp.com/db/action/defile.png');
 
   let description = '';
-  description += `► ${actionLead} Gain a **-${X} penalty** (${diceTerm} = ${rolledDisplayInline} - MR⋅${mrRankUp}) to all *Save Rolls* until the end of the next damage phase and a **+${X} bonus** to attack, buff, or heal.\n`;
+  let calculation = '';
 
-  description += `\n◦ Note: The DM may convert Save reduction to HP-reduction.*`;
-  if (renewalActive) {
-    description += `\n◦ Defile: Rerolled with advantage.`;
+  if (vilifyActive) {
+    // Vilify mode (Bonus Action)
+    embed.setTitle('**(Alter) Defile**');
+
+    // Roll 1d20 per Vilify target
+    const rolls = [];
+    for (let i = 0; i < vilifyTargets; i++) {
+      rolls.push(roll(1, 20));
+    }
+    const totalRoll = rolls.reduce((a, b) => a + b, 0);
+    calculation = vilifyTargets > 1 ? `${vilifyTargets}d20 (${rolls.join(', ')})` : `1d20 (${rolls[0]})`;
+
+    description += `\`${calculation}\`\n\n`;
+    description += `► **Bonus Action: Vilify.** Add **${totalRoll}** (1d20) to **${vilifyTargets}** (MR⋅${mrRankUp}) already-marked target${vilifyTargets > 1 ? 's' : ''}`;
+
+    // HP loss for second charge at A+
+    if (vilifyTargets >= 2) {
+      description += `. Lose **20 HP** when applying the second Vilify charge`;
+    }
+    description += `.\n`;
+
+  } else {
+    // Normal mode (Free Action)
+    embed.setTitle('**(Alter) Defile**');
+
+    // Roll 1d20 per mark (assuming 1 mark per target for display)
+    const rolls = [];
+    for (let i = 0; i < numTargets; i++) {
+      rolls.push(roll(1, 20));
+    }
+    const totalRoll = rolls.reduce((a, b) => a + b, 0);
+    calculation = `${numTargets}d20 (${rolls.join(', ')})`;
+
+    description += `\`${calculation}\`\n\n`;
+    description += `► **Free Action.** Mark **${numTargets} targets** (MR⋅${mrRankUp}) (self, allies, enemies); you may stack the marks on a single target. From now until the end of the next damage cycle, lose your total rolled result **${totalRoll}** to all Saves to obtain the following effects:\n\n`;
+
+    if (enemyActive) {
+      description += `◦ **Enemy:** Deal an instance of **1d20 HP or break damage with advantage** per mark.\n`;
+    } else {
+      description += `◦ **Self & Allies:** The target gains an additional **X (1d20 per mark)** to an attack, buff, or heal.\n`;
+    }
   }
 
-  if (comment) description += `${comment}`;
-  description += ` · *[Link](${message.url})*`;
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
 
   embed.setDescription(description);
   return sendReply(message, embed);
 }
 
-// Alter Sub-Action: Wager Future — Bank an action or Renege on a banked action.
-// Rolls: Renege only (1d2).
-// Comment Trigger: "Banking (X)" -> Banks an action. "Renege" -> Executes the bonus action.
-// Rank Requirements: Renege unlocks at MR=A. Max banks increase at MR=B.
-async function handleWagerFuture(message, args, comment) {
+// Alter Sub-Action: Vitiate (replaces Wager Future) — Break damage with Amplify/Radial modes.
+// Rolls: No. NG1: No. Crit: No.
+// Minimum Rank: D
+// Comment Triggers: "Amplify" doubles damage (Bonus Action), "Radial" applies to all adjacent enemies (Bonus Action)
+async function handleVitiate(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
 
@@ -3133,60 +3270,62 @@ async function handleWagerFuture(message, args, comment) {
   const mrRank = mrData?.rank?.toLowerCase();
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
-  // This regex is robust and handles spaces/text inside the parentheses.
-  const bankingMatch = /\bbanking\s*\(\s*([^)]+?)\s*\)/i.exec(commentString);
-  const renegeActive = /\brenege\b/i.test(commentString);
+  // Rank validation (minimum D)
+  if (!mrRank) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('Check your Mastery rank input.');
+    return sendReply(message, embed, comment);
+  }
+
+  // Triggers
+  const amplifyActive = /\bamplify\b/i.test(commentString);
+  const radialActive = /\bradial\b/i.test(commentString);
+
+  // Break damage by rank
+  const BREAK_DAMAGE = { d: 5, c: 10, b: 15, a: 20, s: 25 };
+  let baseDamage = BREAK_DAMAGE[mrRank] ?? 5;
+  let finalDamage = baseDamage;
+
+  // Apply Amplify (doubles damage)
+  if (amplifyActive) {
+    finalDamage *= 2;
+  }
+
+  // Determine action type and title
+  let actionType = '**Free Action.**';
+  let titleSuffix = '';
+
+  if (amplifyActive && radialActive) {
+    actionType = '**Bonus Action: Amplify & Radial.**';
+    titleSuffix = ' (Amplify & Radial)';
+  } else if (amplifyActive) {
+    actionType = '**Bonus Action: Amplify.**';
+    titleSuffix = ' (Amplify)';
+  } else if (radialActive) {
+    actionType = '**Bonus Action: Radial.**';
+    titleSuffix = ' (Radial)';
+  }
 
   // Embed setup
   const embed = new EmbedBuilder()
     .setColor('#6845a2')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setThumbnail('https://terrarp.com/db/action/wagerfuture.png');
+    .setTitle(`**(Alter) Vitiate${titleSuffix}**`)
+    .setThumbnail('https://terrarp.com/db/action/vitiate.png');
 
-  let description = '';
+  let description = `► ${actionType} Deal an instance of **${finalDamage} Break damage** (MR⋅${mrRankUp}) `;
 
-  // --- Renege path (Bonus Action) ---
-  if (renegeActive) {
-    // Rank validation for Renege
-    if (!mrRank || !['a', 's'].includes(mrRank)) {
-      const err = new EmbedBuilder()
-        .setColor('Red')
-        .setTitle('Invalid Rank')
-        .setDescription('The **Renege** Bonus Action is only available at Mastery Rank (A) or higher.');
-      return sendReply(message, err, comment);
-    }
-
-    embed.setTitle('(Alter) Wager Future - Renege');
-
-    const rollResult = roll(1, 2);
-    const hpLoss = rollResult === 1 ? 200 : 100;
-    const renegeAttempts = mrRank === 's' ? `2 attempts (MR⋅S)` : `1 attempt (MR⋅A)`;
-
-    description += `► **Bonus Action: Renege.** Roll: 1d2 = **${rollResult}** → Lose **${hpLoss}** current and max HP.\n`;
-    description += `◦ Renege: max ${renegeAttempts}\n`;
-
-  // --- Banking path (Free Action) ---
+  if (radialActive) {
+    description += `to all enemies adjacent to you. When the battle map is not in use, apply damage to all enemies narratively close to you`;
   } else {
-    embed.setTitle('(Alter) Wager Future');
+    description += `to an enemy adjacent to you`;
+  }
+  description += `.\n`;
 
-    const bankedValue = bankingMatch && bankingMatch[1] ? `**${bankingMatch[1].trim()}**` : '**X**';
-    const maxBanks = (mrRank && ['b', 'a', 's'].includes(mrRank)) ? 2 : 1;
-
-    description += `► **Free Action.** ${bankedValue} has been banked for future use.`;
-    description += `\n◦ Deadline: If a banked action remains by end-of-thread or cycle 5, roll 1d2 and lose 200 current & max HP on 1, or 100 on 2.`;
-    description += `\n◦ Maximum: ${maxBanks} banked action${maxBanks > 1 ? 's' : ''}.`;
-
-    // --- FINAL CHANGE AS REQUESTED ---
-    // Always show Renege status, changing the text based on rank.
-    let renegeStatus = '';
-    if (mrRank === 's') {
-      renegeStatus = 'max 2 attempts (MR⋅S)';
-    } else if (mrRank === 'a') {
-      renegeStatus = 'max 1 attempt (MR⋅A)';
-    } else {
-      renegeStatus = 'Locked (Requires MR⋅A)';
-    }
-    description += `\n◦ Renege: ${renegeStatus}\n`;
+  if (amplifyActive) {
+    description += `\n◦ Amplify: Damage doubled from **${baseDamage}** to **${finalDamage}**.\n`;
   }
 
   if (comment) {
@@ -4108,6 +4247,53 @@ async function handleCharge(message, args, comment) {
   return sendReply(message, embed);
 }
 
+// Sub-Action: Gift (Weapon Arts) — Passive for rerolling Charge Release dice.
+// Rolls: No. NG1: No. Crit: No.
+// Minimum Rank: B
+// S Upgrade: Third reroll available with 20 HP cost
+async function handleGift(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum B rank)
+  const restrictedRanks = ['e', 'd', 'c'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Gift** is not available below Mastery Rank (B).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#8b5cf6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Gift')
+    .setThumbnail('https://terrarp.com/db/action/gift.png');
+
+  let description = `► **Passive.** When you Release your charge, roll another set and take the higher set.\n`;
+
+  // S rank upgrade
+  if (mrRank === 's') {
+    description += `\n◦ **S Upgrade:** You may reroll your Release dice set a third time and keep the highest set, but take **20 damage**.\n`;
+  }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}
+
 // Sub-Action: Follow-up — Free Action for combo damage with ally.
 // Rolls: No. NG1: No. Crit: No.
 // Comment Trigger: "Target(X)" -> specifies ally name.
@@ -4150,6 +4336,68 @@ async function handleFollowUp(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/follow-up.png');
 
   let description = `► **Free Action.** You or **${targetName}** may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier when **${targetName}** performs a special attack action within range. If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}
+
+// Sub-Action: Locomote (Summon) — Movement buff with Switch toggle.
+// Rolls: No. NG1: No. Crit: No.
+// Minimum Rank: D
+// Comment Triggers: "Target(X)" specifies target name, "Switch" for Bonus Action mode
+async function handleLocomote(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+  const commentString = typeof comment === 'string' ? comment : '';
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D)
+  if (!mrRank) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('Check your Mastery rank input.');
+    return sendReply(message, embed, comment);
+  }
+
+  // Parse Target from comment
+  const targetMatch = /\btarget\s*\(([^)]+)\)/i.exec(commentString);
+  const targetName = targetMatch && targetMatch[1] ? targetMatch[1].trim() : 'a target';
+
+  // Trigger: Switch
+  const switchActive = /\bswitch\b/i.test(commentString);
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#10b981')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setThumbnail('https://terrarp.com/db/action/locomote.png');
+
+  let description = '';
+
+  if (switchActive) {
+    // Switch mode (Bonus Action)
+    embed.setTitle('Locomote (Switch)');
+    description += `► **Bonus Action: Switch.** Change the Locomote target to **${targetName}**.\n`;
+  } else {
+    // Normal mode (Free Action)
+    embed.setTitle('Locomote');
+    description += `► **Free Action.** At the start of the thread, pick **${targetName}** within range, that target gets a **+1 movement** until you switch the target.\n`;
+
+    // B rank upgrade
+    if (mrRank === 'b' || mrRank === 'a' || mrRank === 's') {
+      description += `\n◦ **B Upgrade:** If you and the Locomote target start on the same space at the start of a cycle, both get the **+1 movement**.\n`;
+    }
+  }
 
   if (comment) {
     description += `${comment}`;
@@ -4204,11 +4452,13 @@ const commandHandlers = {
     'haste' : handleHaste,
     'inspire' : handleInspire,
     'guardian' : handleGuardian,
+    'agress' : handleAgress,
+    'acrimony' : handleAcrimony,
     'savior' : handleSavior,
     'overdrive' : handleOverdrive,
     'rage' : handleRage,
-    'exchange' : handleExchange,
-    'wagerfuture' : handleWagerFuture,
+    'defile' : handleDefile,
+    'vitiate' : handleVitiate,
     'momentum' : handleMomentum,
     'rover' : handleRover,
     'acceleration' : handleAcceleration,
@@ -4225,6 +4475,8 @@ const commandHandlers = {
     'coordinate' : handleCoordinate,
     'aid' : handleAid,
     'charge' : handleCharge,
+    'gift' : handleGift,
+    'locomote' : handleLocomote,
     'followup' : handleFollowUp,
     'version': handleVersion,
     // TODO: Add all other command handlers here following the pattern above.
