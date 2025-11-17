@@ -16,20 +16,20 @@ const REPLY_DELETE_TIMEOUT = 5000; // Increased to 5 seconds
 // Central location for all rank-based stats. Makes updating rules easy.
 const RANK_DATA = {
     'e': { value: 0, counterCheck: 40, counterDMG: 30, burstMod: 0, critRange: 80, bonus102030: 0, bonus152025: 0, bonus51015: 0, bonus101520: 0, bonus203040: 0, bonus51525: 0, bonus204060: 0, bonus123: 0, surgeHaste: 0, surgeInspire: 0, swHP: 10 },
-    'd': { value: 5, counterCheck: 35, counterDMG: 30, burstMod: 1, critRange: 80, bonus102030: 10, bonus152025: 15, bonus51015: 5, bonus101520: 10, bonus203040: 20, bonus51525: 5, bonus204060: 20, bonus123: 1, surgeHaste: 2, surgeInspire: 6, swHP: 20 },
-    'c': { value: 10, counterCheck: 30, counterDMG: 40, burstMod: 2, critRange: 80, bonus102030: 10, bonus152025: 15, bonus51015: 5, bonus101520: 10, bonus203040: 20, bonus51525: 5, bonus204060: 20, bonus123: 1, surgeHaste: 4, surgeInspire: 12, swHP: 30 },
-    'b': { value: 15, counterCheck: 30, counterDMG: 40, burstMod: 3, critRange: 80, bonus102030: 20, bonus152025: 20, bonus51015: 10, bonus101520: 15, bonus203040: 30, bonus51525: 15, bonus204060: 40, bonus123: 2, surgeHaste: 6, surgeInspire: 18, swHP: 40 },
-    'a': { value: 20, counterCheck: 25, counterDMG: 50, burstMod: 4, critRange: 80, bonus102030: 20, bonus152025: 20, bonus51015: 10, bonus101520: 15, bonus203040: 30, bonus51525: 15, bonus204060: 40, bonus123: 2, surgeHaste: 8, surgeInspire: 24, swHP: 50 },
-    's': { value: 25, counterCheck: 20, counterDMG: 50,  burstMod: 5, critRange: 80, bonus102030: 30, bonus152025: 25, bonus51015: 15, bonus101520: 20, bonus203040: 40, bonus51525: 25, bonus204060: 60, bonus123: 3, surgeHaste: 10, surgeInspire: 30, swHP: 60 },
+    'd': { value: 10, counterCheck: 35, counterDMG: 30, burstMod: 1, critRange: 80, bonus102030: 10, bonus152025: 15, bonus51015: 5, bonus101520: 10, bonus203040: 20, bonus51525: 5, bonus204060: 20, bonus123: 1, surgeHaste: 2, surgeInspire: 6, swHP: 20 },
+    'c': { value: 15, counterCheck: 30, counterDMG: 40, burstMod: 2, critRange: 80, bonus102030: 10, bonus152025: 15, bonus51015: 5, bonus101520: 10, bonus203040: 20, bonus51525: 5, bonus204060: 20, bonus123: 1, surgeHaste: 4, surgeInspire: 12, swHP: 30 },
+    'b': { value: 25, counterCheck: 30, counterDMG: 40, burstMod: 3, critRange: 80, bonus102030: 20, bonus152025: 20, bonus51015: 10, bonus101520: 15, bonus203040: 30, bonus51525: 15, bonus204060: 40, bonus123: 2, surgeHaste: 6, surgeInspire: 18, swHP: 40 },
+    'a': { value: 30, counterCheck: 25, counterDMG: 50, burstMod: 4, critRange: 80, bonus102030: 20, bonus152025: 20, bonus51015: 10, bonus101520: 15, bonus203040: 30, bonus51525: 15, bonus204060: 40, bonus123: 2, surgeHaste: 8, surgeInspire: 24, swHP: 50 },
+    's': { value: 40, counterCheck: 20, counterDMG: 50,  burstMod: 5, critRange: 80, bonus102030: 30, bonus152025: 25, bonus51015: 15, bonus101520: 20, bonus203040: 40, bonus51525: 25, bonus204060: 60, bonus123: 3, surgeHaste: 10, surgeInspire: 30, swHP: 60 },
 };
 
 const WEAPON_RANK_DATA = {
     'e': { value: 0, burstMod: 0 },
-    'd': { value: 5, burstMod: 1 },
-    'c': { value: 10, burstMod: 2 },
-    'b': { value: 15, burstMod: 3 },
-    'a': { value: 20, burstMod: 4 },
-    's': { value: 25, burstMod: 5 },
+    'd': { value: 10, burstMod: 1 },
+    'c': { value: 15, burstMod: 2 },
+    'b': { value: 25, burstMod: 3 },
+    'a': { value: 30, burstMod: 4 },
+    's': { value: 40, burstMod: 5 },
 };
 
 // --- Helper Functions ---
@@ -1724,7 +1724,7 @@ async function handleSharpshooter(message, args, comment) {
   const mrRankUp = mrRankRaw.toUpperCase();
 
   const BASE_X        = { d: 5,  c: 5,  b: 10, a: 10, s: 15 };
-  const SNIPE_TRIG_X  = { d: 15, c: 15, b: 30, a: 30, s: 50 };
+  const SNIPE_TRIG_X  = { d: 15, c: 15, b: 30, a: 30, s: 40 };
   const SNIPE_FAIL_X  = { d: 10, c: 10, b: 15, a: 15, s: 20 };
 
   const baseBuff = BASE_X[mrRank] ?? 0;
@@ -1846,8 +1846,11 @@ async function handleHeal(message, args, comment) {
     }
   }
 
-  // --- Exploding dice: 2d20, explode on 18+ (chaining) ---
-  const EXPLODE_ON = 18;
+  // --- Exploding dice: 2d20, explode on rank-based threshold (chaining) ---
+  // Thresholds by rank: 19 (D), 18 (B), 17 (S)
+  const mrRank = mrData.rank.toLowerCase();
+  const EXPLODE_THRESHOLDS = { e: 20, d: 19, c: 19, b: 18, a: 18, s: 17 };
+  const EXPLODE_ON = EXPLODE_THRESHOLDS[mrRank] ?? 18;
   const BASE_DICE = 2;
   const MAX_DICE_SAFETY = 200;
 
@@ -1967,8 +1970,13 @@ async function handlePowerHeal(message, args, comment) {
     }
   }
 
-  // --- Exploding dice: 4d20, each 16+ rolls an extra d20 (chaining) ---
-  const EXPLODE_ON = 16;
+  // --- Exploding dice: 4d20, explode on rank-based threshold (chaining) ---
+  // Thresholds by rank: 18 (D), 17 (B), 16 (S)
+  const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
+  const mrRank = mrRankRaw.toLowerCase();
+  const mrRankUp = mrRankRaw.toUpperCase();
+  const EXPLODE_THRESHOLDS = { e: 20, d: 18, c: 18, b: 17, a: 17, s: 16 };
+  const EXPLODE_ON = EXPLODE_THRESHOLDS[mrRank] ?? 16;
   const BASE_DICE = 4;
   const MAX_DICE_SAFETY = 200;
 
@@ -1997,9 +2005,6 @@ async function handlePowerHeal(message, args, comment) {
   const perAlly = simulcastActive ? Math.floor(total / 2) : (versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total));
 
   // MR rank -> cleanse charges X
-  const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
-  const mrRank = mrRankRaw.toLowerCase();
-  const mrRankUp = mrRankRaw.toUpperCase();
   const CLEANSE_X = { d: 2, c: 2, b: 3, a: 3, s: 4 };
   const cleanseX = CLEANSE_X[mrRank] ?? 0;
 
@@ -2106,6 +2111,10 @@ async function handleBuff(message, args, comment) {
   const BUFF_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
   const buffBonus = BUFF_BONUS[mrRank] ?? 0;
 
+  // Per-charge bonus (added to each charge): 5 (D), 10 (S)
+  const PER_CHARGE_BONUS = { d: 5, c: 5, b: 8, a: 8, s: 10 };
+  const perChargeBonus = PER_CHARGE_BONUS[mrRank] ?? 0;
+
   // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile/Simulcast)
   const SINGLE_TARGET_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
   const singleTargetBonusTotal = (appliedMode === null) ? (SINGLE_TARGET_BONUS[mrRank] ?? 0) : 0;
@@ -2166,7 +2175,8 @@ async function handleBuff(message, args, comment) {
     displayBlock = `**+${perCharge} damage buff to 3 targets**\n`;
     perTarget = perCharge; // For calculation display consistency
   } else {
-    const perCharge = Math.floor(multipliedTotal / 3);
+    // Single-target: apply per-charge bonus
+    const perCharge = Math.floor(multipliedTotal / 3) + perChargeBonus;
     displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n\n► Single-target bonus activated. ${singleTargetBonusTotal} added (${wrData.rank}-rank).\n`;
     perTarget = perCharge; // For calculation display consistency
   }
@@ -2275,6 +2285,10 @@ async function handlePowerBuff(message, args, comment) {
   const BUFF_BONUS = { d: 20, c: 20, b: 30, a:30, s: 40 };
   const buffBonus = BUFF_BONUS[mrRank] ?? 0;
 
+  // Per-charge bonus (added to each charge): 5 (D), 10 (B), 15 (S)
+  const PER_CHARGE_BONUS = { d: 5, c: 8, b: 10, a: 12, s: 15 };
+  const perChargeBonus = PER_CHARGE_BONUS[mrRank] ?? 0;
+
   // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile/Simulcast)
   const SINGLE_TARGET_BONUS = { d: 20, c: 20, b: 30, a:30, s: 40 };
   const singleTargetBonusTotal = (appliedMode === null) ? (SINGLE_TARGET_BONUS[mrRank] ?? 0) : 0;
@@ -2369,7 +2383,8 @@ async function handlePowerBuff(message, args, comment) {
     displayBlock = `**+${perCharge} damage buff to 3 targets**\n`;
     perTarget = perCharge; // For calculation display consistency
   } else {
-    const perCharge = Math.floor(multipliedTotal / 3);
+    // Single-target: apply per-charge bonus
+    const perCharge = Math.floor(multipliedTotal / 3) + perChargeBonus;
     displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n\n► Single-target bonus activated. ${singleTargetBonusTotal} added (${wrData.rank}-rank).\n`;
     perTarget = perCharge; // For calculation display consistency
   }
@@ -2506,7 +2521,7 @@ async function handleVersatile(message, args, comment) {
   let description = `► **Free Action.** Apply the effects to 2 targets (instead of 3) and apply the last heal/buff amount to one of those targets.\n`;
 
   if (ultraActive) {
-    description += `► **Bonus Action.** Roll both Buff and Heal. Both actions must be Standard or Special and AoE. Choose which of the target gets the *heal* or *buff* charge.\n`;
+    description += `► **Bonus Action: Simulcast.** Target 2 allies with Heal and Buff (both must be special or non-special). Choose if each target gets either the heal or buff.\n`;
   }
 
   if (comment) description += `${comment}`;
@@ -2747,10 +2762,10 @@ async function handleInspire(message, args, comment) {
 
 // Alter Actions Start Here //
 
-// Alter Sub-Action: Guardian — Free action damage mitigation; optional "Amplify Aura" bonus mode.
+// Alter Sub-Action: Guardian — Free action damage mitigation; optional "Amplify" bonus mode.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Amplify Aura" -> Title changes, action becomes Bonus, mitigation is doubled.
-// Amplify Aura Rank Requirement: Only available at MR=A and MR=S.
+// Comment Trigger: "Amplify" -> Title changes, action becomes Bonus, mitigation is doubled.
+// Amplify Rank Requirement: Only available at MR=A and MR=S.
 async function handleGuardian(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
@@ -2760,10 +2775,10 @@ async function handleGuardian(message, args, comment) {
   const mrRank = mrData?.rank?.toLowerCase();
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
-  // Trigger: "Amplify Aura"
-  const amplifyActive = /\bamplify\s*aura\b/i.test(commentString);
+  // Trigger: "Amplify"
+  const amplifyActive = /\bamplify\b/i.test(commentString);
 
-  // Rank validation for Amplify Aura
+  // Rank validation for Amplify
   if (amplifyActive) {
     const restrictedRanks = ['e', 'd', 'c', 'b'];
     if (!mrRank || restrictedRanks.includes(mrRank)) {
@@ -2789,10 +2804,10 @@ async function handleGuardian(message, args, comment) {
 
   // Handle which action is active
   if (amplifyActive) {
-    // Amplify Aura (Bonus Action)
+    // Amplify (Bonus Action)
     mitigationAmount *= 2; // Double the mitigation
     embed.setTitle('**(Alter) Guardian**');
-    description += `► **Bonus Action: Amplify Aura.** Distribute **${mitigationAmount} mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
+    description += `► **Bonus Action: Amplify.** Distribute **${mitigationAmount} mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
     description += `\n◦ Effect: Mitigation amount has been doubled.`;
     description += `\n◦ Limitation: Each character may have no more than *60 mitigation* from all effects.\n`;
 
@@ -2814,10 +2829,10 @@ async function handleGuardian(message, args, comment) {
   return sendReply(message, embed);
 }
 
-// Alter Sub-Action: Agress — Free action taunt with priority rolls.
-// Rolls: 1d100 (only if two Agress target same enemy). NG1: No. Crit: No.
+// Alter Sub-Action: Aggress — Free action taunt with priority rolls.
+// Rolls: 1d100 (only if two Aggress target same enemy). NG1: No. Crit: No.
 // Minimum Rank: D
-async function handleAgress(message, args, comment) {
+async function handleAggress(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
 
@@ -2842,11 +2857,11 @@ async function handleAgress(message, args, comment) {
   const embed = new EmbedBuilder()
     .setColor('#8C6BC2')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('**(Alter) Agress**')
-    .setThumbnail('https://terrarp.com/db/action/agress.png');
+    .setTitle('**(Alter) Aggress**')
+    .setThumbnail('https://terrarp.com/db/action/aggress.png');
 
   let description = `\`1d100 (${priorityRoll})\`\n\n`;
-  description += `► **Free Action.** Taunt an enemy. Agress takes higher priority than regular Taunt. If two Agress is used on the same target, roll a 1d100, the higher result takes priority.\n`;
+  description += `► **Free Action.** Taunt an enemy. Aggress takes higher priority than regular Taunt. If two Aggress is used on the same target, roll a 1d100, the higher result takes priority.\n`;
 
   if (comment) {
     description += `${comment}`;
@@ -2858,10 +2873,10 @@ async function handleAgress(message, args, comment) {
   return sendReply(message, embed);
 }
 
-// Alter Sub-Action: Savior — Passive save roll bonus; optional "Share Aura" bonus mode.
+// Alter Sub-Action: Savior — Passive save roll bonus; optional "Share" bonus mode.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Share Aura" -> Title changes, action becomes Bonus, bonus is shared with allies.
-// Share Aura Rank Requirement: Only available at MR=D, MR=B, and MR=S.
+// Comment Trigger: "Share" -> Title changes, action becomes Bonus, bonus is shared with allies.
+// Share Rank Requirement: Only available at MR=D, MR=B, and MR=S.
 async function handleSavior(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
@@ -2871,10 +2886,10 @@ async function handleSavior(message, args, comment) {
   const mrRank = mrData?.rank?.toLowerCase();
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
-  // Trigger: "Share Aura"
-  const shareAuraActive = /\bshare\s*aura\b/i.test(commentString);
+  // Trigger: "Share"
+  const shareAuraActive = /\bshare\b/i.test(commentString);
 
-  // Rank validation for Share Aura
+  // Rank validation for Share
   if (shareAuraActive) {
     if (!mrRank || mrRank === 'e') {
       const embed = new EmbedBuilder()
@@ -2899,10 +2914,10 @@ async function handleSavior(message, args, comment) {
 
   // Handle which action is active
   if (shareAuraActive) {
-    // Share Aura (Bonus Action)
+    // Share (Bonus Action)
     const allies = mrRank === 's' ? '2 allies' : '1 ally';
     embed.setTitle('**(Alter) Savior**');
-    description += `► **Bonus Action: Share Aura.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase, and share the same amount with ***${allies}*** within range.\n`;
+    description += `► **Bonus Action: Share.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase, and share the same amount with ***${allies}*** within range.\n`;
   } else {
     // Savior (Passive)
     embed.setTitle('**(Alter) Savior**');
@@ -3099,14 +3114,14 @@ async function handleRage(message, args, comment) {
     return sendReply(message, embed, comment);
   }
 
-  // Caps by MR rank (only available at C, A, S unless Frenzy removes the cap)
-  const CAPS = { c: 50, b: 75, a: 100, s: 125 };
+  // Caps by MR rank (available at D, C, B, A, S unless Frenzy removes the cap)
+  const CAPS = { d: 25, c: 50, b: 75, a: 100, s: 125 };
   const hasCapForRank = Object.prototype.hasOwnProperty.call(CAPS, mrRank);
   if (!frenzyActive && !hasCapForRank) {
     const embed = new EmbedBuilder()
       .setColor('Red')
       .setTitle('Unavailable MR Rank')
-      .setDescription('Rage is only available from C-rank+.')
+      .setDescription('Rage is only available from D-rank+.')
     return sendReply(message, embed, comment);
   }
 
@@ -3297,12 +3312,9 @@ async function handleVitiate(message, args, comment) {
   let actionType = '**Free Action.**';
   let titleSuffix = '';
 
-  if (amplifyActive && radialActive) {
-    actionType = '**Bonus Action: Amplify & Radial.**';
-    titleSuffix = ' (Amplify & Radial)';
-  } else if (amplifyActive) {
-    actionType = '**Bonus Action: Amplify.**';
-    titleSuffix = ' (Amplify)';
+  if (amplifyActive) {
+      actionType = '**Bonus Action: Amplify.**';
+      titleSuffix = ' (Amplify)';
   } else if (radialActive) {
     actionType = '**Bonus Action: Radial.**';
     titleSuffix = ' (Radial)';
@@ -3704,8 +3716,8 @@ async function handleMark(message, args, comment) {
 
 // Sub-Action: Hyper Insight — Free Action to grant break damage and imbue.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Ultra Insight" -> doubles break damage bonus.
-// Rank requirement: Minimum MR=D. Ultra Insight requires minimum MR=A.
+// Comment Trigger: "Ultra" -> doubles break damage bonus.
+// Rank requirement: Minimum MR=D. Ultra requires minimum MR=A.
 async function handleHyperInsight(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
@@ -3725,17 +3737,17 @@ async function handleHyperInsight(message, args, comment) {
     return sendReply(message, embed, comment);
   }
 
-  // Check for Ultra Insight trigger
-  const ultraInsightActive = /\bultra\s*insight\b/i.test(commentString);
+  // Check for Ultra trigger
+  const ultraInsightActive = /\bultra\b/i.test(commentString);
 
-  // Ultra Insight requires minimum A rank
+  // Ultra requires minimum A rank
   if (ultraInsightActive) {
     const ultraRestrictedRanks = ['e', 'd', 'c', 'b'];
     if (ultraRestrictedRanks.includes(mrRank)) {
       const embed = new EmbedBuilder()
         .setColor('Red')
         .setTitle('Invalid Rank')
-        .setDescription('**Ultra Insight** is not available below Mastery Rank (A).');
+        .setDescription('**Ultra** is not available below Mastery Rank (A).');
       return sendReply(message, embed, comment);
     }
   }
@@ -3770,8 +3782,8 @@ async function handleHyperInsight(message, args, comment) {
 
 // Sub-Action: Hyper Instinct — Passive to gain save roll bonus.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Ultra Instinct" -> doubles save bonus.
-// Rank requirement: Minimum MR=D. Ultra Instinct requires minimum MR=A.
+// Comment Trigger: "Ultra" -> doubles save bonus.
+// Rank requirement: Minimum MR=D. Ultra requires minimum MR=A.
 async function handleHyperInstinct(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
@@ -3791,17 +3803,17 @@ async function handleHyperInstinct(message, args, comment) {
     return sendReply(message, embed, comment);
   }
 
-  // Check for Ultra Instinct trigger
-  const ultraInstinctActive = /\bultra\s*instinct\b/i.test(commentString);
+  // Check for Ultra trigger
+  const ultraInstinctActive = /\bultra\b/i.test(commentString);
 
-  // Ultra Instinct requires minimum A rank
+  // Ultra requires minimum A rank
   if (ultraInstinctActive) {
     const ultraRestrictedRanks = ['e', 'd', 'c', 'b'];
     if (ultraRestrictedRanks.includes(mrRank)) {
       const embed = new EmbedBuilder()
         .setColor('Red')
         .setTitle('Invalid Rank')
-        .setDescription('**Ultra Instinct** is not available below Mastery Rank (A).');
+        .setDescription('**Ultra** is not available below Mastery Rank (A).');
       return sendReply(message, embed, comment);
     }
   }
@@ -3837,7 +3849,7 @@ async function handleHyperInstinct(message, args, comment) {
 
 // Sub-Action: Regenerate — Passive HP regen or bonus action to share healing.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Power Regenerate" -> switches to bonus action mode.
+// Comment Trigger: "Power" -> switches to bonus action mode.
 // Rank requirement: Minimum MR=D.
 async function handleRegenerate(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
@@ -3858,8 +3870,8 @@ async function handleRegenerate(message, args, comment) {
     return sendReply(message, embed, comment);
   }
 
-  // Check for Power Regenerate trigger
-  const powerRegenerateActive = /\bpower\s*regenerate\b/i.test(commentString);
+  // Check for Power trigger
+  const powerRegenerateActive = /\bpower\b/i.test(commentString);
 
   // Define HP regen based on rank
   const REGEN_HP = { d: 5, c: 5, b: 10, a: 10, s: 15 };
@@ -3869,12 +3881,12 @@ async function handleRegenerate(message, args, comment) {
   const embed = new EmbedBuilder()
     .setColor('#8b5cf6')
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(powerRegenerateActive ? 'Power Regenerate' : 'Regenerate')
+    .setTitle(powerRegenerateActive ? 'Regenerate - Power' : 'Regenerate')
     .setThumbnail('https://terrarp.com/db/action/regenerate.png');
 
   let description;
   if (powerRegenerateActive) {
-    description = `► **Bonus Action: Power Regenerate.** Gain the rolled HP and grant an ally the same amount, or forgo your own regeneration and grant an ally double the rolled HP.\n`;
+    description = `► **Bonus Action: Power.** Gain the rolled HP and grant an ally the same amount, or forgo your own regeneration and grant an ally double the rolled HP.\n`;
     description += `◦ *Base Regen:* **${regenAmount} HP** (MR⋅${mrRankUp})\n`;
   } else {
     description = `► **Passive.** Gain **${regenAmount} HP** (MR⋅${mrRankUp}) every cycle.\n`;
@@ -4452,7 +4464,7 @@ const commandHandlers = {
     'haste' : handleHaste,
     'inspire' : handleInspire,
     'guardian' : handleGuardian,
-    'agress' : handleAgress,
+    'aggress' : handleAggress,
     'acrimony' : handleAcrimony,
     'savior' : handleSavior,
     'overdrive' : handleOverdrive,
