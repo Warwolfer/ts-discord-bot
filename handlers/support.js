@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, extractRankInfo, validateMinimumRank, parseTriggers, finalizeAndSend } = require('../helpers');
+const { EMBED_COLORS } = require('../constants');
 
 
 async function handleHeal(message, args, comment) {
@@ -8,7 +9,7 @@ async function handleHeal(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -19,28 +20,20 @@ async function handleHeal(message, args, comment) {
   const modsClean = rawMods.replace(/^\s*\+\s*/, '').trim();
   const hasMods = /\d/.test(modifiers.display);
 
-  // Triggers
-  const aoeActive = typeof comment === 'string' && /\baoe\b/i.test(comment);
-  const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
-  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
+  // Parse triggers
+  const triggers = parseTriggers(comment, {
+    aoe: /\baoe\b/i,
+    versatile: /\b(?:vers[-\s]*aoe|versatile)\b/i,
+    simulcast: /\bsimulcast\b/i
+  });
 
   // Precedence: Simulcast > Versatile > AoE
-  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
+  const appliedMode = triggers.simulcast ? 'Simulcast' : (triggers.versatile ? 'Versatile' : (triggers.aoe ? 'AoE' : null));
 
-  // NG trigger (only NG1 enabled)
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) {
-        ngBonus = 5;
-      } else {
-        ngNote = `► NG⋅${level} is currently disabled.`;
-      }
-    }
-  }
+  // Parse NG trigger
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // --- Exploding dice: 2d20, explode on rank-based threshold (chaining) ---
   // Thresholds by rank: 19 (D), 18 (B), 17 (S)
@@ -920,44 +913,30 @@ async function handleSmite(message, args, comment) {
 // Minimum Rank: D
 
 async function handleBlessed(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+  // Extract rank info
+  const mr = extractRankInfo(args, 1, 'mastery');
 
-  // Rank validation (minimum D rank)
-  const restrictedRanks = ['e'];
-  if (!mrRank || restrictedRanks.includes(mrRank)) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('**Blessed** is not available below Mastery Rank (D).');
-    return sendReply(message, embed, comment);
+  // Validate minimum rank (D)
+  if (!validateMinimumRank(message, mr.rank, 'D', 'Blessed', comment)) {
+    return;
   }
 
   // Define modifier based on rank (+5 per rank: D=5, C=10, B=15, A=20, S=25)
   const BLESSED_MODIFIER = { d: 5, c: 10, b: 15, a: 20, s: 25 };
-  const modifier = BLESSED_MODIFIER[mrRank] ?? 0;
+  const modifier = BLESSED_MODIFIER[mr.rank] ?? 0;
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#3b82f6')
+    .setColor(EMBED_COLORS.supportPassive)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Blessed')
     .setThumbnail('https://terrarp.com/db/action/blessed.png');
 
-  let description = `► **Passive.** All heal and buff actions gain **+${modifier}** extra modifier (MR⋅${mrRankUp}).\n`;
+  const description = `► **Passive.** All heal and buff actions gain **+${modifier}** extra modifier (MR⋅${mr.rankUpper}).\n`;
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 module.exports = {

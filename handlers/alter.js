@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getDisplayName, finalizeAndSend } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getDisplayName, finalizeAndSend, extractRankInfo, validateMinimumRank } = require('../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 // Alter Sub-Action: Defile (replaces Overdrive/Rage/Exchange) — Free Action to mark targets; Bonus Action "Vilify" to add 1d20 per target.
@@ -255,40 +255,24 @@ async function handleMomentum(message, args, comment) {
 // Rank Requirements: Minimum MR=C.
 
 async function handleRover(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // --- Rank validation (minimum C rank) ---
-  const restrictedRanks = ['e', 'd'];
-  if (!mrRank || restrictedRanks.includes(mrRank)) {
-    const err = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('**Rover** is not available below Mastery Rank (C).');
-    return sendReply(message, err, comment);
+  // Extract and validate rank info (minimum C rank)
+  const mr = extractRankInfo(args, 1, 'mastery');
+  if (!validateMinimumRank(message, mr.rank, 'C', 'Rover', comment)) {
+    return;
   }
 
-  // --- Embed setup ---
+  // Embed setup
   const embed = new EmbedBuilder()
-    .setColor('#6845a2')
+    .setColor(EMBED_COLORS.alter)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('(Alter) Rover')
     .setThumbnail('https://terrarp.com/db/action/rover.png');
 
-  let description = `► **Bonus Action.** Damage resulting from moving is halved.\n`;
+  const description = `► **Bonus Action.** Damage resulting from moving is halved.\n`;
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Alter Sub-Action: Acceleration — Free Action for save bonuses.
