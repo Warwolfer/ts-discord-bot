@@ -146,6 +146,63 @@ function getPassiveModifiers(actionType, commentString) {
     return tags;
 }
 
+/**
+ * Extracts display name from message author
+ * Centralizes the display name extraction pattern used throughout handlers
+ * @param {import('discord.js').Message} message - The message object
+ * @returns {string} - The display name
+ */
+function getDisplayName(message) {
+    return message.member?.displayName ?? message.author.username;
+}
+
+/**
+ * Parses NG trigger from comment string
+ * Only NG1 is currently enabled, returning +5 bonus
+ * Higher NG levels return a disabled notice
+ * @param {string} comment - Comment string to parse
+ * @returns {{bonus: number, note: string}} - NG bonus and note
+ */
+function parseNGTrigger(comment) {
+    if (typeof comment !== 'string') {
+        return { bonus: 0, note: '' };
+    }
+
+    const match = comment.match(/\bng(\d+)\b/i);
+    if (!match) {
+        return { bonus: 0, note: '' };
+    }
+
+    const level = parseInt(match[1], 10);
+    if (level === 1) {
+        return { bonus: 5, note: '' };
+    }
+    return { bonus: 0, note: `► NG⋅${level} is currently disabled.` };
+}
+
+/**
+ * Finalizes embed description with comment and roll link, then sends
+ * This centralizes the common pattern of adding comment, roll link, setting description, and sending
+ * @param {import('discord.js').Message} message - The message object
+ * @param {import('discord.js').EmbedBuilder} embed - The embed to send
+ * @param {string} description - The description text (without comment/roll link)
+ * @param {string} comment - The user's comment (already formatted)
+ * @returns {Promise<void>}
+ */
+async function finalizeAndSend(message, embed, description, comment) {
+    // Add comment if exists
+    if (comment) {
+        description += `${comment}`;
+    }
+
+    // Add roll link
+    description += ` · *[Roll Link](${message.url})*`;
+
+    // Set description and send (don't pass comment to sendReply since we already added it)
+    embed.setDescription(description);
+    return sendReply(message, embed);
+}
+
 module.exports = {
     roll,
     parseArguments,
@@ -153,5 +210,8 @@ module.exports = {
     getRankData,
     checkPermissions,
     sendReply,
-    getPassiveModifiers
+    getPassiveModifiers,
+    getDisplayName,
+    parseNGTrigger,
+    finalizeAndSend
 };

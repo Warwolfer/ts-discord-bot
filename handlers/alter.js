@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getDisplayName, finalizeAndSend } = require('../helpers');
+const { EMBED_COLORS } = require('../constants');
 
 // Alter Sub-Action: Defile (replaces Overdrive/Rage/Exchange) — Free Action to mark targets; Bonus Action "Vilify" to add 1d20 per target.
 // Rolls: Yes (1d20 per target). NG1: No. Crit: No.
@@ -10,13 +11,13 @@ async function handleDefile(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery rank input.');
     return sendReply(message, embed, comment);
   }
 
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const commentString = typeof comment === 'string' ? comment : '';
 
   // Rank parsing
@@ -28,7 +29,7 @@ async function handleDefile(message, args, comment) {
   const restrictedRanks = ['e', 'd'];
   if (restrictedRanks.includes(mrRank)) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Unavailable MR Rank')
       .setDescription('**Defile** is available at **MR=C+** only.');
     return sendReply(message, embed, comment);
@@ -48,7 +49,7 @@ async function handleDefile(message, args, comment) {
 
   // Embed setup
   const embed = new EmbedBuilder()
-    .setColor('#6845a2')
+    .setColor(EMBED_COLORS.alter)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setThumbnail('https://terrarp.com/db/action/defile.png');
 
@@ -98,14 +99,7 @@ async function handleDefile(message, args, comment) {
     }
   }
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Alter Sub-Action: Vitiate (replaces Wager Future) — Break damage with Amplify/Radial modes.
