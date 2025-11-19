@@ -13,16 +13,16 @@ This is a Discord.js v14 bot for the Sphera RPG tabletop game. The bot provides 
 The bot uses a modular architecture with separated concerns:
 
 ```
-commands/
+ts-discord-bot/
 ├── r.js                    # Main coordinator (142 lines)
 ├── constants.js            # Game constants and lookup arrays (~120 lines)
 ├── helpers.js              # Utility functions (~150 lines)
 └── handlers/
     ├── generic.js          # Generic rolls and version (~50 lines)
-    ├── offense.js          # Attack actions (~1,300 lines)
-    ├── defense.js          # Defense actions (~50 lines)
-    ├── support.js          # Healing/buff actions (~1,550 lines)
-    └── alter.js            # Passive abilities (~850 lines)
+    ├── offense.js          # Attack actions (~1,200 lines)
+    ├── defense.js          # Defense actions (~500 lines)
+    ├── support.js          # Healing/buff actions (~1,460 lines)
+    └── alter.js            # Passive abilities (~1,700 lines)
 ```
 
 **Module Responsibilities:**
@@ -48,28 +48,30 @@ commands/
    - `handleGenericRoll`: Handles XdY dice notation (e.g., `2d6`, `1d100`)
    - `handleVersion`: Displays bot version
 
-4. **handlers/offense.js** - 19 attack/offensive action handlers
+4. **handlers/offense.js** - 12 attack/offensive action handlers
    - Attack variants: `handleAttack`, `handleRush`, `handleBurst`, `handleSneak`, `handleCritical`
-   - Combat styles: `handleSharp`, `handleReckless`, `handleSmite`, `handleTorment`
+   - Combat styles: `handleSharp`, `handleReckless`
    - Specialist attacks: `handleAreaEffect`, `handleDuelist`, `handleSharpshooter`, `handleRange`
-   - Reactive: `handleCounter`, `handleUltraCounter`, `handleCover`, `handleTaunt`, `handleStable`, `handleUltraProtect`
+   - Reactive: `handleStable`
 
-5. **handlers/defense.js** - 1 pure defense handler
-   - `handleProtect`: Basic protection action
+5. **handlers/defense.js** - 8 defensive action handlers
+   - Protection: `handleProtect`, `handleUltraProtect`, `handleCover`, `handleSturdy`
+   - Reactive: `handleCounter`, `handleUltraCounter`, `handleTaunt`
+   - Offensive-defense: `handleTorment`
 
-6. **handlers/support.js** - 19 support/healing/buff handlers
+6. **handlers/support.js** - 20 support/healing/buff handlers
    - Healing: `handleHeal`, `handlePowerHeal`, `handleRevive`, `handleCleanse`
    - Buffs: `handleBuff`, `handlePowerBuff`, `handleImbue`, `handleVersatile`
-   - Support actions: `handleHaste`, `handleInspire`, `handleGuardian`, `handleAggress`, `handleSavior`, `handleAcrimony`
+   - Support actions: `handleHaste`, `handleInspire`, `handleGuardian`, `handleAggress`, `handleSavior`, `handleAcrimony`, `handleSmite`
    - Special: `handleOverdrive`, `handleRage`, `handleGift`, `handleFollowUp`, `handleLocomote`
 
-7. **handlers/alter.js** - 30 passive ability/alter action handlers
+7. **handlers/alter.js** - 29 passive ability/alter action handlers
    - Alter-Omen: `handleDefile`, `handleVitiate`
    - Alter-Dexterity: `handleMomentum`, `handleRover`, `handleAcceleration`
    - Alter-Instinct: `handleExceed`, `handleEngage`, `handleEmpower`, `handleMark`
    - Alter-Insight: `handleHyperInsight`, `handleHyperInstinct`, `handleRegenerate`, `handleInfuse`
    - Alter-Adaptability: `handleAdapt`, `handleEvolve`, `handleCoordinate`, `handleAid`, `handleCharge`
-   - Alter-Weapons: `handleLethal`, `handleSwift`, `handleSturdy`, `handleBlessed`, `handleProfane`, `handleRegalia`
+   - Alter-Weapons: `handleLethal`, `handleSwift`, `handleBlessed`, `handleProfane`, `handleRegalia`
    - Alter-Metamorph: `handleAnatomy`
    - Alter-Mend: `handleBestowed`
    - Alter-Praxis: `handleCombatFocus`, `handleUtilityFocus`, `handleDefenseFocus`, `handleSpeedFocus`

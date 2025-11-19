@@ -90,6 +90,10 @@ async function handleHeal(message, args, comment) {
   else if (versatileActive) calculation += ' ÷ 2';
   else if (aoeActive) calculation += ' ÷ 3';
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('support', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = message.member?.displayName ?? message.author.username;
   const embed = new EmbedBuilder()
@@ -99,7 +103,9 @@ async function handleHeal(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/heal.png');
 
   let description =
-    `\`${calculation}\`\n\n` +
+    `\`${calculation}\`\n` +
+    passiveDisplay +
+    `\n` +
     (simulcastActive
       ? `**+${perAlly} HP to 1 of the 2 targets** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
       : (versatileActive
@@ -215,6 +221,10 @@ async function handlePowerHeal(message, args, comment) {
   else if (versatileActive) calculation += ' ÷ 2';
   else if (aoeActive) calculation += ' ÷ 3';
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('support', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = message.member?.displayName ?? message.author.username;
   const embed = new EmbedBuilder()
@@ -224,7 +234,9 @@ async function handlePowerHeal(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/pheal.png');
 
   let description =
-    `\`${calculation}\`\n\n` +
+    `\`${calculation}\`\n` +
+    passiveDisplay +
+    `\n` +
     (simulcastActive
       ? `**+${perAlly} HP to 1 of the 2 targets** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
       : (versatileActive
@@ -381,6 +393,10 @@ async function handleBuff(message, args, comment) {
 
   const calculation = parts.join(' + ') + calcTail;
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('support', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = message.member?.displayName ?? message.author.username;
   const embed = new EmbedBuilder()
@@ -390,7 +406,9 @@ async function handleBuff(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/buff.png');
 
   let description =
-    `\`${calculation}\`\n\n` +
+    `\`${calculation}\`\n` +
+    passiveDisplay +
+    `\n` +
     displayBlock +
     triggeredLine +
     (ngNote ? `${ngNote}\n` : '') +
@@ -574,6 +592,10 @@ async function handlePowerBuff(message, args, comment) {
 
   const calculation = parts.join(' + ') + calcTail;
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('support', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = message.member?.displayName ?? message.author.username;
   const embed = new EmbedBuilder()
@@ -583,7 +605,9 @@ async function handlePowerBuff(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/pbuff.png');
 
   let description =
-    `\`${calculation}\`\n\n` +
+    `\`${calculation}\`\n` +
+    passiveDisplay +
+    `\n` +
     displayBlock +
     triggeredLine +
     (ngNote ? `${ngNote}\n` : '') +
@@ -1410,5 +1434,28 @@ module.exports = {
   handleRage,
   handleGift,
   handleFollowUp,
-  handleLocomote
+  handleLocomote,
+  handleSmite
 };
+
+// Support Passive: Smite
+async function handleSmite(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#5f6587')
+    .setAuthor({ name: `${displayName}'s Passive`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Smite')
+    .setThumbnail('https://terrarp.com/db/action/sba.png');
+
+  // Description
+  let description = `► ***Passive.*** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
+
+  if (comment) description += `${comment}`;
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}

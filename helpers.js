@@ -2,7 +2,16 @@
 
 const { EmbedBuilder } = require('discord.js');
 require('dotenv').config();
-const { PREFIX, REPLY_DELETE_TIMEOUT, RANK_DATA, WEAPON_RANK_DATA } = require('./constants');
+const {
+    PREFIX,
+    STAFF_CATEGORY_ID,
+    BOT_CATEGORY_ID,
+    STORY_CATEGORY_ID,
+    TEST_CHANNEL_ID,
+    REPLY_DELETE_TIMEOUT,
+    RANK_DATA,
+    WEAPON_RANK_DATA
+} = require('./constants');
 
 // --- Helper Functions ---
 

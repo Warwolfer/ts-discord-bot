@@ -1,14 +1,14 @@
 // r.js (Refactored for Discord.js v14) - Main Coordinator
 const { EmbedBuilder } = require('discord.js');
-const { checkPermissions, parseArguments, sendReply } = require('./commands/helpers');
-const { PREFIX } = require('./commands/constants');
+const { checkPermissions, parseArguments, sendReply } = require('./helpers');
+const { PREFIX } = require('./constants');
 
 // Import all handler modules
-const offenseHandlers = require('./commands/handlers/offense');
-const defenseHandlers = require('./commands/handlers/defense');
-const supportHandlers = require('./commands/handlers/support');
-const alterHandlers = require('./commands/handlers/alter');
-const genericHandlers = require('./commands/handlers/generic');
+const offenseHandlers = require('./handlers/offense');
+const defenseHandlers = require('./handlers/defense');
+const supportHandlers = require('./handlers/support');
+const alterHandlers = require('./handlers/alter');
+const genericHandlers = require('./handlers/generic');
 
 // Build command handlers lookup table
 const commandHandlers = {

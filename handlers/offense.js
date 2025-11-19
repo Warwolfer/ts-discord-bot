@@ -7,6 +7,7 @@ const { RANK_DATA } = require('../constants');
 // --- OFFENSIVE HANDLERS ---
 
 // Offense Action MA Attack
+
 async function handleAttack(message, args, comment) {
     const mrData = getRankData(args[1], 'mastery');
     const wrData = getRankData(args[2], 'weapon');
@@ -48,6 +49,7 @@ async function handleAttack(message, args, comment) {
 }
 
 // General Action BA Rush
+
 async function handleRush(message, args, comment) {
     const embed = new EmbedBuilder()
         .setColor('#F1C40F') // Color Generic
@@ -64,371 +66,7 @@ async function handleRush(message, args, comment) {
 }
 
 // Defense Action SA Ultra Protect
-async function handleUltraProtect(message, args, comment) {
-    const mrData = getRankData(args[1], 'mastery');
-    const wrData = getRankData(args[2], 'weapon');
 
-    if (!mrData || !wrData) {
-        const embed = new EmbedBuilder().setColor('Red').setTitle('Invalid Rank').setDescription('Please provide a valid Mastery Rank (E-S) and Weapon Rank (E-S).');
-        return sendReply(message, embed, '');
-    }
-
-    const modifiers = parseModifiers(args, 3);
-    const roll1 = roll(1, 100);
-    let total = roll1 + mrData.value + wrData.value + modifiers.total;
-    let critString = "";
-
-    if (roll1 === 100) {
-        total *= 2;
-        critString = " (Crit!)";
-    } else if (roll1 === 1) {
-        critString = " (Critical Failure...)";
-    }
-
-    const calculation = `1d100 (${roll1}) + ${mrData.value} (MR⋅${mrData.rank}) + ${wrData.value} (WR⋅${wrData.rank})${modifiers.display}`;
-
-    const embed = new EmbedBuilder()
-        .setColor('#da6c41')
-        .setAuthor({ name: `${message.author.displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
-        .setTitle(`Ultra Protect ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/uprotect.png')
-        .addFields(
-            { name: '', value: `***Special Action.*** Make an attack and grant up to 3 allies within range the Protected State. You are *Vulnerable*.` },
-            { name: '', value: `\`${calculation}\`` },
-            { name: '', value: `**${total} damage**` }
-        );
-
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
-
-    sendReply(message, embed, '');
-}
-
-// Defense Action MA Counter
-async function handleCounter(message, args, comment) {
-    const mrData = getRankData(args[1], 'mastery');
-    const wrData = getRankData(args[2], 'weapon');
-
-    if (!mrData || !wrData) {
-        const embed = new EmbedBuilder().setColor('Red').setTitle('Invalid Rank').setDescription('Please provide a valid Mastery Rank (E-S) and Weapon Rank (E-S).');
-        return sendReply(message, embed, '');
-    }
-
-    const modifiers = parseModifiers(args, 3);
-    const roll1 = roll(1, 100);
-    let total = roll1 + mrData.value + wrData.value + modifiers.total;
-    let critString = "";
-
-    if (roll1 === 100) {
-        total *= 2;
-        critString = " (Crit!)";
-    } else if (roll1 === 1) {
-        critString = " (Critical Failure...)";
-    }
-
-    // --- Mitigation logic ---
-    let mitigation = 0;
-    switch (mrData.rank) {
-        case 'D':
-            mitigation = '10 (D)';
-            break;
-        case 'C':
-            mitigation = '15 (C)';
-            break;
-        case 'B':
-            mitigation = '20 (B)';
-            break;
-        case 'A':
-            mitigation = '25 (A)';
-            break;
-        case 'S':
-            mitigation = '30 (S)';
-            break;
-        default:
-            mitigation = '0 (E)'; // Or adjust as needed
-    }
-
-    const calculation = `1d100 (${roll1}) + ${mrData.value} (MR⋅${mrData.rank}) + ${wrData.value} (WR⋅${wrData.rank})${modifiers.display}`;
-
-    const embed = new EmbedBuilder()
-        .setColor('#d78747')
-        .setAuthor({ name: `${message.author.displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
-        .setTitle(`Counter ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/counter.png')
-        .addFields(
-            { name: '', value: `***Action.*** Make an attack and distribute **${mitigation}** mitigation between and up to 3 targets in multiples of 5s.` },
-            { name: '', value: `\`${calculation}\`` },
-            { name: '', value: `**${total} damage**` }
-        );
-
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
-
-    sendReply(message, embed, '');
-}
-
-// Defense Action SA UltraCounter
-async function handleUltraCounter(message, args, comment) {
-    const mrData = getRankData(args[1], 'mastery');
-    const wrData = getRankData(args[2], 'weapon');
-
-    if (!mrData || !wrData) {
-        const embed = new EmbedBuilder()
-            .setColor('Red')
-            .setTitle('Invalid Rank')
-            .setDescription('Check your Mastery and Weapon rank inputs.');
-        return sendReply(message, embed, comment);
-    }
-
-    const modifiers = parseModifiers(args, 3);
-    const roll1 = roll(1, 100);
-
-    // New rank-based thresholds: 35 (D), 30 (B), 25 (S)
-    const mrRank = mrData.rank.toLowerCase();
-    const COUNTER_THRESHOLDS = { e: 40, d: 35, c: 30, b: 30, a: 25, s: 25 };
-    const threshold = COUNTER_THRESHOLDS[mrRank] ?? 30;
-
-    // Success check
-    const success = roll1 >= threshold;
-
-    // On success, use the MR rank's counterDMG; on failure, 0
-    const counterDmg = success ? mrData.counterDMG : 0;
-
-    // Melee toggle via comment
-    const meleeActive = typeof comment === 'string' && /\bmelee\b/i.test(comment);
-    const meleeBonus = meleeActive ? 30 : 0;
-
-    // Check if we should show mods
-    const hasMods = /\d/.test(modifiers.display);
-
-    // Base total
-    const baseTotal = roll1 + counterDmg + mrData.value + wrData.value + modifiers.total + meleeBonus;
-
-    // Crit handling
-    let total = baseTotal;
-    let critString = "";
-    if (roll1 === 100) {
-        total *= 2;
-        critString = " (Crit!)";
-    } else if (roll1 === 1) {
-        critString = " (Critical Failure...)";
-    }
-
-    // Clean the modifiers string so it doesn't start with "+"
-    const rawMods = (modifiers.display ?? '').toString();
-    const modsClean = rawMods
-      .replace(/^\s*\+\s*/, '')   // remove one leading "+", if present
-      .trim();                    // trim stray spaces
-
-    // Calculation string
-    const parts = [
-      `1d100 (${roll1})`,
-      `${counterDmg} (ctr dmg)`,
-      `${mrData.value} (MR⋅${mrData.rank})`,
-      `${wrData.value} (WR⋅${wrData.rank})`,
-    ];
-
-    if (meleeActive) parts.push(`${meleeBonus} (melee)`);
-
-    // Only push if there are numeric mods and the cleaned string isn't empty
-    if (hasMods && modsClean.length > 0) {
-      parts.push(`${modsClean} (mods)`);
-    }
-
-    const calculation = parts.join(' + ');
-
-    // Messages
-    const counterComment = success
-        ? `► Successful counter on ${threshold}+! ${mrData.counterDMG} damage added. Vulnerability negated.`
-        : `► Failed counter (need ${threshold}+). 0 damage added. You are vulnerable.`;
-
-    const meleeNote = meleeActive
-        ? `► Melee triggered. 30 damage added.`
-        : `► Melee not triggered. If you are adjacent to or are on the target's space, manually add 30 damage.`;
-
-    const displayName = message.member?.displayName ?? message.author.username;
-
-    const embed = new EmbedBuilder()
-        .setColor('#E67E22')
-        .setAuthor({ name: `${displayName}'s Special Action`, iconURL: message.author.displayAvatarURL() })
-        .setTitle(`Ultra Counter ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/ucounter.png')
-        let description = `\`${calculation}\`\n\n**${total} damage**\n\n${counterComment}\n${meleeNote}\n`;
-        if (comment){
-          description += `${comment}`;
-          }
-
-        description += ` · *[Roll Link](${message.url})*`;
-
-        embed.setDescription(description);
-
-    return sendReply(message, embed);
-}
-
-// Action: Torment (Free), Ultra Torment (Bonus), Radial Torment (Bonus)
-async function handleTorment(message, args, comment) {
-    const mrData = getRankData(args[1], 'mastery');
-    if (!mrData) {
-        const embed = new EmbedBuilder()
-            .setColor('Red')
-            .setTitle('Invalid Rank')
-            .setDescription('Check your Mastery rank input.');
-        return sendReply(message, embed, comment);
-    }
-
-    // Torment damage by MR rank
-    const TORMENT_DMG = { e: 0, d: 5, c: 10, b: 15, a: 20, s: 25 };
-    const mrRank = (mrData.rank ?? String(args[1] ?? '')).toLowerCase();
-    const baseTorment = TORMENT_DMG[mrRank] ?? 0;
-
-    // Bonus action toggles from the comment
-    const ultraActive  = typeof comment === 'string' && /\bultra\b/i.test(comment);
-    const radialActive = typeof comment === 'string' && /\bradial\b/i.test(comment);
-
-    // Enforce: only one bonus action per go (prefer Ultra if both found)
-    let appliedMode = null;
-    let modeNote = '';
-    if (ultraActive && radialActive) {
-        appliedMode = 'Ultra Torment';
-        modeNote = 'Illegal! Defaulting to Ultra.';
-    } else if (ultraActive) {
-        appliedMode = 'Ultra Torment';
-    } else if (radialActive) {
-        appliedMode = 'Radial Torment';
-    }
-
-    // Damage: Ultra doubles ONLY the Torment portion
-    const ultraBonus = (appliedMode === 'Ultra Torment') ? baseTorment : 0;
-    const totalDamage = baseTorment + ultraBonus;
-
-    // Target text changes if Radial Torment is active
-    const targetText = (appliedMode === 'Radial Torment')
-      ? 'to all adjacent enemies.'
-      : 'to 1 adjacent enemy.';
-
-    // Action type changes if Ultra or Radial Torment is active
-    const actionType = (appliedMode === 'Ultra Torment' || appliedMode === 'Radial Torment')
-      ? '**Bonus Action.**'
-      : '**Free Action.**';
-
-    // Calculation string
-    const parts = [
-      `${baseTorment} (MR⋅${mrRank.toUpperCase()})`
-    ];
-    if (ultraBonus) parts.push(`${ultraBonus} (Ultra x2)`);
-    const calculation = parts.join(' + ');
-
-    // Embed
-    const displayName = message.member?.displayName ?? message.author.username;
-    const titleText = appliedMode || 'Torment'; // if not bonus mode, defaults to Torment
-    const embed = new EmbedBuilder()
-      .setColor('#5f6587')
-      .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-      .setTitle(titleText)
-      .setThumbnail('https://terrarp.com/db/action/torment.png');
-
-    let description =
-      `${actionType} Deal **${totalDamage} damage** ${targetText}\n` +
-      (appliedMode === 'Ultra Torment' ? `\n► Ultra Torment activated. Torment damage doubled.\n` : '') +
-      (appliedMode === 'Radial Torment' ? `\n► Radial Torment activated. All adjacent/melee enemies (battle map or narrative) take torment damage.\n` : '') +
-      (modeNote ? `► ${modeNote}\n` : '');
-
-    if (comment) description += `${comment}`;
-
-    description += ` · *[Roll Link](${message.url})*`;
-
-    embed.setDescription(description);
-    return sendReply(message, embed);
-}
-
-// Action: Cover (Bonus) — Partial or Full
-async function handleCover(message, args, comment) {
-  // Parse mode from the comment
-  const partialActive = typeof comment === 'string' && /\bpartial\s*cover\b/i.test(comment);
-  const fullActive    = typeof comment === 'string' && /\bfull\s*cover\b/i.test(comment);
-
-  // Enforce: only one bonus action (prefer Full if both found)
-  let appliedMode = null; // 'Partial' | 'Full' | null
-  let modeNote = '';
-  if (partialActive && fullActive) {
-    appliedMode = 'Full';
-    modeNote = 'Illegal! Defaulting to Full.';
-  } else if (fullActive) {
-    appliedMode = 'Full';
-  } else if (partialActive) {
-    appliedMode = 'Partial';
-  }
-
-  // Error if neither chosen
-  if (!appliedMode) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Cover')
-      .setDescription('You must specify either **Partial Cover** or **Full Cover** in your comment.');
-    return sendReply(message, embed, comment);
-  }
-
-  // Action type is always Bonus for Cover
-  const actionType = '**Bonus Action.**';
-
-  // Title text: Cover (Partial) / Cover (Full)
-  const titleText = `Cover (${appliedMode})`;
-
-  // Rules text per mode
-  const ruleText =
-    appliedMode === 'Full'
-      ? 'Take the full damage dealt to your target after modifiers the next time they take damage.'
-      : 'Take half of the damage dealt to your target after modifiers the next time they take damage. Your target takes half.';
-
-  // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
-  const embed = new EmbedBuilder()
-    .setColor('#5f6587')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(titleText)
-    .setThumbnail('https://terrarp.com/db/action/dba.png');
-
-  let description =
-    `${actionType} ${ruleText}\n` +
-    (modeNote ? `► ${modeNote}\n` : '');
-
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-// Action: Taunt (Free)
-async function handleTaunt(message, args, comment) {
-  // Try to read MR rank, but don't error if it's missing
-  const mrData = getRankData?.(args?.[1], 'mastery');
-  const rankRaw = (mrData && mrData.rank) || (typeof args?.[1] === 'string' ? args[1] : '');
-  const rankLabel = rankRaw ? `(${String(rankRaw).toUpperCase()}-rank mastery)` : '';
-
-  // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
-  const embed = new EmbedBuilder()
-    .setColor('#5f6587')
-    .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('Taunt')
-    .setThumbnail('https://terrarp.com/db/action/dba.png');
-
-  let description =
-    `**Free Action.** When you perform an attack action on an enemy, taunt that enemy ${rankLabel}.\n`;
-
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-// Action: Stable Attack — 7d20 + MR + WR + mods, d20 explodes on 17+
 async function handleStable(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -533,6 +171,7 @@ async function handleStable(message, args, comment) {
 }
 
 // Action: Burst Attack — 12d20 + MR-bonus d20 + WR + mods, d20 explodes on 16+
+
 async function handleBurst(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -647,6 +286,7 @@ async function handleBurst(message, args, comment) {
 }
 
 // Action: Sneak Attack — 1d100 + Sneak bonus + MR + WR + mods
+
 async function handleSneak(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -740,6 +380,7 @@ async function handleSneak(message, args, comment) {
 }
 
 // Action: Critical Attack — 2d100 + MR + WR + mods, then multiply
+
 async function handleCritical(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -896,6 +537,7 @@ async function handleCritical(message, args, comment) {
 // Crits for this action: ONLY Nat100-based sets (no 85+ crit).
 // Multipliers/events: Crit (≥1×100) ×2, Schrodinger (≥1×100 & ≥1×1) ×2 + Nat1 event,
 // Star Breaker (≥2×100) ×7, World Ender (≥2×1 & no 100) event, Crit Fail (≥1×1 & no 100 & not World Ender) event.
+
 async function handleSharp(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -1103,6 +745,7 @@ async function handleSharp(message, args, comment) {
 // Multipliers/events (pre-defined): Crit (≥1×100) ×2, Schrodinger (≥1×100 & ≥1×1) ×2 + Nat1 event,
 // Star Breaker (≥2×100) ×7, World Ender (≥2×1 & no 100) event, Crit Fail (≥1×1 & no 100 & not World Ender) event.
 // Special d200 rules: d200=200 → STAR BREAKER; d200=100 counts as a "100" for crits; d200=1 counts as a "1" for crit fails.
+
 async function handleReckless(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -1369,6 +1012,7 @@ async function handleReckless(message, args, comment) {
 // Rolls: None. NG1: No.
 // Comment Trigger: "Splash Damage" -> Title becomes "Area Effect (Splash Damage)" and grants an instance of X damage to all enemies adjacent to target.
 // X by MR rank: D=15, B=20, S=25. (Other ranks: no Splash instance granted.)
+
 async function handleAreaEffect(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
@@ -1421,6 +1065,7 @@ async function handleAreaEffect(message, args, comment) {
 // Rolls: None. NG1: No.
 // Comment Trigger: "Challenge" -> Title becomes "Duelist (Challenge)" and grants a damage buff equal to X (rank-based).
 // X by MR rank: D=15, C=15, B=20, A=20, S=25. (Other ranks: unavailable)
+
 async function handleDuelist(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
@@ -1475,6 +1120,7 @@ async function handleDuelist(message, args, comment) {
 // Base X by MR rank:      D=5,  C=5,  B=10, A=10, S=15
 // Snipe TRIGGERED X:      D=15, C=15, B=30, A=30, S=50
 // Snipe NOT-TRIGGERED X:  D=10, C=10, B=15, A=15, S=20
+
 async function handleSharpshooter(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
@@ -1545,6 +1191,7 @@ async function handleSharpshooter(message, args, comment) {
 // Sub-Action: Range — Passive +1 range; optional "Extend" bonus mode.
 // Rolls: None. NG1: No.
 // Comment Trigger: "Extend" -> Title becomes "Range (Extend)" and grants +2 range for this cycle (instead of +1).
+
 async function handleRange(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
@@ -1575,30 +1222,18 @@ async function handleRange(message, args, comment) {
 }
 
 // Sub-Action: Smite
-async function handleSmite(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-
-  // Embed
-  const embed = new EmbedBuilder()
-    .setColor('#5f6587')
-    .setAuthor({ name: `${displayName}'s Passive`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('Smite')
-    .setThumbnail('https://terrarp.com/db/action/sba.png');
-
-  // Description
-  let description = `► ***Passive.*** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
-
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
 
 module.exports = {
-  handleAttack, handleRush, handleTorment, handleBurst, handleSneak,
-  handleCritical, handleSharp, handleReckless, handleAreaEffect, handleDuelist,
-  handleSharpshooter, handleRange, handleSmite, handleCounter, handleUltraCounter,
-  handleCover, handleTaunt, handleStable, handleUltraProtect
+    handleAttack,
+    handleRush,
+    handleStable,
+    handleBurst,
+    handleSneak,
+    handleCritical,
+    handleSharp,
+    handleReckless,
+    handleAreaEffect,
+    handleDuelist,
+    handleSharpshooter,
+    handleRange
 };

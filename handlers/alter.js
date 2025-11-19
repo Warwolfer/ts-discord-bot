@@ -1189,46 +1189,6 @@ async function handleSwift(message, args, comment) {
 // Sub-Action: Sturdy (Defense Passive) — Increases maximum HP.
 // Rolls: No. NG1: No. Crit: No.
 // Minimum Rank: D
-async function handleSturdy(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Rank validation (minimum D rank)
-  const restrictedRanks = ['e'];
-  if (!mrRank || restrictedRanks.includes(mrRank)) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('**Sturdy** is not available below Mastery Rank (D).');
-    return sendReply(message, embed, comment);
-  }
-
-  // Define HP bonus: 25 + 5 per MR (D=30, C=35, B=40, A=45, S=50), max +50
-  const STURDY_HP = { d: 30, c: 35, b: 40, a: 45, s: 50 };
-  const hpBonus = STURDY_HP[mrRank] ?? 0;
-
-  // Embed
-  const embed = new EmbedBuilder()
-    .setColor('#3b82f6')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('Sturdy')
-    .setThumbnail('https://terrarp.com/db/action/sturdy.png');
-
-  let description = `► **Passive.** Gain **+${hpBonus} HP** maximum (MR⋅${mrRankUp}), capped at **+50 HP**.\n`;
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
 
 // Sub-Action: Blessed (Support Passive) — Increases heal and buff modifier.
 // Rolls: No. NG1: No. Crit: No.
@@ -1722,7 +1682,6 @@ module.exports = {
   handleCharge,
   handleLethal,
   handleSwift,
-  handleSturdy,
   handleBlessed,
   handleProfane,
   handleRegalia,
