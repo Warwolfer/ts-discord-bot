@@ -1221,7 +1221,97 @@ async function handleRange(message, args, comment) {
   return sendReply(message, embed);
 }
 
-// Sub-Action: Smite
+// Sub-Action: Lethal (Offense Passive) — Increases attack modifiers.
+// Rolls: No. NG1: No. Crit: No.
+// Minimum Rank: D
+async function handleLethal(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Lethal** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Define modifier based on rank (+5 per rank: D=5, C=10, B=15, A=20, S=25)
+  const LETHAL_MODIFIER = { d: 5, c: 10, b: 15, a: 20, s: 25 };
+  const modifier = LETHAL_MODIFIER[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#ef4444')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Lethal')
+    .setThumbnail('https://terrarp.com/db/action/lethal.png');
+
+  let description = `► **Passive.** All attack actions gain **+${modifier}** extra attack modifier (MR⋅${mrRankUp}).\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}
+
+// Sub-Action: Swift (Offense Passive) — Grants extra movement.
+// Rolls: No. NG1: No. Crit: No.
+// Minimum Rank: D
+// S Upgrade: +1 movement becomes +2
+async function handleSwift(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Swift** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Determine movement bonus (D-A: +1, S: +2)
+  const movement = mrRank === 's' ? 2 : 1;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#ef4444')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Swift')
+    .setThumbnail('https://terrarp.com/db/action/swift.png');
+
+  let description = `► **Passive.** Gain **+${movement} extra movement** (MR⋅${mrRankUp}).\n`;
+
+  if (mrRank === 's') {
+    description += `\n◦ **S Upgrade:** Movement bonus increased from +1 to +2.\n`;
+  }
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}
 
 module.exports = {
     handleAttack,
@@ -1235,5 +1325,7 @@ module.exports = {
     handleAreaEffect,
     handleDuelist,
     handleSharpshooter,
-    handleRange
+    handleRange,
+    handleLethal,
+    handleSwift
 };
