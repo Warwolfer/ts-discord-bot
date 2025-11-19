@@ -203,6 +203,95 @@ async function finalizeAndSend(message, embed, description, comment) {
     return sendReply(message, embed);
 }
 
+/**
+ * Extracts comprehensive rank information from arguments
+ * Consolidates rank data extraction, lowercase/uppercase conversion, and validation
+ * @param {string[]} args - Command arguments array
+ * @param {number} index - Index of rank argument (default: 1)
+ * @param {string} rankType - 'mastery' or 'weapon' (default: 'mastery')
+ * @returns {{data: object|null, rank: string|null, rankUpper: string, isValid: boolean}} - Rank info object
+ */
+function extractRankInfo(args, index = 1, rankType = 'mastery') {
+    const data = getRankData(args[index], rankType);
+
+    if (!data) {
+        return {
+            data: null,
+            rank: null,
+            rankUpper: 'N/A',
+            isValid: false
+        };
+    }
+
+    return {
+        data,
+        rank: data.rank.toLowerCase(),
+        rankUpper: data.rank.toUpperCase(),
+        isValid: true
+    };
+}
+
+/**
+ * Validates that a rank meets a minimum rank requirement
+ * Returns true if valid, sends error embed and returns false if invalid
+ * @param {import('discord.js').Message} message - The message object
+ * @param {string|null} rank - The rank to validate (lowercase, e.g., 'd', 'c')
+ * @param {string} minRank - Minimum required rank (case-insensitive, e.g., 'D', 'C')
+ * @param {string} actionName - Name of the action for error message
+ * @param {string} comment - User's comment for error embed
+ * @returns {boolean} - True if valid, false if invalid (and error sent)
+ */
+function validateMinimumRank(message, rank, minRank, actionName, comment) {
+    const { EMBED_COLORS } = require('./constants');
+    const rankOrder = ['e', 'd', 'c', 'b', 'a', 's'];
+    const minIndex = rankOrder.indexOf(minRank.toLowerCase());
+    const rankIndex = rankOrder.indexOf(rank?.toLowerCase());
+
+    // Invalid if rank not found or below minimum
+    if (rankIndex === -1 || rankIndex < minIndex) {
+        const embed = new EmbedBuilder()
+            .setColor(EMBED_COLORS.error)
+            .setTitle('Invalid Rank')
+            .setDescription(`**${actionName}** is not available below Mastery Rank (${minRank.toUpperCase()}).`);
+        sendReply(message, embed, comment);
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Parses multiple triggers from a comment string
+ * Returns an object with boolean flags for each trigger
+ * @param {string} comment - Comment string to parse
+ * @param {Object.<string, RegExp>} triggerPatterns - Object mapping trigger names to regex patterns
+ * @returns {Object.<string, boolean>} - Object with trigger flags
+ *
+ * @example
+ * const triggers = parseTriggers(comment, {
+ *     aoe: /\baoe\b/i,
+ *     versatile: /\b(?:vers[-\s]*aoe|versatile)\b/i,
+ *     simulcast: /\bsimulcast\b/i
+ * });
+ * // Access as: triggers.aoe, triggers.versatile, triggers.simulcast
+ */
+function parseTriggers(comment, triggerPatterns) {
+    if (typeof comment !== 'string') {
+        // Return all triggers as false if comment is not a string
+        const results = {};
+        for (const name of Object.keys(triggerPatterns)) {
+            results[name] = false;
+        }
+        return results;
+    }
+
+    const results = {};
+    for (const [name, pattern] of Object.entries(triggerPatterns)) {
+        results[name] = pattern.test(comment);
+    }
+    return results;
+}
+
 module.exports = {
     roll,
     parseArguments,
@@ -213,5 +302,8 @@ module.exports = {
     getPassiveModifiers,
     getDisplayName,
     parseNGTrigger,
-    finalizeAndSend
+    finalizeAndSend,
+    extractRankInfo,
+    validateMinimumRank,
+    parseTriggers
 };
