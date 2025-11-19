@@ -1,7 +1,7 @@
 // basic.js - Basic and utility action handlers for the Sphera RPG Discord bot
 
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getDisplayName, parseTriggers, finalizeAndSend } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend } = require('../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 // --- BASIC HANDLERS ---
@@ -29,6 +29,10 @@ async function handleAttack(message, args, comment) {
 
     const calculation = `1d100 (${roll1}) + ${mrData.value} (MR-${mrData.rank}) + ${wrData.value} (WR-${wrData.rank})${modifiers.display}`;
 
+    // Detect passive ability tags
+    const passiveTags = getPassiveModifiers('attack', comment);
+    const passiveDisplay = passiveTags.length > 0 ? `\n${passiveTags.join(', ')}` : '';
+
     const displayName = getDisplayName(message);
     const embed = new EmbedBuilder()
         .setColor(EMBED_COLORS.offense)
@@ -36,7 +40,7 @@ async function handleAttack(message, args, comment) {
         .setTitle(`Attack ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/attack.png')
         .addFields(
-            { name: '', value: `\`${calculation}\`` },
+            { name: '', value: `\`${calculation}\`${passiveDisplay}` },
             { name: '', value: `**${total} damage**` }
         );
 
