@@ -65,7 +65,7 @@ async function handleHeal(message, args, comment) {
     ngBonus;
 
   // Split healing: Simulcast ÷2, Versatile ÷2, AoE ÷3, or no split
-  const perAlly = simulcastActive ? Math.floor(total / 2) : (versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total));
+  const perAlly = triggers.simulcast ? Math.floor(total / 2) : (triggers.versatile ? Math.floor(total / 2) : (triggers.aoe ? Math.floor(total / 3) : total));
 
   // Calculation string
   const annotatedDice = dice.map(v => (v >= EXPLODE_ON ? `${v}⋅EX` : `${v}`)).join(', ');
@@ -80,18 +80,18 @@ async function handleHeal(message, args, comment) {
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
 
   let calculation = parts.join(' + ');
-  if (simulcastActive) calculation += ' ÷ 2';
-  else if (versatileActive) calculation += ' ÷ 2';
-  else if (aoeActive) calculation += ' ÷ 3';
+  if (triggers.simulcast) calculation += ' ÷ 2';
+  else if (triggers.versatile) calculation += ' ÷ 2';
+  else if (triggers.aoe) calculation += ' ÷ 3';
 
   // Detect passive ability tags
   const passiveTags = getPassiveModifiers('support', comment);
   const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#4e9be2')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Heal')
     .setThumbnail('https://terrarp.com/db/action/heal.png');
@@ -100,22 +100,17 @@ async function handleHeal(message, args, comment) {
     `\`${calculation}\`\n` +
     passiveDisplay +
     `\n` +
-    (simulcastActive
+    (triggers.simulcast
       ? `**+${perAlly} HP to 1 of the 2 targets** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-      : (versatileActive
+      : (triggers.versatile
         ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-        : (aoeActive
+        : (triggers.aoe
           ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
           : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
     (ngNote ? `${ngNote}\n` : '') +
     `\n► Free Action: Healing Cleanse. Whenever you heal, cleanse 1 curable condition after healing from an ally within range.\n`;
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
@@ -125,7 +120,7 @@ async function handlePowerHeal(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -136,28 +131,20 @@ async function handlePowerHeal(message, args, comment) {
   const modsClean = rawMods.replace(/^\s*\+\s*/, '').trim();
   const hasMods = /\d/.test(modifiers.display);
 
-  // Triggers
-  const aoeActive = typeof comment === 'string' && /\baoe\b/i.test(comment);
-  const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
-  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
+  // Parse triggers
+  const triggers = parseTriggers(comment, {
+    aoe: /\baoe\b/i,
+    versatile: /\b(?:vers[-\s]*aoe|versatile)\b/i,
+    simulcast: /\bsimulcast\b/i
+  });
 
   // Precedence: Simulcast > Versatile > AoE
-  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
+  const appliedMode = triggers.simulcast ? 'Simulcast' : (triggers.versatile ? 'Versatile' : (triggers.aoe ? 'AoE' : null));
 
-  // NG trigger (only NG1 enabled)
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) {
-        ngBonus = 5;
-      } else {
-        ngNote = `► NG⋅${level} is currently disabled.`;
-      }
-    }
-  }
+  // Parse NG trigger
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // --- Exploding dice: 4d20, explode on rank-based threshold (chaining) ---
   // Thresholds by rank: 18 (D), 17 (B), 16 (S)
@@ -191,7 +178,7 @@ async function handlePowerHeal(message, args, comment) {
     ngBonus;
 
   // Split healing: Simulcast ÷2, Versatile ÷2, AoE ÷3, or no split
-  const perAlly = simulcastActive ? Math.floor(total / 2) : (versatileActive ? Math.floor(total / 2) : (aoeActive ? Math.floor(total / 3) : total));
+  const perAlly = triggers.simulcast ? Math.floor(total / 2) : (triggers.versatile ? Math.floor(total / 2) : (triggers.aoe ? Math.floor(total / 3) : total));
 
   // MR rank -> cleanse charges X
   const CLEANSE_X = { d: 2, c: 2, b: 3, a: 3, s: 4 };
@@ -212,18 +199,18 @@ async function handlePowerHeal(message, args, comment) {
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
 
   let calculation = parts.join(' + ');
-  if (simulcastActive) calculation += ' ÷ 2';
-  else if (versatileActive) calculation += ' ÷ 2';
-  else if (aoeActive) calculation += ' ÷ 3';
+  if (triggers.simulcast) calculation += ' ÷ 2';
+  else if (triggers.versatile) calculation += ' ÷ 2';
+  else if (triggers.aoe) calculation += ' ÷ 3';
 
   // Detect passive ability tags
   const passiveTags = getPassiveModifiers('support', comment);
   const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#3460d0')
+    .setColor(EMBED_COLORS.supportSpecial)
     .setAuthor({ name: `${displayName}'s Special Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Power Heal')
     .setThumbnail('https://terrarp.com/db/action/pheal.png');
@@ -232,11 +219,11 @@ async function handlePowerHeal(message, args, comment) {
     `\`${calculation}\`\n` +
     passiveDisplay +
     `\n` +
-    (simulcastActive
+    (triggers.simulcast
       ? `**+${perAlly} HP to 1 of the 2 targets** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-      : (versatileActive
+      : (triggers.versatile
         ? `**+${perAlly} HP to 2 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
-        : (aoeActive
+        : (triggers.aoe
           ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
           : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
     `\n► Explosions occur on 16+ rolls (25% chance per die).\n` +
@@ -244,12 +231,7 @@ async function handlePowerHeal(message, args, comment) {
     `► Free Action: Power Healing Cleanse. After healing, cleanse **${cleanseX}** (${mrRankUp}-rank) curable conditions from between and up to 3 allies within range. Manually add **5** per unused cleanse charge to your heal amount.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
@@ -259,7 +241,7 @@ async function handleBuff(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -270,25 +252,20 @@ async function handleBuff(message, args, comment) {
   const modsClean = rawMods.replace(/^\s*\+\s*/, '').trim();
   const hasMods = /\d/.test(modifiers.display);
 
-  // Triggers
-  const aoeActive       = typeof comment === 'string' && /\baoe\b/i.test(comment);
-  const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
-  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
+  // Parse triggers
+  const triggers = parseTriggers(comment, {
+    aoe: /\baoe\b/i,
+    versatile: /\b(?:vers[-\s]*aoe|versatile)\b/i,
+    simulcast: /\bsimulcast\b/i
+  });
 
   // Precedence: Simulcast > Versatile > AoE
-  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
+  const appliedMode = triggers.simulcast ? 'Simulcast' : (triggers.versatile ? 'Versatile' : (triggers.aoe ? 'AoE' : null));
 
-  // NG trigger (only NG1 enabled)
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) ngBonus = 5;
-      else ngNote = `► NG⋅${level} is currently disabled.`;
-    }
-  }
+  // Parse NG trigger
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // MR rank + buff bonus
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
@@ -394,9 +371,9 @@ async function handleBuff(message, args, comment) {
   const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#4e9be2')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Buff')
     .setThumbnail('https://terrarp.com/db/action/buff.png');
@@ -410,12 +387,7 @@ async function handleBuff(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '') +
     testNote;
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
@@ -425,7 +397,7 @@ async function handlePowerBuff(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -436,25 +408,20 @@ async function handlePowerBuff(message, args, comment) {
   const modsClean = rawMods.replace(/^\s*\+\s*/, '').trim();
   const hasMods = /\d/.test(modifiers.display);
 
-  // Triggers
-  const aoeActive       = typeof comment === 'string' && /\baoe\b/i.test(comment);
-  const versatileActive = typeof comment === 'string' && /\b(?:vers[-\s]*aoe|versatile)\b/i.test(comment);
-  const simulcastActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
+  // Parse triggers
+  const triggers = parseTriggers(comment, {
+    aoe: /\baoe\b/i,
+    versatile: /\b(?:vers[-\s]*aoe|versatile)\b/i,
+    simulcast: /\bsimulcast\b/i
+  });
 
   // Precedence: Simulcast > Versatile > AoE
-  const appliedMode = simulcastActive ? 'Simulcast' : (versatileActive ? 'Versatile' : (aoeActive ? 'AoE' : null));
+  const appliedMode = triggers.simulcast ? 'Simulcast' : (triggers.versatile ? 'Versatile' : (triggers.aoe ? 'AoE' : null));
 
-  // NG trigger (only NG1 enabled)
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) ngBonus = 5;
-      else ngNote = `► NG⋅${level} is currently disabled.`;
-    }
-  }
+  // Parse NG trigger
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // MR rank + bonuses
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
@@ -594,9 +561,9 @@ async function handlePowerBuff(message, args, comment) {
   const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#3460d0')
+    .setColor(EMBED_COLORS.supportSpecial)
     .setAuthor({ name: `${displayName}'s Special Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle(`Power Buff ${resultTag ? resultTag : ''}`.trim())
     .setThumbnail('https://terrarp.com/db/action/pbuff.png');
@@ -610,17 +577,12 @@ async function handlePowerBuff(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '') +
     testNote;
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
 async function handleImbue(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // --- Parse triggers from comment ---
   const text = typeof comment === 'string' ? comment : '';
@@ -643,7 +605,7 @@ async function handleImbue(message, args, comment) {
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#5f6587')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Imbue')
     .setThumbnail('https://terrarp.com/db/action/sba.png');
@@ -658,50 +620,45 @@ async function handleImbue(message, args, comment) {
       description = `► **Free Action.** If you heal or buff this cycle, you may imbue an ally with any of your support mastery's break-type, which lasts indefinitely, one ally at a time.\n`;
     }
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
 async function handleVersatile(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
-  // Trigger: Simulcast
-  const ultraActive = typeof comment === 'string' && /\bsimulcast\b/i.test(comment);
+  // Parse triggers
+  const triggers = parseTriggers(comment, {
+    simulcast: /\bsimulcast\b/i
+  });
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#5f6587')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(ultraActive ? 'Simulcast' : 'Versatile')
+    .setTitle(triggers.simulcast ? 'Simulcast' : 'Versatile')
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
   let description = `► **Free Action.** Apply the effects to 2 targets (instead of 3) and apply the last heal/buff amount to one of those targets.\n`;
 
-  if (ultraActive) {
+  if (triggers.simulcast) {
     description += `► **Bonus Action: Simulcast.** Target 2 allies with Heal and Buff (both must be special or non-special). Choose if each target gets either the heal or buff.\n`;
   }
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
 async function handleRevive(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const commentString = typeof comment === 'string' ? comment : '';
 
-  // Trigger: "Stabilize"
-  const stabilizeActive = /\bstabilize\b/i.test(commentString);
+  // Parse triggers
+  const triggers = parseTriggers(comment, {
+    stabilize: /\bstabilize\b/i
+  });
+  const stabilizeActive = triggers.stabilize;
   const title = stabilizeActive ? 'Stabilize' : 'Revive';
   const actionVerb = stabilizeActive ? 'Stabilize' : 'Revive';
   const actionPastTense = stabilizeActive ? 'stabilized' : 'revived';
@@ -722,7 +679,7 @@ async function handleRevive(message, args, comment) {
 
     if (isNaN(maxHpNum)) {
       const embed = new EmbedBuilder()
-        .setColor('Red')
+        .setColor(EMBED_COLORS.error)
         .setTitle('Invalid MaxHP Value')
         .setDescription('The value provided for MaxHP must be a number.');
       return sendReply(message, embed, comment);
@@ -733,7 +690,7 @@ async function handleRevive(message, args, comment) {
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#5f6587')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle(title)
     .setThumbnail('https://terrarp.com/db/action/sba.png');
@@ -743,41 +700,31 @@ async function handleRevive(message, args, comment) {
   description += `◦ **${targetName}** has been ${actionPastTense}.\n`;
   description += `◦ **${targetName}** regains **${hpValueText} HP**.\n`;
 
-  if (comment) {
-     description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
 async function handleCleanse(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
+  const displayName = getDisplayName(message);
 
-  // Get rank data and validate
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
+  // Extract rank info
+  const mr = extractRankInfo(args, 1, 'mastery');
 
-  if (!mrData || mrRank === 'e') {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('This action is not available at Mastery Rank (E).');
-    return sendReply(message, embed, comment);
+  // Validate minimum rank (D)
+  if (!validateMinimumRank(message, mr.rank, 'D', 'Cleanse', comment)) {
+    return;
   }
-  const mrRankUp = mrData.rank.toUpperCase();
 
-  // Trigger: "Cleanse"
-  const cleanseActive = /\bcleanse\b/i.test(commentString);
+  // Parse triggers
+  const triggers = parseTriggers(comment, {
+    cleanse: /\bcleanse\b/i
+  });
+  const cleanseActive = triggers.cleanse;
   const title = cleanseActive ? 'Cleanse' : 'Cure';
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#5f6587')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle(title)
     .setThumbnail('https://terrarp.com/db/action/sba.png');
@@ -787,112 +734,81 @@ async function handleCleanse(message, args, comment) {
 
   if (cleanseActive) {
     const CLEANSE_VALUES = { d: 2, c: 2, b: 4, a: 4, s: 6 };
-    const cleanseAmount = CLEANSE_VALUES[mrRank] ?? 0; // Default to 0 if rank is not in the list
+    const cleanseAmount = CLEANSE_VALUES[mr.rank] ?? 0; // Default to 0 if rank is not in the list
 
-    description += `\n► **Bonus Action: Cleanse.** Remove **${cleanseAmount} stacks** (MR⋅${mrRankUp}) of curable conditions between and up to 3 targets.\n`;
+    description += `\n► **Bonus Action: Cleanse.** Remove **${cleanseAmount} stacks** (MR⋅${mr.rankUpper}) of curable conditions between and up to 3 targets.\n`;
   }
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
 async function handleHaste(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
-  // Get rank data and validate
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
+  // Extract rank info
+  const mr = extractRankInfo(args, 1, 'mastery');
 
-  if (!mrData || mrRank === 'e') {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('This action is not available at Mastery Rank (E).');
-    return sendReply(message, embed, comment);
+  // Validate minimum rank (D)
+  if (!validateMinimumRank(message, mr.rank, 'D', 'Haste', comment)) {
+    return;
   }
-  const mrRankUp = mrData.rank.toUpperCase();
 
   // Define movement values based on rank
   const HASTE_VALUES = { d: 2, c: 2, b: 3, a: 3, s: 4 };
-  const movementAmount = HASTE_VALUES[mrRank] ?? 0;
+  const movementAmount = HASTE_VALUES[mr.rank] ?? 0;
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#5f6587')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Haste')
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Bonus Action.** Distribute **${movementAmount} movements** (MR⋅${mrRankUp}) between and up to 3 targets.\n`;
+  let description = `► **Bonus Action.** Distribute **${movementAmount} movements** (MR⋅${mr.rankUpper}) between and up to 3 targets.\n`;
   description += `◦ *Duration:* The bonus movements last until the end of the next damage phase.\n◦ *Limitation:* Each target may gain a maximum of *2 movements* from Haste.\n`;
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
 async function handleInspire(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
-  // Get rank data and validate
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
+  // Extract rank info
+  const mr = extractRankInfo(args, 1, 'mastery');
 
-  if (!mrData || mrRank === 'e') {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('This action is not available at Mastery Rank (E).');
-    return sendReply(message, embed, comment);
+  // Validate minimum rank (D)
+  if (!validateMinimumRank(message, mr.rank, 'D', 'Inspire', comment)) {
+    return;
   }
-  const mrRankUp = mrData.rank.toUpperCase();
 
   // Define bonus values based on rank
   const INSPIRE_VALUES = { d: 5, c: 5, b: 10, a: 10, s: 15 };
-  const bonusAmount = INSPIRE_VALUES[mrRank] ?? 0;
+  const bonusAmount = INSPIRE_VALUES[mr.rank] ?? 0;
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#5f6587')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Inspire')
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Bonus Action.** Distribute **+${bonusAmount} bonus** (MR⋅${mrRankUp}) between and up to 3 targets in multiple of 5s toward a *mastery check* or *save roll*.\n`;
+  let description = `► **Bonus Action.** Distribute **+${bonusAmount} bonus** (MR⋅${mr.rankUpper}) between and up to 3 targets in multiple of 5s toward a *mastery check* or *save roll*.\n`;
   description += `◦ *Duration:* This bonus lasts until the end of the next damage phase.\n◦ *Limitation:* This bonus does not stack.\n`;
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
 async function handleSmite(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#5f6587')
+    .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Passive`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Smite')
     .setThumbnail('https://terrarp.com/db/action/sba.png');
@@ -900,12 +816,7 @@ async function handleSmite(message, args, comment) {
   // Description
   let description = `► ***Passive.*** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Sub-Action: Blessed (Support Passive) — Increases heal and buff modifier.

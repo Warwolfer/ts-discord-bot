@@ -1,8 +1,19 @@
 // offense.js - Offensive action handlers for the Sphera RPG Discord bot
 
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers } = require('../helpers');
-const { RANK_DATA } = require('../constants');
+const {
+    roll,
+    getRankData,
+    parseModifiers,
+    sendReply,
+    getPassiveModifiers,
+    getDisplayName,
+    parseNGTrigger,
+    finalizeAndSend,
+    validateMinimumRank,
+    parseTriggers
+} = require('../helpers');
+const { RANK_DATA, EMBED_COLORS } = require('../constants');
 
 // --- OFFENSIVE HANDLERS ---
 
@@ -15,7 +26,7 @@ async function handleStable(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -47,21 +58,9 @@ async function handleStable(message, args, comment) {
   const hasMods = /\d/.test(modifiers.display);
 
   // --- NG trigger from comment (future-proofed) ---
-  // Accepts ng<number>, e.g., ng1; only ng1 is enabled; others are disabled.
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      //if (level >= 1) { ngBonus = level * 5; } // enable higher NG levels
-      if (level === 1) {
-        ngBonus = level * 5; // NG1 = 1*5 = 5
-      } else {
-        ngNote = `► NG⋅${level} is currently disabled.`;
-      }
-    }
-  }
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // Totals
   const total =
@@ -92,9 +91,9 @@ async function handleStable(message, args, comment) {
   const calculation = parts.join(' + ');
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#d84848')
+    .setColor(EMBED_COLORS.offense)
     .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Stable Attack')
     .setThumbnail('https://terrarp.com/db/action/stable.png');
@@ -104,12 +103,7 @@ async function handleStable(message, args, comment) {
     `**${total} total** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n` +
     (ngNote ? `${ngNote}\n` : '');
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Action: Burst Attack — 12d20 + MR-bonus d20 + WR + mods, d20 explodes on 16+
@@ -121,7 +115,7 @@ async function handleBurst(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -162,19 +156,9 @@ async function handleBurst(message, args, comment) {
   const hasMods = /\d/.test(modifiers.display);
 
   // --- NG trigger from comment (future-proofed; only NG1 enabled) ---
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) {
-        ngBonus = level * 5; // NG1 = 5
-      } else {
-        ngNote = `► NG⋅${level} is currently unavailable.`;
-      }
-    }
-  }
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // Totals
   const total =
@@ -207,9 +191,9 @@ async function handleBurst(message, args, comment) {
   const calculation = parts.join(' + ');
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#d84848')
+    .setColor(EMBED_COLORS.offense)
     .setAuthor({ name: `${displayName}'s Special Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Burst Attack')
     .setThumbnail('https://terrarp.com/db/action/burst.png');
@@ -220,12 +204,7 @@ async function handleBurst(message, args, comment) {
     `\n► Status. You are vulnerable.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Action: Sneak Attack — 1d100 + Sneak bonus + MR + WR + mods
@@ -237,7 +216,7 @@ async function handleSneak(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -263,19 +242,9 @@ async function handleSneak(message, args, comment) {
   const hasMods = /\d/.test(modifiers.display);
 
   // --- NG trigger from comment (future-proofed; only NG1 enabled) ---
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) {
-        ngBonus = level * 5; // NG1 = 5
-      } else {
-        ngNote = `► NG${level} is currently disabled.`;
-      }
-    }
-  }
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // Total
   const total =
@@ -302,9 +271,9 @@ async function handleSneak(message, args, comment) {
   const calculation = parts.join(' + ');
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#d84848')
+    .setColor(EMBED_COLORS.offense)
     .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Sneak Attack')
     .setThumbnail('https://terrarp.com/db/action/sneak.png');
@@ -315,12 +284,7 @@ async function handleSneak(message, args, comment) {
     `► Succeeed on ${threshold}+ to add ${successBonus} sneak damage (${mrData.rank}-ranked mastery), otherwise, add 10.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Action: Critical Attack — 2d100 + MR + WR + mods, then multiply
@@ -332,7 +296,7 @@ async function handleCritical(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -412,19 +376,9 @@ async function handleCritical(message, args, comment) {
   }
 
   // --- NG trigger from comment (only NG1 enabled) ---
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) {
-        ngBonus = level * 5; // NG1 = 5
-      } else {
-        ngNote = `► NG${level} is currently disabled.`;
-      }
-    }
-  }
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // Mods print logic
   const rawMods = (modifiers.display ?? '').toString();
@@ -454,9 +408,9 @@ async function handleCritical(message, args, comment) {
   const calcWithMult = `${calculation}` + ` ×${multiplier}`;
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#c72828')
+    .setColor(EMBED_COLORS.offenseSpecial)
     .setAuthor({ name: `${displayName}'s Special Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Critical Attack')
     .setThumbnail('https://terrarp.com/db/action/critical.png');
@@ -468,12 +422,7 @@ async function handleCritical(message, args, comment) {
     (testNote ? testNote : '') +           // test note
     (ngNote ? `${ngNote}\n` : '');
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Action: Sharp Attack — 2d100 (keep highest). "Risky" converts mods → extra d100s (can crit). NG1 supported.
@@ -490,7 +439,7 @@ async function handleSharp(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -504,19 +453,15 @@ async function handleSharp(message, args, comment) {
   const modsTotal = Number(modifiers.total || 0);
 
   // Comment triggers
-  const riskyActive = typeof comment === 'string' && /\brisky\b/i.test(comment);
+  const triggers = parseTriggers(comment, {
+    risky: /\brisky\b/i
+  });
+  const riskyActive = triggers.risky;
 
   // NG trigger (only NG1 enabled)
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) ngBonus = 5;
-      else ngNote = `► NG⋅${level} is currently disabled.`;
-    }
-  }
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // --- TEST SCENARIOS ---
   let testScenario = null;
@@ -656,9 +601,9 @@ async function handleSharp(message, args, comment) {
   const calcWithMult = `${calculation} ×${multiplier}`;
 
   // Embed
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#d84848')
+    .setColor(EMBED_COLORS.offense)
     .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Sharp Attack')
     .setThumbnail('https://terrarp.com/db/action/sharp.png');
@@ -675,12 +620,7 @@ async function handleSharp(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '') +
     (testScenario ? testNote : '');
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Action: Reckless Attack — MR E/D/C: 1d200 + 1d100; MR B/A: 1d200 + 1d100 + 1d100; MR S: 1d200 + 1d100 + 2d100kh1 (dropped die does NOT crit).
@@ -699,7 +639,7 @@ async function handleReckless(message, args, comment) {
 
   if (!mrData || !wrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery and Weapon rank inputs.');
     return sendReply(message, embed, comment);
@@ -718,19 +658,15 @@ async function handleReckless(message, args, comment) {
   const modsTotal = Number(modifiers.total || 0);
 
   // Comment triggers
-  const riskyActive = typeof comment === 'string' && /\brisky\b/i.test(comment);
+  const triggers = parseTriggers(comment, {
+    risky: /\brisky\b/i
+  });
+  const riskyActive = triggers.risky;
 
   // NG trigger (only NG1 enabled)
-  let ngBonus = 0;
-  let ngNote = '';
-  if (typeof comment === 'string') {
-    const m = comment.match(/\bng(\d+)\b/i);
-    if (m) {
-      const level = parseInt(m[1], 10);
-      if (level === 1) ngBonus = 5;
-      else ngNote = `► NG⋅${level} is currently disabled.`;
-    }
-  }
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
 
   // Determine base number of plain d100s by MR:
   // E/D/C → 1d100; B/A → 2d100; S → 1d100 + an extra 2d100kh1 pair (the dropped die never participates in crit).
@@ -929,9 +865,9 @@ async function handleReckless(message, args, comment) {
   const calcWithMult = `${calculation} ×${multiplier}`;
 
   // --- Embed render ---
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
-    .setColor('#c72828')
+    .setColor(EMBED_COLORS.offenseSpecial)
     .setAuthor({ name: `${displayName}'s Special Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Reckless Attack')
     .setThumbnail('https://terrarp.com/db/action/reckless.png');
@@ -947,12 +883,7 @@ async function handleReckless(message, args, comment) {
     (ngNote ? `${ngNote}\n` : '') +
     (testScenario || /(?:d200|r200)/i.test(comment || '') ? testNote : '');
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Sub-Action: Area Effect — Passive spread; optional "Splash Damage" bonus mode.
@@ -965,16 +896,19 @@ async function handleAreaEffect(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery rank input.');
     return sendReply(message, embed, comment);
   }
 
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // Trigger: Splash Damage
-  const splashActive = typeof comment === 'string' && /\bsplash\s*damage\b/i.test(comment);
+  const triggers = parseTriggers(comment, {
+    splash: /\bsplash\s*damage\b/i
+  });
+  const splashActive = triggers.splash;
 
   // MR rank + Splash instance values
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
@@ -1001,12 +935,7 @@ async function handleAreaEffect(message, args, comment) {
     description += `► ***Passive.*** Your attack's damage may be distributed in any amount to any enemies on or adjacent to the target. Take only the highest retaliation damage if any.\n`;
   }
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Sub-Action: Duelist — Passive single-target instance; optional "Challenge" bonus mode.
@@ -1019,16 +948,19 @@ async function handleDuelist(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery rank input.');
     return sendReply(message, embed, comment);
   }
 
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // Trigger: Challenge
-  const challengeActive = typeof comment === 'string' && /\bchallenge\b/i.test(comment);
+  const triggers = parseTriggers(comment, {
+    challenge: /\bchallenge\b/i
+  });
+  const challengeActive = triggers.challenge;
 
   // MR rank + Duelist instance values
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
@@ -1055,12 +987,7 @@ async function handleDuelist(message, args, comment) {
     description += `► ***Passive.*** If you attack an enemy on their space or adjacent to their space, deal an instance of **${duelValue}** (${mrRankUp}-rank) damage to them.\n`;
   }
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Sub-Action: Sharpshooter — Passive ranged buff; optional "Snipe" bonus mode with a 2/3 success chance.
@@ -1075,16 +1002,19 @@ async function handleSharpshooter(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('Check your Mastery rank input.');
     return sendReply(message, embed, comment);
   }
 
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // Trigger: Snipe
-  const snipeActive = typeof comment === 'string' && /\bsnipe\b/i.test(comment);
+  const triggers = parseTriggers(comment, {
+    snipe: /\bsnipe\b/i
+  });
+  const snipeActive = triggers.snipe;
 
   // MR rank + values
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
@@ -1130,12 +1060,7 @@ async function handleSharpshooter(message, args, comment) {
     description += `► ***Passive.*** If you attack an enemy while not in their space, gain **${baseBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
   }
 
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Sub-Action: Range — Passive +1 range; optional "Extend" bonus mode.
@@ -1144,7 +1069,7 @@ async function handleSharpshooter(message, args, comment) {
 
 
 async function handleLethal(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // Get rank data
   const mrData = getRankData(args[1], 'mastery');
@@ -1152,13 +1077,8 @@ async function handleLethal(message, args, comment) {
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
   // Rank validation (minimum D rank)
-  const restrictedRanks = ['e'];
-  if (!mrRank || restrictedRanks.includes(mrRank)) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('**Lethal** is not available below Mastery Rank (D).');
-    return sendReply(message, embed, comment);
+  if (!validateMinimumRank(message, mrRank, 'D', 'Lethal', comment)) {
+    return;
   }
 
   // Define modifier based on rank (+5 per rank: D=5, C=10, B=15, A=20, S=25)
@@ -1174,14 +1094,7 @@ async function handleLethal(message, args, comment) {
 
   let description = `► **Passive.** All attack actions gain **+${modifier}** extra attack modifier (MR⋅${mrRankUp}).\n`;
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 // Sub-Action: Swift (Offense Passive) — Grants extra movement.
@@ -1190,7 +1103,7 @@ async function handleLethal(message, args, comment) {
 // S Upgrade: +1 movement becomes +2
 
 async function handleSwift(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // Get rank data
   const mrData = getRankData(args[1], 'mastery');
@@ -1198,13 +1111,8 @@ async function handleSwift(message, args, comment) {
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
   // Rank validation (minimum D rank)
-  const restrictedRanks = ['e'];
-  if (!mrRank || restrictedRanks.includes(mrRank)) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('**Swift** is not available below Mastery Rank (D).');
-    return sendReply(message, embed, comment);
+  if (!validateMinimumRank(message, mrRank, 'D', 'Swift', comment)) {
+    return;
   }
 
   // Determine movement bonus (D-A: +1, S: +2)
@@ -1223,14 +1131,7 @@ async function handleSwift(message, args, comment) {
     description += `\n◦ **S Upgrade:** Movement bonus increased from +1 to +2.\n`;
   }
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
