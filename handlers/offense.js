@@ -1019,7 +1019,7 @@ async function handleDuelist(message, args, comment) {
 // Comment Trigger: "Snipe" -> Title becomes "Sharpshooter (Snipe)" and rolls 1d3 to set the buff value this turn.
 // Base X by MR rank:      D=5,  C=5,  B=10, A=10, S=15
 // Snipe TRIGGERED X:      D=15, C=15, B=30, A=30, S=50
-// Snipe NOT-TRIGGERED X:  D=10, C=10, B=15, A=15, S=20
+// Snipe NOT-TRIGGERED X:  D=5, C=5, B=10, A=10, S=15
 
 
 async function handleSharpshooter(message, args, comment) {
@@ -1047,7 +1047,6 @@ async function handleSharpshooter(message, args, comment) {
 
   const BASE_X        = { d: 5,  c: 5,  b: 10, a: 10, s: 15 };
   const SNIPE_TRIG_X  = { d: 15, c: 15, b: 30, a: 30, s: 40 };
-  const SNIPE_FAIL_X  = { d: 10, c: 10, b: 15, a: 15, s: 20 };
 
   const baseBuff = BASE_X[mrRank] ?? 0;
 
@@ -1059,7 +1058,7 @@ async function handleSharpshooter(message, args, comment) {
   if (snipeActive) {
     snipeRoll = roll(1, 3);            // 1..3
     snipeTriggered = (snipeRoll === 2 || snipeRoll === 3); // 2/3 chance
-    snipeBuff = (snipeTriggered ? SNIPE_TRIG_X[mrRank] : SNIPE_FAIL_X[mrRank]) ?? 0;
+    snipeBuff = (snipeTriggered ? SNIPE_TRIG_X[mrRank] : BASE_X[mrRank]) ?? 0;
   }
 
   // Embed
