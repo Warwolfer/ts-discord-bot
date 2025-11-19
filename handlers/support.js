@@ -919,6 +919,46 @@ async function handleSmite(message, args, comment) {
 // Rolls: No. NG1: No. Crit: No.
 // Minimum Rank: D
 
+async function handleBlessed(message, args, comment) {
+  const displayName = message.member?.displayName ?? message.author.username;
+
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRank = mrData?.rank?.toLowerCase();
+  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
+
+  // Rank validation (minimum D rank)
+  const restrictedRanks = ['e'];
+  if (!mrRank || restrictedRanks.includes(mrRank)) {
+    const embed = new EmbedBuilder()
+      .setColor('Red')
+      .setTitle('Invalid Rank')
+      .setDescription('**Blessed** is not available below Mastery Rank (D).');
+    return sendReply(message, embed, comment);
+  }
+
+  // Define modifier based on rank (+5 per rank: D=5, C=10, B=15, A=20, S=25)
+  const BLESSED_MODIFIER = { d: 5, c: 10, b: 15, a: 20, s: 25 };
+  const modifier = BLESSED_MODIFIER[mrRank] ?? 0;
+
+  // Embed
+  const embed = new EmbedBuilder()
+    .setColor('#3b82f6')
+    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Blessed')
+    .setThumbnail('https://terrarp.com/db/action/blessed.png');
+
+  let description = `► **Passive.** All heal and buff actions gain **+${modifier}** extra modifier (MR⋅${mrRankUp}).\n`;
+
+  if (comment) {
+    description += `${comment}`;
+  }
+
+  description += ` · *[Roll Link](${message.url})*`;
+
+  embed.setDescription(description);
+  return sendReply(message, embed);
+}
 
 module.exports = {
   handleHeal,
