@@ -8,64 +8,6 @@ const { RANK_DATA } = require('../constants');
 
 // Offense Action MA Attack
 
-async function handleAttack(message, args, comment) {
-    const mrData = getRankData(args[1], 'mastery');
-    const wrData = getRankData(args[2], 'weapon');
-
-    if (!mrData || !wrData) {
-        const embed = new EmbedBuilder().setColor('Red').setTitle('Invalid Rank').setDescription('Please provide a valid Mastery Rank (E-S) and Weapon Rank (E-S).');
-        return sendReply(message, embed, '');
-    }
-
-    const modifiers = parseModifiers(args, 3);
-    const roll1 = roll(1, 100);
-    let total = roll1 + mrData.value + wrData.value + modifiers.total;
-    let critString = "";
-
-    if (roll1 === 100) {
-        total *= 2;
-        critString = " (Crit!)";
-    } else if (roll1 === 1) {
-        critString = " (Critical Failure...)";
-    }
-
-    const calculation = `1d100 (${roll1}) + ${mrData.value} (MR-${mrData.rank}) + ${wrData.value} (WR-${wrData.rank})${modifiers.display}`;
-
-    const embed = new EmbedBuilder()
-        .setColor('#5865F2')
-        .setAuthor({ name: `${message.author.displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
-        .setTitle(`Attack ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/attack.png')
-        .addFields(
-            { name: '', value: `\`${calculation}\`` },
-            { name: '', value: `**${total} damage**` }
-        );
-
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
-
-    sendReply(message, embed, '');
-}
-
-// General Action BA Rush
-
-async function handleRush(message, args, comment) {
-    const embed = new EmbedBuilder()
-        .setColor('#F1C40F') // Color Generic
-        .setAuthor({ name: `${message.author.displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
-        .setTitle('(BA) Rush')
-        .setThumbnail('https://terrarp.com/db/action/rush.png')
-        .setDescription('Gain 2 extra movements this cycle.');
-
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
-
-    await sendReply(message, embed, '');
-}
-
-// Defense Action SA Ultra Protect
 
 async function handleStable(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -171,6 +113,7 @@ async function handleStable(message, args, comment) {
 }
 
 // Action: Burst Attack — 12d20 + MR-bonus d20 + WR + mods, d20 explodes on 16+
+
 
 async function handleBurst(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -287,6 +230,7 @@ async function handleBurst(message, args, comment) {
 
 // Action: Sneak Attack — 1d100 + Sneak bonus + MR + WR + mods
 
+
 async function handleSneak(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -380,6 +324,7 @@ async function handleSneak(message, args, comment) {
 }
 
 // Action: Critical Attack — 2d100 + MR + WR + mods, then multiply
+
 
 async function handleCritical(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -537,6 +482,7 @@ async function handleCritical(message, args, comment) {
 // Crits for this action: ONLY Nat100-based sets (no 85+ crit).
 // Multipliers/events: Crit (≥1×100) ×2, Schrodinger (≥1×100 & ≥1×1) ×2 + Nat1 event,
 // Star Breaker (≥2×100) ×7, World Ender (≥2×1 & no 100) event, Crit Fail (≥1×1 & no 100 & not World Ender) event.
+
 
 async function handleSharp(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -745,6 +691,7 @@ async function handleSharp(message, args, comment) {
 // Multipliers/events (pre-defined): Crit (≥1×100) ×2, Schrodinger (≥1×100 & ≥1×1) ×2 + Nat1 event,
 // Star Breaker (≥2×100) ×7, World Ender (≥2×1 & no 100) event, Crit Fail (≥1×1 & no 100 & not World Ender) event.
 // Special d200 rules: d200=200 → STAR BREAKER; d200=100 counts as a "100" for crits; d200=1 counts as a "1" for crit fails.
+
 
 async function handleReckless(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -1013,6 +960,7 @@ async function handleReckless(message, args, comment) {
 // Comment Trigger: "Splash Damage" -> Title becomes "Area Effect (Splash Damage)" and grants an instance of X damage to all enemies adjacent to target.
 // X by MR rank: D=15, B=20, S=25. (Other ranks: no Splash instance granted.)
 
+
 async function handleAreaEffect(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   if (!mrData) {
@@ -1065,6 +1013,7 @@ async function handleAreaEffect(message, args, comment) {
 // Rolls: None. NG1: No.
 // Comment Trigger: "Challenge" -> Title becomes "Duelist (Challenge)" and grants a damage buff equal to X (rank-based).
 // X by MR rank: D=15, C=15, B=20, A=20, S=25. (Other ranks: unavailable)
+
 
 async function handleDuelist(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -1120,6 +1069,7 @@ async function handleDuelist(message, args, comment) {
 // Base X by MR rank:      D=5,  C=5,  B=10, A=10, S=15
 // Snipe TRIGGERED X:      D=15, C=15, B=30, A=30, S=50
 // Snipe NOT-TRIGGERED X:  D=10, C=10, B=15, A=15, S=20
+
 
 async function handleSharpshooter(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -1192,38 +1142,7 @@ async function handleSharpshooter(message, args, comment) {
 // Rolls: None. NG1: No.
 // Comment Trigger: "Extend" -> Title becomes "Range (Extend)" and grants +2 range for this cycle (instead of +1).
 
-async function handleRange(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
 
-  // Trigger: Extend
-  const extendActive = typeof comment === 'string' && /\bextend\b/i.test(comment);
-
-  // Embed
-  const embed = new EmbedBuilder()
-    .setColor('#5f6587')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(extendActive ? 'Range (Extend)' : 'Range')
-    .setThumbnail('https://terrarp.com/db/action/range.png');
-
-  // Description
-  let description = '';
-  if (extendActive) {
-    description += `► **Bonus Action.** You have **2** additional range this cycle (passive included).\n`;
-  } else {
-    description += `► ***Passive.*** You have 1 additional range.\n`;
-  }
-
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-// Sub-Action: Lethal (Offense Passive) — Increases attack modifiers.
-// Rolls: No. NG1: No. Crit: No.
-// Minimum Rank: D
 async function handleLethal(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
@@ -1269,6 +1188,7 @@ async function handleLethal(message, args, comment) {
 // Rolls: No. NG1: No. Crit: No.
 // Minimum Rank: D
 // S Upgrade: +1 movement becomes +2
+
 async function handleSwift(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
@@ -1313,9 +1233,8 @@ async function handleSwift(message, args, comment) {
   return sendReply(message, embed);
 }
 
+
 module.exports = {
-    handleAttack,
-    handleRush,
     handleStable,
     handleBurst,
     handleSneak,
@@ -1325,7 +1244,6 @@ module.exports = {
     handleAreaEffect,
     handleDuelist,
     handleSharpshooter,
-    handleRange,
     handleLethal,
     handleSwift
 };

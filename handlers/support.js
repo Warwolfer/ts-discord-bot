@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers } = require('../helpers');
 
+
 async function handleHeal(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
   const wrData = getRankData(args[2], 'weapon');
@@ -123,6 +124,7 @@ async function handleHeal(message, args, comment) {
   embed.setDescription(description);
   return sendReply(message, embed);
 }
+
 
 async function handlePowerHeal(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -256,6 +258,7 @@ async function handlePowerHeal(message, args, comment) {
   embed.setDescription(description);
   return sendReply(message, embed);
 }
+
 
 async function handleBuff(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -421,6 +424,7 @@ async function handleBuff(message, args, comment) {
   embed.setDescription(description);
   return sendReply(message, embed);
 }
+
 
 async function handlePowerBuff(message, args, comment) {
   const mrData = getRankData(args[1], 'mastery');
@@ -621,6 +625,7 @@ async function handlePowerBuff(message, args, comment) {
   return sendReply(message, embed);
 }
 
+
 async function handleImbue(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
@@ -668,6 +673,7 @@ async function handleImbue(message, args, comment) {
   return sendReply(message, embed);
 }
 
+
 async function handleVersatile(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
@@ -695,6 +701,7 @@ async function handleVersatile(message, args, comment) {
   embed.setDescription(description);
   return sendReply(message, embed);
 }
+
 
 async function handleRevive(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
@@ -753,6 +760,7 @@ async function handleRevive(message, args, comment) {
   return sendReply(message, embed);
 }
 
+
 async function handleCleanse(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
   const commentString = typeof comment === 'string' ? comment : '';
@@ -801,6 +809,7 @@ async function handleCleanse(message, args, comment) {
   return sendReply(message, embed);
 }
 
+
 async function handleHaste(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
@@ -841,6 +850,7 @@ async function handleHaste(message, args, comment) {
   embed.setDescription(description);
   return sendReply(message, embed);
 }
+
 
 async function handleInspire(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
@@ -883,562 +893,7 @@ async function handleInspire(message, args, comment) {
   return sendReply(message, embed);
 }
 
-async function handleGuardian(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
 
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Trigger: "Amplify"
-  const amplifyActive = /\bamplify\b/i.test(commentString);
-
-  // Rank validation for Amplify
-  if (amplifyActive) {
-    const restrictedRanks = ['e', 'd', 'c', 'b'];
-    if (!mrRank || restrictedRanks.includes(mrRank)) {
-      const embed = new EmbedBuilder()
-        .setColor('Red')
-        .setTitle('Invalid Rank')
-        .setDescription('This Bonus Action is not available at Mastery Rank (E, D, C, or B).\n');
-      return sendReply(message, embed, comment);
-    }
-  }
-
-  // Define mitigation values based on rank
-  const GUARDIAN_VALUES = { c: 15, b: 20, a: 25, s: 30 };
-  let mitigationAmount = GUARDIAN_VALUES[mrRank] ?? 0;
-
-  // Embed setup
-  const embed = new EmbedBuilder()
-    .setColor('#8C6BC2')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setThumbnail('https://terrarp.com/db/action/guardian.png');
-
-  let description = '';
-
-  // Handle which action is active
-  if (amplifyActive) {
-    // Amplify (Bonus Action)
-    mitigationAmount *= 2; // Double the mitigation
-    embed.setTitle('**(Alter) Guardian**');
-    description += `► **Bonus Action: Amplify.** Distribute **${mitigationAmount} mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
-    description += `\n◦ Effect: Mitigation amount has been doubled.`;
-    description += `\n◦ Limitation: Each character may have no more than *60 mitigation* from all effects.\n`;
-
-  } else {
-    // Guardian (Free Action)
-    embed.setTitle('**(Alter) Guardian**');
-    description += `► **Free Action.** Distribute **${mitigationAmount} damage mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
-    description += `\n◦ Limitation: Each character may have no more than *60 mitigation* from all effects.\n`;
-  }
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  // Add a link to the original message command
-  description += ` · *[Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleAggress(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Rank validation (minimum D)
-  if (!mrRank) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('Check your Mastery rank input.');
-    return sendReply(message, embed, comment);
-  }
-
-  // Priority roll (1d100)
-  const priorityRoll = roll(1, 100);
-
-  // Embed setup
-  const embed = new EmbedBuilder()
-    .setColor('#8C6BC2')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('**(Alter) Aggress**')
-    .setThumbnail('https://terrarp.com/db/action/aggress.png');
-
-  let description = `\`1d100 (${priorityRoll})\`\n\n`;
-  description += `► **Free Action.** Taunt an enemy. Aggress takes higher priority than regular Taunt. If two Aggress is used on the same target, roll a 1d100, the higher result takes priority.\n`;
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleSavior(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Trigger: "Share"
-  const shareAuraActive = /\bshare\b/i.test(commentString);
-
-  // Rank validation for Share
-  if (shareAuraActive) {
-    if (!mrRank || mrRank === 'e') {
-      const embed = new EmbedBuilder()
-        .setColor('Red')
-        .setTitle('Invalid Rank')
-        .setDescription('This Bonus Action is not available at Mastery Rank (E).\n');
-      return sendReply(message, embed, comment);
-    }
-  }
-
-  // Define save bonus values based on rank
-  const SAVIOR_VALUES = { d: 15, b: 20, s: 25 };
-  let saveAmount = SAVIOR_VALUES[mrRank] ?? 0;
-
-  // Embed setup
-  const embed = new EmbedBuilder()
-    .setColor('#6845a2')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setThumbnail('https://terrarp.com/db/action/savior.png');
-
-  let description = '';
-
-  // Handle which action is active
-  if (shareAuraActive) {
-    // Share (Bonus Action)
-    const allies = mrRank === 's' ? '2 allies' : '1 ally';
-    embed.setTitle('**(Alter) Savior**');
-    description += `► **Bonus Action: Share.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase, and share the same amount with ***${allies}*** within range.\n`;
-  } else {
-    // Savior (Passive)
-    embed.setTitle('**(Alter) Savior**');
-    description += `► ***Passive.*** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase.\n`;
-  }
-
-  description += `\n◦ Limitation: Each character may only have 1 instance of Savior Aura.\n`;
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  // Add a link to the original message command
-  description += ` · *[Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleAcrimony(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Rank validation (minimum D)
-  if (!mrRank) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('Check your Mastery rank input.');
-    return sendReply(message, embed, comment);
-  }
-
-  // Trigger: "Meliorate"
-  const meliorateActive = /\bmeliorate\b/i.test(commentString);
-
-  // Define values by rank
-  const DAMAGE_VALUES = { d: 15, c: 15, b: 25, a: 25, s: 35 };
-  const HEAL_VALUES = { d: 10, c: 10, b: 15, a: 15, s: 20 };
-  const MELIORATE_VALUES = { d: 15, c: 15, b: 25, a: 25, s: 35 };
-
-  const damageAmount = DAMAGE_VALUES[mrRank] ?? 15;
-  const healAmount = HEAL_VALUES[mrRank] ?? 10;
-  const meliorateAmount = MELIORATE_VALUES[mrRank] ?? 15;
-
-  // Embed setup
-  const embed = new EmbedBuilder()
-    .setColor('#8C6BC2')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setThumbnail('https://terrarp.com/db/action/acrimony.png');
-
-  let description = '';
-
-  // Handle which action is active
-  if (meliorateActive) {
-    // Meliorate (Bonus Action)
-    embed.setTitle('**(Alter) Acrimony**');
-    description += `► **Bonus Action: Meliorate.** When your Acrimony target dies this cycle, gain **${meliorateAmount} HP** (MR⋅${mrRankUp}).\n`;
-  } else {
-    // Acrimony (Free Action)
-    embed.setTitle('**(Alter) Acrimony**');
-    description += `► **Free Action.** While Vulnerable, deal an instance of **${damageAmount} damage** (MR⋅${mrRankUp}) to an enemy you are adjacent to or share a space with and regain **${healAmount} HP** (MR⋅${mrRankUp}). You cannot gain the Protected State.\n`;
-  }
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleOverdrive(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Rank validation: Action not available at MR=E
-  if (mrRank === 'e') {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('This Passive is not available at Mastery Rank (E).\n');
-    return sendReply(message, embed, comment);
-  }
-
-  // Define max HP gain values based on rank
-  const MAX_HP_VALUES = { d: 25, c: 30, b: 35, a: 40, s: 50 };
-  const maxHpForRank = MAX_HP_VALUES[mrRank] ?? 0;
-
-  // Check for trigger and validate format
-  const triggerAttempt = /\bod-damage/i.test(commentString);
-  const damageMatch = commentString.match(/\bod-damage\s*\((\d+)\)/i);
-
-  // Error if trigger is used without a number
-  if (triggerAttempt && !damageMatch) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Command Format')
-      .setDescription('Please provide a numerical value for the damage dealt inside the parentheses.\n\n**Example:** `OD-damage (150)`\n');
-    return sendReply(message, embed, comment);
-  }
-
-  let hpGain = '{X}';
-  let calculationString = '(Y/12)';
-
-  // Calculate HP gain if the trigger and value are present
-  if (damageMatch && damageMatch[1]) {
-    const damageInput = parseInt(damageMatch[1], 10);
-    const divisor = mrRank === 's' ? 10 : 12; // At MR=S, the divisor is 10
-
-    calculationString = `${damageInput}/${divisor}`;
-
-    // Calculate HP gain and cap it based on rank
-    const calculatedHp = Math.floor(damageInput / divisor);
-    const finalHpGain = Math.min(calculatedHp, maxHpForRank);
-
-    hpGain = `${finalHpGain}`;
-  }
-
-  // Embed setup
-  const embed = new EmbedBuilder()
-    .setColor('#6845a2')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('**(Alter) Overdrive**')
-    .setThumbnail('https://terrarp.com/db/action/overdrive.png');
-
-  let description = `► ***Passive.*** Gain **${hpGain} HP** (${calculationString}, Max ${maxHpForRank}) (MR⋅${mrRankUp}) when you are adjacent to or on the same space as the enemy you attacked this cycle.\n`;
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  // Add a link to the original message command
-  description += ` · *[Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleRage(message, args, comment) {
-  const mrData = getRankData(args[1], 'mastery');
-  if (!mrData) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('Check your Mastery rank input.');
-    return sendReply(message, embed, comment);
-  }
-
-  const displayName = message.member?.displayName ?? message.author.username;
-
-  // MR rank
-  const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
-  const mrRank = mrRankRaw.toLowerCase();
-  const mrRankUp = mrRankRaw.toUpperCase();
-
-  // Triggers
-  const frenzyActive = typeof comment === 'string' && /\bfrenzy\b/i.test(comment);
-
-  // Parse: Taken-damage (Y)
-  // Accepts integers/floats; clamps below at 0; errors if missing/invalid.
-  let takenY = NaN;
-  if (typeof comment === 'string') {
-    const m = /taken[-\s]*damage\s*\(\s*([-+]?\d*\.?\d+)\s*\)/i.exec(comment);
-    if (m) takenY = Number(m[1]);
-  }
-  if (!Number.isFinite(takenY)) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Missing or Invalid Value')
-      .setDescription(
-        'Please include **Taken-damage (Y)** in your comment with a numeric value.\n' +
-        'Examples: `Taken-damage (37)`, `Taken damage (112)`'
-      );
-    return sendReply(message, embed, comment);
-  }
-
-  // Caps by MR rank (available at D, C, B, A, S unless Frenzy removes the cap)
-  const CAPS = { d: 25, c: 50, b: 75, a: 100, s: 125 };
-  const hasCapForRank = Object.prototype.hasOwnProperty.call(CAPS, mrRank);
-  if (!frenzyActive && !hasCapForRank) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Unavailable MR Rank')
-      .setDescription('Rage is only available from D-rank+.')
-    return sendReply(message, embed, comment);
-  }
-
-  // Compute X
-  const base = Math.max(0, Math.floor(takenY)); // clamp <0, floor to int
-  const cap = CAPS[mrRank]; // undefined for non-C/A/S, which is fine under Frenzy
-  let X = 0;
-  let calcLine = '';
-
-  if (frenzyActive) {
-    X = base * 2;
-    calcLine = `• Calc: X = ${base} × 2 = **${X}** (Frenzy: no cap this cycle)`;
-  } else {
-    X = Math.min(base, cap);
-    calcLine = `• Calc: X = min(${base}, cap ${cap}) = **${X}**`;
-  }
-
-  // Embed
-  const embed = new EmbedBuilder()
-    .setColor('#6845a2')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(frenzyActive ? '(Alter) Frenzied Rage' : '(Alter) Rage')
-    .setThumbnail('https://terrarp.com/db/action/rage.png');
-
-  // Description text
-  let description = '';
-  if (frenzyActive) {
-    description += `► **Bonus Action: Frenzied Rage.** Deal **${X} damage** to an enemy you share a space with or are adjacent to based on your taken damage (rage damage has been doubled and has no cap this cycle, MR⋅${mrRankUp})\n`;
-  } else {
-    description += `► **Free Action.** Deal **${X} damage** to an enemy you share a space with or are adjacent to based on your taken damage (max ${cap} - MR⋅${mrRankUp})\n`;
-  }
-
-  // Echo original comment if provided (keeps parity with your other handlers)
-  if (comment) description += `${comment}`;
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleGift(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Rank validation (minimum B rank)
-  const restrictedRanks = ['e', 'd', 'c'];
-  if (!mrRank || restrictedRanks.includes(mrRank)) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('**Gift** is not available below Mastery Rank (B).');
-    return sendReply(message, embed, comment);
-  }
-
-  // Embed
-  const embed = new EmbedBuilder()
-    .setColor('#8b5cf6')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('Gift')
-    .setThumbnail('https://terrarp.com/db/action/gift.png');
-
-  let description = `► **Passive.** When you Release your charge, roll another set and take the higher set.\n`;
-
-  // S rank upgrade
-  if (mrRank === 's') {
-    description += `\n◦ **S Upgrade:** You may reroll your Release dice set a third time and keep the highest set, but take **20 damage**.\n`;
-  }
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleFollowUp(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Rank validation (minimum C rank)
-  const restrictedRanks = ['e', 'd'];
-  if (!mrRank || restrictedRanks.includes(mrRank)) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('**Follow-up** is not available below Mastery Rank (C).');
-    return sendReply(message, embed, comment);
-  }
-
-  // Parse Target from comment
-  const targetMatch = /\btarget\s*\(([^)]+)\)/i.exec(commentString);
-  const targetName = targetMatch && targetMatch[1] ? targetMatch[1].trim() : 'an ally';
-
-  // Define modifier values based on rank
-  const SPECIAL_MODIFIER = { d: 20, c: 25, b: 30, a: 35, s: 40 };
-  const NORMAL_MODIFIER = { d: 0, c: 15, b: 15, a: 20, s: 25 };
-
-  const specialMod = SPECIAL_MODIFIER[mrRank] ?? 0;
-  const normalMod = NORMAL_MODIFIER[mrRank] ?? 0;
-
-  // Embed
-  const embed = new EmbedBuilder()
-    .setColor('#8b5cf6')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle('Follow-up')
-    .setThumbnail('https://terrarp.com/db/action/follow-up.png');
-
-  let description = `► **Free Action.** You or **${targetName}** may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier when **${targetName}** performs a special attack action within range. If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-async function handleLocomote(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
-  const commentString = typeof comment === 'string' ? comment : '';
-
-  // Get rank data
-  const mrData = getRankData(args[1], 'mastery');
-  const mrRank = mrData?.rank?.toLowerCase();
-  const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
-
-  // Rank validation (minimum D)
-  if (!mrRank) {
-    const embed = new EmbedBuilder()
-      .setColor('Red')
-      .setTitle('Invalid Rank')
-      .setDescription('Check your Mastery rank input.');
-    return sendReply(message, embed, comment);
-  }
-
-  // Parse Target from comment
-  const targetMatch = /\btarget\s*\(([^)]+)\)/i.exec(commentString);
-  const targetName = targetMatch && targetMatch[1] ? targetMatch[1].trim() : 'a target';
-
-  // Trigger: Switch
-  const switchActive = /\bswitch\b/i.test(commentString);
-
-  // Embed
-  const embed = new EmbedBuilder()
-    .setColor('#10b981')
-    .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setThumbnail('https://terrarp.com/db/action/locomote.png');
-
-  let description = '';
-
-  if (switchActive) {
-    // Switch mode (Bonus Action)
-    embed.setTitle('Locomote (Switch)');
-    description += `► **Bonus Action: Switch.** Change the Locomote target to **${targetName}**.\n`;
-  } else {
-    // Normal mode (Free Action)
-    embed.setTitle('Locomote');
-    description += `► **Free Action.** At the start of the thread, pick **${targetName}** within range, that target gets a **+1 movement** until you switch the target.\n`;
-
-    // B rank upgrade
-    if (mrRank === 'b' || mrRank === 'a' || mrRank === 's') {
-      description += `\n◦ **B Upgrade:** If you and the Locomote target start on the same space at the start of a cycle, both get the **+1 movement**.\n`;
-    }
-  }
-
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
-}
-
-module.exports = {
-  handleHeal,
-  handlePowerHeal,
-  handleBuff,
-  handlePowerBuff,
-  handleImbue,
-  handleVersatile,
-  handleRevive,
-  handleCleanse,
-  handleHaste,
-  handleInspire,
-  handleGuardian,
-  handleAggress,
-  handleSavior,
-  handleAcrimony,
-  handleOverdrive,
-  handleRage,
-  handleGift,
-  handleFollowUp,
-  handleLocomote,
-  handleSmite
-};
-
-// Support Passive: Smite
 async function handleSmite(message, args, comment) {
   const displayName = message.member?.displayName ?? message.author.username;
 
@@ -1459,3 +914,23 @@ async function handleSmite(message, args, comment) {
   embed.setDescription(description);
   return sendReply(message, embed);
 }
+
+// Sub-Action: Blessed (Support Passive) — Increases heal and buff modifier.
+// Rolls: No. NG1: No. Crit: No.
+// Minimum Rank: D
+
+
+module.exports = {
+  handleHeal,
+  handlePowerHeal,
+  handleBuff,
+  handlePowerBuff,
+  handleImbue,
+  handleVersatile,
+  handleRevive,
+  handleCleanse,
+  handleHaste,
+  handleInspire,
+  handleSmite,
+  handleBlessed
+};

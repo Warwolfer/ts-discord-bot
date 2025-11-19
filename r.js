@@ -4,6 +4,7 @@ const { checkPermissions, parseArguments, sendReply } = require('./helpers');
 const { PREFIX } = require('./constants');
 
 // Import all handler modules
+const basicHandlers = require('./handlers/basic');
 const offenseHandlers = require('./handlers/offense');
 const defenseHandlers = require('./handlers/defense');
 const supportHandlers = require('./handlers/support');
@@ -12,11 +13,14 @@ const genericHandlers = require('./handlers/generic');
 
 // Build command handlers lookup table
 const commandHandlers = {
+    // Basic handlers
+    'attack': basicHandlers.handleAttack,
+    'atk': basicHandlers.handleAttack,
+    'rush': basicHandlers.handleRush,
+    'range': basicHandlers.handleRange,
+
     // Offense handlers
-    'attack': offenseHandlers.handleAttack,
-    'atk': offenseHandlers.handleAttack,
-    'rush': offenseHandlers.handleRush,
-    'torment': offenseHandlers.handleTorment,
+    'stable': offenseHandlers.handleStable,
     'burst': offenseHandlers.handleBurst,
     'sneak': offenseHandlers.handleSneak,
     'critical': offenseHandlers.handleCritical,
@@ -25,17 +29,18 @@ const commandHandlers = {
     'areaeffect': offenseHandlers.handleAreaEffect,
     'duelist': offenseHandlers.handleDuelist,
     'sharpshooter': offenseHandlers.handleSharpshooter,
-    'range': offenseHandlers.handleRange,
-    'smite': offenseHandlers.handleSmite,
-    'counter': offenseHandlers.handleCounter,
-    'ultracounter': offenseHandlers.handleUltraCounter,
-    'cover': offenseHandlers.handleCover,
-    'taunt': offenseHandlers.handleTaunt,
-    'stable': offenseHandlers.handleStable,
-    'ultraprotect': offenseHandlers.handleUltraProtect,
+    'lethal': offenseHandlers.handleLethal,
+    'swift': offenseHandlers.handleSwift,
 
     // Defense handlers
     'protect': defenseHandlers.handleProtect,
+    'counter': defenseHandlers.handleCounter,
+    'ultracounter': defenseHandlers.handleUltraCounter,
+    'ultraprotect': defenseHandlers.handleUltraProtect,
+    'torment': defenseHandlers.handleTorment,
+    'cover': defenseHandlers.handleCover,
+    'taunt': defenseHandlers.handleTaunt,
+    'sturdy': defenseHandlers.handleSturdy,
 
     // Support handlers
     'heal': supportHandlers.handleHeal,
@@ -48,15 +53,19 @@ const commandHandlers = {
     'cleanse': supportHandlers.handleCleanse,
     'haste': supportHandlers.handleHaste,
     'inspire': supportHandlers.handleInspire,
-    'guardian': supportHandlers.handleGuardian,
-    'aggress': supportHandlers.handleAggress,
-    'savior': supportHandlers.handleSavior,
-    'acrimony': supportHandlers.handleAcrimony,
-    'overdrive': supportHandlers.handleOverdrive,
-    'rage': supportHandlers.handleRage,
-    'gift': supportHandlers.handleGift,
-    'followup': supportHandlers.handleFollowUp,
-    'locomote': supportHandlers.handleLocomote,
+    'smite': supportHandlers.handleSmite,
+    'blessed': supportHandlers.handleBlessed,
+
+    // Alter handlers (moved from support)
+    'guardian': alterHandlers.handleGuardian,
+    'aggress': alterHandlers.handleAggress,
+    'savior': alterHandlers.handleSavior,
+    'acrimony': alterHandlers.handleAcrimony,
+    'overdrive': alterHandlers.handleOverdrive,
+    'rage': alterHandlers.handleRage,
+    'gift': alterHandlers.handleGift,
+    'followup': alterHandlers.handleFollowUp,
+    'locomote': alterHandlers.handleLocomote,
 
     // Alter/Passive handlers
     'defile': alterHandlers.handleDefile,

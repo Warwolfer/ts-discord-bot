@@ -19,10 +19,11 @@ ts-discord-bot/
 ├── helpers.js              # Utility functions (~150 lines)
 └── handlers/
     ├── generic.js          # Generic rolls and version (~50 lines)
-    ├── offense.js          # Attack actions (~1,200 lines)
+    ├── basic.js            # Basic & utility actions (~75 lines)
+    ├── offense.js          # Offensive actions (~1,230 lines)
     ├── defense.js          # Defense actions (~500 lines)
-    ├── support.js          # Healing/buff actions (~1,460 lines)
-    └── alter.js            # Passive abilities (~1,700 lines)
+    ├── support.js          # Healing/buff actions (~910 lines)
+    └── alter.js            # Passive/alter abilities (~2,150 lines)
 ```
 
 **Module Responsibilities:**
@@ -48,35 +49,45 @@ ts-discord-bot/
    - `handleGenericRoll`: Handles XdY dice notation (e.g., `2d6`, `1d100`)
    - `handleVersion`: Displays bot version
 
-4. **handlers/offense.js** - 12 attack/offensive action handlers
-   - Attack variants: `handleAttack`, `handleRush`, `handleBurst`, `handleSneak`, `handleCritical`
-   - Combat styles: `handleSharp`, `handleReckless`
-   - Specialist attacks: `handleAreaEffect`, `handleDuelist`, `handleSharpshooter`, `handleRange`
-   - Reactive: `handleStable`
+4. **handlers/basic.js** - 3 basic and utility action handlers
+   - Basic actions: `handleAttack`, `handleRush`
+   - Utility: `handleRange`
 
-5. **handlers/defense.js** - 8 defensive action handlers
+5. **handlers/offense.js** - 11 offensive action handlers
+   - Attack variants: `handleBurst`, `handleSneak`, `handleCritical`
+   - Combat styles: `handleSharp`, `handleReckless`
+   - Specialist attacks: `handleAreaEffect`, `handleDuelist`, `handleSharpshooter`
+   - Reactive: `handleStable`
+   - Passive bonuses: `handleLethal`, `handleSwift`
+
+6. **handlers/defense.js** - 8 defensive action handlers
    - Protection: `handleProtect`, `handleUltraProtect`, `handleCover`, `handleSturdy`
    - Reactive: `handleCounter`, `handleUltraCounter`, `handleTaunt`
    - Offensive-defense: `handleTorment`
 
-6. **handlers/support.js** - 20 support/healing/buff handlers
+7. **handlers/support.js** - 12 support/healing/buff handlers
    - Healing: `handleHeal`, `handlePowerHeal`, `handleRevive`, `handleCleanse`
    - Buffs: `handleBuff`, `handlePowerBuff`, `handleImbue`, `handleVersatile`
-   - Support actions: `handleHaste`, `handleInspire`, `handleGuardian`, `handleAggress`, `handleSavior`, `handleAcrimony`, `handleSmite`
-   - Special: `handleOverdrive`, `handleRage`, `handleGift`, `handleFollowUp`, `handleLocomote`
+   - Support actions: `handleHaste`, `handleInspire`, `handleSmite`
+   - Passive bonuses: `handleBlessed`
 
-7. **handlers/alter.js** - 29 passive ability/alter action handlers
+8. **handlers/alter.js** - 35 passive ability/alter action handlers
    - Alter-Omen: `handleDefile`, `handleVitiate`
    - Alter-Dexterity: `handleMomentum`, `handleRover`, `handleAcceleration`
    - Alter-Instinct: `handleExceed`, `handleEngage`, `handleEmpower`, `handleMark`
    - Alter-Insight: `handleHyperInsight`, `handleHyperInstinct`, `handleRegenerate`, `handleInfuse`
    - Alter-Adaptability: `handleAdapt`, `handleEvolve`, `handleCoordinate`, `handleAid`, `handleCharge`
-   - Alter-Weapons: `handleLethal`, `handleSwift`, `handleBlessed`, `handleProfane`, `handleRegalia`
+   - Alter-Aura: `handleGuardian`, `handleAggress`, `handleSavior`
+   - Alter-Battle Spirits: `handleAcrimony`, `handleOverdrive`, `handleRage`
+   - Alter-Weapon Arts: `handleGift`, `handleFollowUp`
+   - Alter-Summon: `handleLocomote`
+   - Alter-Corrupt: `handleProfane`
+   - Alter-Evoke: `handleRegalia`
    - Alter-Metamorph: `handleAnatomy`
    - Alter-Mend: `handleBestowed`
    - Alter-Praxis: `handleCombatFocus`, `handleUtilityFocus`, `handleDefenseFocus`, `handleSpeedFocus`
 
-8. **r.js** - Main coordinator module
+9. **r.js** - Main coordinator module
    - Imports all handler modules
    - Builds command lookup table mapping aliases to handlers
    - Exports Discord.js command structure with `execute(message)` function
@@ -229,9 +240,9 @@ TEST_CHANNEL_ID=
 
 ### Key Design Decisions
 
-1. **Modular Architecture**: Code is split into 8 modules for maintainability:
+1. **Modular Architecture**: Code is split into 9 modules for maintainability:
    - Main coordinator (r.js) routes to specialized handlers
-   - Handlers organized by function: generic, offense, defense, support, alter
+   - Handlers organized by function: generic, basic, offense, defense, support, alter
    - Shared utilities in helpers.js, constants in constants.js
    - Reduced main file from 5,160 lines to 142 lines
 2. **Embed-Based Responses**: All output uses Discord embeds for consistent formatting
@@ -244,7 +255,12 @@ TEST_CHANNEL_ID=
 ### Common Patterns
 
 **Adding a New Command:**
-1. Determine which handler module the command belongs to (generic/offense/defense/support/alter)
+1. Determine which handler module the command belongs to based on actions.js category field:
+   - category: "basic" or "utility" → handlers/basic.js
+   - category: "offense" → handlers/offense.js
+   - category: "defense" → handlers/defense.js
+   - category: "support" → handlers/support.js
+   - category: "alter" → handlers/alter.js
 2. Create handler function in appropriate handlers/*.js file: `async function handleNewCommand(message, args, comment)`
 3. Parse arguments and validate input
 4. Calculate results using helper functions and rank data from constants.js
