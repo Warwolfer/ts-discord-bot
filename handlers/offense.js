@@ -90,6 +90,10 @@ async function handleStable(message, args, comment) {
 
   const calculation = parts.join(' + ');
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('attack', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
@@ -99,7 +103,7 @@ async function handleStable(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/stable.png');
 
   let description =
-    `\`${calculation}\`\n\n` +
+    `\`${calculation}\`\n${passiveDisplay}\n` +
     `**${total} total** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n` +
     (ngNote ? `${ngNote}\n` : '');
 
@@ -190,6 +194,10 @@ async function handleBurst(message, args, comment) {
 
   const calculation = parts.join(' + ');
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('attack', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
@@ -199,7 +207,7 @@ async function handleBurst(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/burst.png');
 
   let description =
-    `\`${calculation}\`\n\n` +
+    `\`${calculation}\`\n${passiveDisplay}\n` +
     `**${total} total** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n` +
     `\n► Status. You are vulnerable.\n` +
     (ngNote ? `${ngNote}\n` : '');
@@ -270,6 +278,10 @@ async function handleSneak(message, args, comment) {
   }
   const calculation = parts.join(' + ');
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('attack', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
@@ -279,7 +291,7 @@ async function handleSneak(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sneak.png');
 
   let description =
-    `\`${calculation}\`\n\n` +
+    `\`${calculation}\`\n${passiveDisplay}\n` +
     `**${total} total** (${success ? 'sneak successful!' : 'sneak failed...'})\n\n` +
     `► Succeeed on ${threshold}+ to add ${successBonus} sneak damage (${mrData.rank}-ranked mastery), otherwise, add 10.\n` +
     (ngNote ? `${ngNote}\n` : '');
@@ -407,6 +419,10 @@ async function handleCritical(message, args, comment) {
   const calculation = parts.join(' + ');
   const calcWithMult = `${calculation}` + ` ×${multiplier}`;
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('attack', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
@@ -416,7 +432,7 @@ async function handleCritical(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/critical.png');
 
   let description =
-    `\`${calcWithMult}\`\n\n` +
+    `\`${calcWithMult}\`\n${passiveDisplay}\n` +
     `**${finalTotal} total**${resultTag ? ` ${resultTag}` : ''}\n` +
     (triggeredLine ? `\n${triggeredLine}\n` : '') +
     (testNote ? testNote : '') +           // test note
@@ -600,6 +616,10 @@ async function handleSharp(message, args, comment) {
   const calculation = parts.join(' + ');
   const calcWithMult = `${calculation} ×${multiplier}`;
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('attack', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // Embed
   const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
@@ -609,7 +629,7 @@ async function handleSharp(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sharp.png');
 
   let description =
-    `\n\`${calcWithMult}\`\n\n` +
+    `\n\`${calcWithMult}\`\n${passiveDisplay}\n` +
     `**${finalTotal} total**${resultTag ? ` ${resultTag}` : ''}\n` +
     (triggeredLine ? `${triggeredLine}\n` : '') +
     (forcedRisky
@@ -864,6 +884,10 @@ async function handleReckless(message, args, comment) {
   const calculation = parts.join(' + ');
   const calcWithMult = `${calculation} ×${multiplier}`;
 
+  // Detect passive ability tags
+  const passiveTags = getPassiveModifiers('attack', comment);
+  const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
   // --- Embed render ---
   const displayName = getDisplayName(message);
   const embed = new EmbedBuilder()
@@ -873,7 +897,7 @@ async function handleReckless(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/reckless.png');
 
   let description =
-    `\n\`${calcWithMult}\`\n\n` +
+    `\n\`${calcWithMult}\`\n${passiveDisplay}\n` +
     `**${finalTotal} total**${resultTag ? ` ${resultTag}` : ''}\n` +
     (triggeredLine ? `${triggeredLine}\n` : '') +
     (`► You are vulnerable.\n`) +
