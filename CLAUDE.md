@@ -139,6 +139,41 @@ The `getPassiveModifiers(actionType, commentString)` helper function detects tag
 - Users calculate and add bonuses manually (e.g., if Lethal C gives +10, add 10 to modifiers)
 - NG1 tag is already implemented with automatic +5 bonus in attack/support handlers
 
+**Implementation Checklist - Attack Actions:**
+
+ALL attack actions MUST call `getPassiveModifiers('attack', comment)` to detect "Lethal" and "Combat Focus" tags.
+
+Verified implementations (✓ = implemented):
+- ✓ `handleAttack` (handlers/basic.js) - Basic attack with passive tag detection
+- ✓ `handleStable` (handlers/offense.js) - Stable attack with passive tag detection
+- ✓ `handleBurst` (handlers/offense.js) - Burst attack with passive tag detection
+- ✓ `handleSneak` (handlers/offense.js) - Sneak attack with passive tag detection
+- ✓ `handleCritical` (handlers/offense.js) - Critical attack with passive tag detection
+- ✓ `handleSharp` (handlers/offense.js) - Sharp attack with passive tag detection
+- ✓ `handleReckless` (handlers/offense.js) - Reckless attack with passive tag detection
+- ✓ `handleCounter` (handlers/defense.js) - Counter attack with passive tag detection
+- ✓ `handleUltraCounter` (handlers/defense.js) - Ultra counter with passive tag detection
+
+**Implementation Pattern for Attack Actions:**
+```javascript
+// After calculation string is built
+const passiveTags = getPassiveModifiers('attack', comment);
+const passiveDisplay = passiveTags.length > 0 ? `${passiveTags.join(', ')}\n` : '';
+
+// In embed description
+let description = `\`${calculation}\`\n${passiveDisplay}\n` + /* rest of description */;
+```
+
+**IMPORTANT:** When adding new attack actions or modifying existing ones, always verify that `getPassiveModifiers('attack', comment)` is called and the passive tags are displayed in the embed. This ensures users can see which passive abilities are active.
+
+**Implementation Checklist - Support Actions:**
+
+ALL support actions SHOULD call `getPassiveModifiers('support', comment)` to detect "Blessed" and "Combat Focus" tags.
+
+Verified implementations (✓ = implemented):
+- ✓ `handleHeal` (handlers/support.js) - Heal action with passive tag detection
+- Support actions use the same pattern with `getPassiveModifiers('support', comment)`
+
 ### Available Roll Commands
 
 **Generic Rolling:**
