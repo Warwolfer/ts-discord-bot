@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, parseModifiers, sendReply, parseArguments } = require('../helpers');
+const { roll, parseModifiers, sendReply, parseArguments, getDisplayName } = require('../helpers');
+const { EMBED_COLORS } = require('../constants');
 
 async function handleGenericRoll(message, args, comment) {
     // The dice notation (e.g., "1d100", "2d4") is the first argument.
@@ -7,7 +8,7 @@ async function handleGenericRoll(message, args, comment) {
 
     // --- Input Validation ---
     if (!diceNotation.includes('d') || diceNotation.startsWith('d') || diceNotation.endsWith('d')) {
-        const embed = new EmbedBuilder().setColor('Red').setTitle('Invalid Format').setDescription('Please use the `XdY` format (e.g., `1d100`, `2d6`).');
+        const embed = new EmbedBuilder().setColor(EMBED_COLORS.error).setTitle('Invalid Format').setDescription('Please use the `XdY` format (e.g., `1d100`, `2d6`).');
         return sendReply(message, embed, comment);
     }
 
@@ -17,7 +18,7 @@ async function handleGenericRoll(message, args, comment) {
 
     // Check if parsing worked and if numbers are reasonable
     if (isNaN(numDice) || isNaN(dieFace) || numDice <= 0 || dieFace <= 0 || numDice > 100 || dieFace > 1000) {
-        const embed = new EmbedBuilder().setColor('Red').setTitle('Invalid Dice').setDescription('Number of dice and faces must be positive numbers. Please keep rolls reasonable (max 100 dice, 1000 faces).');
+        const embed = new EmbedBuilder().setColor(EMBED_COLORS.error).setTitle('Invalid Dice').setDescription('Number of dice and faces must be positive numbers. Please keep rolls reasonable (max 100 dice, 1000 faces).');
         return sendReply(message, embed, comment);
     }
 
@@ -38,9 +39,10 @@ async function handleGenericRoll(message, args, comment) {
     // --- Display Logic ---
     const calculation = `${diceNotation} (${rollResults.join(' + ')})${modifiers.display}`;
 
+    const displayName = getDisplayName(message);
     const embed = new EmbedBuilder()
-        .setColor('#99AAB5') // A neutral color for generic rolls
-        .setAuthor({ name: `${message.member.displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
+        .setColor(EMBED_COLORS.generic)
+        .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Dice Roll`)
         .setThumbnail('https://terrarp.com/db/action/roll.png')
         .addFields(
@@ -59,7 +61,7 @@ async function handleGenericRoll(message, args, comment) {
 /////////////////Bot Version
 async function handleVersion(message, args, comment) {
     const embed = new EmbedBuilder()
-        .setColor('#99AAB5')
+        .setColor(EMBED_COLORS.utility)
         .setTitle('Bot Version')
         .setDescription('**Current Version: 3.12.0** - Sphera 3.12 Update');
     sendReply(message, embed, comment);
