@@ -2089,32 +2089,6 @@ async function handleLocomote(message, args, comment) {
 }
 
 module.exports = {
-  handleHeal,
-  handlePowerHeal,
-  handleBuff,
-  handlePowerBuff,
-  handleImbue,
-  handleVersatile,
-  handleRevive,
-  handleCleanse,
-  handleHaste,
-  handleInspire,
-  handleGuardian,
-  handleAggress,
-  handleSavior,
-  handleAcrimony,
-  handleOverdrive,
-  handleRage,
-  handleGift,
-  handleFollowUp,
-  handleLocomote,
-  handleSmite,
-  handleBlessed
-};
-
-// Support Passive: Smite
-
-module.exports = {
   handleDefile,
   handleVitiate,
   handleMomentum,
