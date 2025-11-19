@@ -32,6 +32,23 @@ const WEAPON_RANK_DATA = {
     's': { value: 40, burstMod: 5 },
 };
 
+// --- Embed Color Palette ---
+// Centralized color constants for consistent embed theming
+const EMBED_COLORS = {
+    offense: '#d84848',           // Red - Offensive actions
+    offenseSpecial: '#d84848',    // Red - Special offensive actions
+    defense: '#d78747',            // Orange - Defense actions
+    defenseAlt: '#d77e37',        // Orange Alt - Defense variant
+    support: '#4e9be2',            // Blue - Support actions
+    supportSpecial: '#3460d0',    // Dark Blue - Special support actions
+    supportPassive: '#3b82f6',    // Blue - Support passive abilities
+    alter: '#8b5cf6',              // Light Purple - All alter abilities
+    utility: '#F1C40F',            // Yellow - Utility actions
+    generic: '#F1C40F',            // Yellow - Generic rolls
+    error: 'Red',                  // Red - Error messages
+    help: '#FEE75C'                // Light Yellow - Help messages
+};
+
 // --- Action Type Lookup Arrays ---
 // Used to determine which actions can benefit from specific tags/abilities
 
@@ -59,6 +76,7 @@ module.exports = {
     REPLY_DELETE_TIMEOUT,
     RANK_DATA,
     WEAPON_RANK_DATA,
+    EMBED_COLORS,
     attackActions,
     supportActions
 };

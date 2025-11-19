@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers } = require('../helpers');
-const { RANK_DATA } = require('../constants');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseNGTrigger, finalizeAndSend } = require('../helpers');
+const { RANK_DATA, EMBED_COLORS } = require('../constants');
 
 // Defense Action MA Protect
 async function handleProtect(message, args, comment) {
@@ -50,26 +50,16 @@ async function handleCounter(message, args, comment) {
     const wrData = getRankData(args[2], 'weapon');
 
     if (!mrData || !wrData) {
-        const embed = new EmbedBuilder().setColor('Red').setTitle('Invalid Rank').setDescription('Please provide a valid Mastery Rank (E-S) and Weapon Rank (E-S).');
+        const embed = new EmbedBuilder().setColor(EMBED_COLORS.error).setTitle('Invalid Rank').setDescription('Please provide a valid Mastery Rank (E-S) and Weapon Rank (E-S).');
         return sendReply(message, embed, '');
     }
 
     const modifiers = parseModifiers(args, 3);
 
-    // NG trigger (only NG1 enabled)
-    let ngBonus = 0;
-    let ngNote = '';
-    if (typeof comment === 'string') {
-        const m = comment.match(/\bng(\d+)\b/i);
-        if (m) {
-            const level = parseInt(m[1], 10);
-            if (level === 1) {
-                ngBonus = 5;
-            } else {
-                ngNote = `► NG⋅${level} is currently disabled.`;
-            }
-        }
-    }
+    // Parse NG trigger
+    const ng = parseNGTrigger(comment);
+    const ngBonus = ng.bonus;
+    const ngNote = ng.note;
 
     const roll1 = roll(1, 100);
     let total = roll1 + mrData.value + wrData.value + modifiers.total + ngBonus;
@@ -118,9 +108,10 @@ async function handleCounter(message, args, comment) {
     const passiveTags = getPassiveModifiers('attack', comment);
     const passiveDisplay = passiveTags.length > 0 ? `\n${passiveTags.join(', ')}` : '';
 
+    const displayName = getDisplayName(message);
     const embed = new EmbedBuilder()
-        .setColor('#d78747')
-        .setAuthor({ name: `${message.author.displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
+        .setColor(EMBED_COLORS.defense)
+        .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Counter ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/counter.png')
         .addFields(
@@ -452,7 +443,7 @@ async function handleTaunt(message, args, comment) {
 }
 
 async function handleSturdy(message, args, comment) {
-  const displayName = message.member?.displayName ?? message.author.username;
+  const displayName = getDisplayName(message);
 
   // Get rank data
   const mrData = getRankData(args[1], 'mastery');
@@ -463,7 +454,7 @@ async function handleSturdy(message, args, comment) {
   const restrictedRanks = ['e'];
   if (!mrRank || restrictedRanks.includes(mrRank)) {
     const embed = new EmbedBuilder()
-      .setColor('Red')
+      .setColor(EMBED_COLORS.error)
       .setTitle('Invalid Rank')
       .setDescription('**Sturdy** is not available below Mastery Rank (D).');
     return sendReply(message, embed, comment);
@@ -475,21 +466,14 @@ async function handleSturdy(message, args, comment) {
 
   // Embed
   const embed = new EmbedBuilder()
-    .setColor('#3b82f6')
+    .setColor(EMBED_COLORS.supportPassive)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
     .setTitle('Sturdy')
     .setThumbnail('https://terrarp.com/db/action/sturdy.png');
 
-  let description = `► **Passive.** Gain **+${hpBonus} HP** maximum (MR⋅${mrRankUp}), capped at **+50 HP**.\n`;
+  const description = `► **Passive.** Gain **+${hpBonus} HP** maximum (MR⋅${mrRankUp}), capped at **+50 HP**.\n`;
 
-  if (comment) {
-    description += `${comment}`;
-  }
-
-  description += ` · *[Roll Link](${message.url})*`;
-
-  embed.setDescription(description);
-  return sendReply(message, embed);
+  return finalizeAndSend(message, embed, description, comment);
 }
 
 
