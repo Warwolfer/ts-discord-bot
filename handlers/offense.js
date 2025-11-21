@@ -1006,7 +1006,7 @@ async function handleDuelist(message, args, comment) {
 
   if (challengeActive) {
     description += `**Bonus Action.** Your passive damage is doubled and must be used as an attack buff against your passive target.\n`;
-    description += `\n► Challenge activated: gain **${duelValue}** (${mrRankUp}-rank) as a damage buff if you attack an enemy on their space or adjacent to their space.\n`;
+    description += `\n► Challenge activated: gain **${duelValue * 2}** (${mrRankUp}-rank) as a damage buff if you attack an enemy on their space or adjacent to their space.\n`;
   } else {
     description += `► ***Passive.*** If you attack an enemy on their space or adjacent to their space, deal an instance of **${duelValue}** (${mrRankUp}-rank) damage to them.\n`;
   }
