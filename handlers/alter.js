@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getDisplayName, finalizeAndSend, extractRankInfo, validateMinimumRank } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getDisplayName, finalizeAndSend, extractRankInfo, validateMinimumRank, parseTriggers } = require('../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 // Alter Sub-Action: Defile (replaces Overdrive/Rage/Exchange) — Free Action to mark targets; Bonus Action "Vilify" to add 1d20 per target.
