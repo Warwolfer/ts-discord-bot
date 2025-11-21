@@ -76,7 +76,7 @@ ts-discord-bot/
    - Alter-Dexterity: `handleMomentum`, `handleRover`, `handleAcceleration`
    - Alter-Instinct: `handleExceed`, `handleEngage`, `handleEmpower`, `handleMark`
    - Alter-Insight: `handleHyperInsight`, `handleHyperInstinct`, `handleRegenerate`, `handleInfuse`
-   - Alter-Adaptability: `handleAdapt`, `handleEvolve`, `handleCoordinate`, `handleAid`, `handleCharge`
+   - Alter-Adaptability: `handleAdapt`, `handleEvolve`, `handleCoordinate`, `handleAssist`, `handleCharge`
    - Alter-Aura: `handleGuardian`, `handleAggress`, `handleSavior`
    - Alter-Battle Spirits: `handleAcrimony`, `handleOverdrive`, `handleRage`
    - Alter-Weapon Arts: `handleGift`, `handleFollowUp`
@@ -240,7 +240,7 @@ Verified implementations (✓ = implemented):
 - `adapt` - Passive HP boost (Prowl/Fend modes available)
 - `evolve` - Passive bonus at thread start
 - `coordinate` - Free action to grant modifier to targets
-- `aid` - Passive HP grant to Coordinate targets (Assist mode available)
+- `assist` - Bonus action to grant modifier to Coordinate targets
 - `charge` - Passive charge pool system (Charge/Release modes available)
 
 **Utility:**

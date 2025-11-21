@@ -84,7 +84,7 @@ const commandHandlers = {
     'adapt': alterHandlers.handleAdapt,
     'evolve': alterHandlers.handleEvolve,
     'coordinate': alterHandlers.handleCoordinate,
-    'aid': alterHandlers.handleAid,
+    'assist': alterHandlers.handleAssist,
     'charge': alterHandlers.handleCharge,
     'profane': alterHandlers.handleProfane,
     'regalia': alterHandlers.handleRegalia,
