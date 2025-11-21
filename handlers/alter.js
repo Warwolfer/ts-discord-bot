@@ -808,12 +808,11 @@ async function handleCoordinate(message, args, comment) {
   return finalizeAndSend(message, embed, description, comment);
 }
 
-// Sub-Action: Aid — Passive HP grant or bonus action to grant modifier.
+// Sub-Action: Assist — Bonus action to grant modifier to Coordinate targets.
 // Rolls: No. NG1: No. Crit: No.
-// Comment Trigger: "Assist" -> switches to bonus action mode.
-// Rank requirement: Minimum MR=D. B-rank upgrades passive to 10 HP.
+// Rank requirement: Minimum MR=D. Grants 5 (D), 10 (B), or 15 (S) modifier.
 
-async function handleAid(message, args, comment) {
+async function handleAssist(message, args, comment) {
   const displayName = getDisplayName(message);
 
   // Get rank data
@@ -822,17 +821,11 @@ async function handleAid(message, args, comment) {
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
   // Rank validation (minimum D rank)
-  if (!validateMinimumRank(message, mrRank, 'D', 'Aid', comment)) {
+  if (!validateMinimumRank(message, mrRank, 'D', 'Assist', comment)) {
     return;
   }
 
-  // Check for Assist trigger
-  const triggers = parseTriggers(comment, {
-    assist: /\bassist\b/i
-  });
-
-  // Define values based on rank
-  const passiveHP = (mrRank === 'b' || mrRank === 'a' || mrRank === 's') ? 10 : 5;
+  // Define bonus values based on rank
   const ASSIST_BONUS = { d: 5, c: 5, b: 10, a: 10, s: 15 };
   const assistBonus = ASSIST_BONUS[mrRank] ?? 0;
 
@@ -840,15 +833,10 @@ async function handleAid(message, args, comment) {
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLORS.alter)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(triggers.assist ? 'Aid - Assist' : 'Aid')
-    .setThumbnail('https://terrarp.com/db/action/aid.png');
+    .setTitle('Assist')
+    .setThumbnail('https://terrarp.com/db/action/assist.png');
 
-  let description;
-  if (triggers.assist) {
-    description = `► **Bonus Action: Assist.** Grant **+${assistBonus}** (MR⋅${mrRankUp}) modifier to the next mastery check made by any of your Coordinate targets.\n`;
-  } else {
-    description = `► **Passive.** Once per cycle, if your Coordinate target takes damage, they gain **${passiveHP} HP** (MR⋅${mrRankUp}).\n`;
-  }
+  const description = `► **Bonus Action: Assign.** Grant **+${assistBonus}** (MR⋅${mrRankUp}) modifier to the next mastery check made by any of your Coordinate targets.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1740,7 +1728,7 @@ module.exports = {
   handleAdapt,
   handleEvolve,
   handleCoordinate,
-  handleAid,
+  handleAssist,
   handleCharge,
   handleProfane,
   handleRegalia,
