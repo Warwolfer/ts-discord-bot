@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, extractRankInfo, validateMinimumRank, parseTriggers, finalizeAndSend } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, extractRankInfo, validateMinimumRank, parseTriggers, parseNGTrigger, finalizeAndSend } = require('../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 
