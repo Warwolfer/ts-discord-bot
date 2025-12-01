@@ -18,6 +18,9 @@ const commandHandlers = {
     'atk': basicHandlers.handleAttack,
     'rush': basicHandlers.handleRush,
     'range': basicHandlers.handleRange,
+    'save': basicHandlers.handleSave,
+    'expertise': basicHandlers.handleExpertise,
+    'mastery': basicHandlers.handleMastery,
 
     // Offense handlers
     'stable': offenseHandlers.handleStable,

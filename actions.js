@@ -209,7 +209,7 @@ const actionlist = [
         lookup: "taunt",
         name: "Taunt",
         color: "#1e2131",
-        image: "https://terrarp.com/db/action/dba3.png",
+        image: "https://terrarp.com/db/action/dsa.png",
         description:
             "<p>Free Action. When you perform any attack action on a target, you taunt that target. DM* Taunt's effect depends on the enemy and/or encounter design.</p>",
         dice: "Free Action",
@@ -248,7 +248,7 @@ const actionlist = [
         lookup: "torment",
         name: "Torment",
         color: "#1e2131",
-        image: "https://terrarp.com/db/action/dba3.png",
+        image: "https://terrarp.com/db/action/dsa.png",
         description:
             "<p>(D) Free Action. Deals an instance of damage to an enemy adjacent to you: 5 (D), 10 (C), 15 (B), 20 (A), 25 (S)</p><p>(D) Bonus Action: Ultra. Double your Torment damage.</p><p>(D) Bonus Action: Radial. Apply Torment damage to all enemies adjacent to you.</p>",
         dice: "Free/Bonus Action",
@@ -286,7 +286,7 @@ const actionlist = [
         lookup: "cover",
         name: "Cover",
         color: "#1e2131",
-        image: "https://terrarp.com/db/action/dba3.png",
+        image: "https://terrarp.com/db/action/dsa.png",
         description:
             "<p>Bonus Action: Partial. Take half of the damage dealt to your target after modifiers the next time they take damage. Your target takes half.</p><p>Bonus Action: Full. Take the full damage dealt to your target after modifiers the next time they take damage.</p>",
         dice: "Bonus Action",
@@ -324,7 +324,7 @@ const actionlist = [
         lookup: "sturdy",
         name: "Sturdy",
         color: "#1e2131",
-        image: "https://terrarp.com/db/action/dba3.png",
+        image: "https://terrarp.com/db/action/dsa.png",
         description:
             "<p>(D) Passive. Gain 25 + 5 per MR: +30 (D), +35 (C), +40 (B), +45 (A), +50 (S). Maximum +50 HP.</p>",
         dice: "Passive",
@@ -668,7 +668,7 @@ const actionlist = [
             "<p>If you attacked an enemy on their space or adjacent to, you may activate the following effects:</p><p>(D) Passive: Deals an instance of 15 (D), 20 (B), 25 (S) damage.</p><p>(D) Bonus Action: Challenge. Double the Duelist passive and turn it into damage modifier.</p><p>Limitation: Duelist cannot be triggered if you are adjacent to the enemy.</p>",
         dice: "Passive/Bonus Action",
         use: ["passive", "bonus"],
-        roll: "?r duelist # Duelist · Character Name · <span class='thrcode'>Code</span>",
+        roll: "?r duelist <span class='masteryreplace'>MR</span> # Duelist · Character Name · <span class='thrcode'>Code</span>",
         masteries: [
             "astramancy",
             "dark-magic",
@@ -1190,15 +1190,15 @@ const actionlist = [
     },
     {
         id: 66,
-        lookup: "agress",
-        name: "Agress",
+        lookup: "aggress",
+        name: "Aggress",
         color: "#63429b",
-        image: "https://terrarp.com/db/action/agress.png",
+        image: "https://terrarp.com/db/action/aggress.png",
         description:
             "<p>(D) Free Action. Taunt an enemy. Aggress takes higher priority than regular Taunt. If two Aggress is used on the same target, roll a 1d100, the higher result takes priority.</p>",
         dice: "Free Action",
         use: ["free"],
-        roll: "?r agress <span class='masteryreplace'>MR</span> # Character Name · <span class='thrcode'>Code</span>",
+        roll: "?r aggress <span class='masteryreplace'>MR</span> # Character Name · <span class='thrcode'>Code</span>",
         masteries: ["aura"],
         category: "alter",
         pair: "A1",

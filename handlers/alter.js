@@ -8,31 +8,18 @@ const { EMBED_COLORS } = require('../constants');
 // Comment Triggers: "Vilify" activates Vilify mode (Bonus Action), "Enemy" for enemy targeting context
 
 async function handleDefile(message, args, comment) {
-  const mrData = getRankData(args[1], 'mastery');
-  if (!mrData) {
-    const embed = new EmbedBuilder()
-      .setColor(EMBED_COLORS.error)
-      .setTitle('Invalid Rank')
-      .setDescription('Check your Mastery rank input.');
-    return sendReply(message, embed, comment);
-  }
-
   const displayName = getDisplayName(message);
   const commentString = typeof comment === 'string' ? comment : '';
 
-  // Rank parsing
-  const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
+  // Get rank data
+  const mrData = getRankData(args[1], 'mastery');
+  const mrRankRaw = (mrData?.rank ?? String(args[1] ?? '')).toString();
   const mrRank = mrRankRaw.toLowerCase();
   const mrRankUp = mrRankRaw.toUpperCase();
 
   // Rank validation: minimum C
-  const restrictedRanks = ['e', 'd'];
-  if (restrictedRanks.includes(mrRank)) {
-    const embed = new EmbedBuilder()
-      .setColor(EMBED_COLORS.error)
-      .setTitle('Unavailable MR Rank')
-      .setDescription('**Defile** is available at **MR=C+** only.');
-    return sendReply(message, embed, comment);
+  if (!validateMinimumRank(message, mrRank, 'C', 'Defile', comment)) {
+    return;
   }
 
   // Triggers
@@ -116,12 +103,8 @@ async function handleVitiate(message, args, comment) {
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
   // Rank validation (minimum D)
-  if (!mrRank) {
-    const embed = new EmbedBuilder()
-      .setColor(EMBED_COLORS.error)
-      .setTitle('Invalid Rank')
-      .setDescription('Check your Mastery rank input.');
-    return sendReply(message, embed, comment);
+  if (!validateMinimumRank(message, mrRank, 'D', 'Vitiate', comment)) {
+    return;
   }
 
   // Triggers
