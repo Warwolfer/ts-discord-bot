@@ -594,7 +594,7 @@ async function handleRegenerate(message, args, comment) {
 
   let description;
   if (triggers.power) {
-    description = `► **Bonus Action: Power.** Gain the rolled HP and grant an ally the same amount, or forgo your own regeneration and grant an ally double the rolled HP.\n`;
+    description = `► **Bonus Action: Power.** Gain **${regenAmount} HP** and grant an ally **${regenAmount} HP**, or forgo your own regeneration and grant an ally **${ 2 * regenAmount} HP**.\n`;
     description += `◦ *Base Regen:* **${regenAmount} HP** (MR⋅${mrRankUp})\n`;
   } else {
     description = `► **Passive.** Gain **${regenAmount} HP** (MR⋅${mrRankUp}) every cycle.\n`;

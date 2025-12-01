@@ -4,6 +4,92 @@ const { EmbedBuilder } = require('discord.js');
 const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend } = require('../helpers');
 const { EMBED_COLORS } = require('../constants');
 
+// Import resource files
+const masteries = require('../resources/masteries');
+const expertise = require('../resources/expertise');
+
+// Break types
+const BREAK_TYPES = ['construct', 'elemental', 'physical', 'order', 'dark'];
+
+// --- HELPER FUNCTIONS ---
+
+/**
+ * Detects expertise name from comment string
+ * @param {string} commentString - The comment to scan
+ * @returns {string} - The expertise name found, or empty string
+ */
+function detectExpertiseName(commentString) {
+  if (!commentString || typeof commentString !== 'string') return '';
+
+  // Remove formatting characters
+  const cleanComment = commentString.replace(/[>*_]/g, '').toLowerCase();
+
+  // Search for expertise names (case-insensitive)
+  for (const exp of expertise) {
+    // Check for exact name match (case-insensitive, word boundary)
+    const nameRegex = new RegExp(`\\b${exp.name.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (nameRegex.test(cleanComment)) {
+      return exp.name;
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Detects mastery name from comment string
+ * @param {string} commentString - The comment to scan
+ * @returns {string} - The mastery name found, or empty string
+ */
+function detectMasteryName(commentString) {
+  if (!commentString || typeof commentString !== 'string') return '';
+
+  // Remove formatting characters
+  const cleanComment = commentString.replace(/[>*_]/g, '').toLowerCase();
+
+  // Search for mastery names (case-insensitive)
+  for (const mastery of masteries) {
+    // Check for exact name match (case-insensitive, word boundary)
+    const nameRegex = new RegExp(`\\b${mastery.name.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (nameRegex.test(cleanComment)) {
+      return mastery.name;
+    }
+
+    // Check for alternative name if it exists
+    if (mastery.alt) {
+      const altRegex = new RegExp(`\\b${mastery.alt.replace(/\s+/g, '\\s+')}\\b`, 'i');
+      if (altRegex.test(cleanComment)) {
+        return mastery.name;
+      }
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Detects break type from comment string
+ * @param {string} commentString - The comment to scan
+ * @returns {string} - The break type found, or empty string
+ */
+function detectBreakType(commentString) {
+  if (!commentString || typeof commentString !== 'string') return '';
+
+  // Remove formatting characters and convert to lowercase
+  const cleanComment = commentString.replace(/[>*_]/g, '').toLowerCase();
+
+  // Search for break types (case-insensitive, word boundary)
+  for (const breakType of BREAK_TYPES) {
+    const breakRegex = new RegExp(`\\b${breakType}\\b`, 'i');
+    if (breakRegex.test(cleanComment)) {
+      // Return capitalized version
+      return breakType.charAt(0).toUpperCase() + breakType.slice(1);
+    }
+  }
+
+  return '';
+}
+
 // --- BASIC HANDLERS ---
 
 async function handleAttack(message, args, comment) {
@@ -33,11 +119,16 @@ async function handleAttack(message, args, comment) {
     const passiveTags = getPassiveModifiers('attack', comment);
     const passiveDisplay = passiveTags.length > 0 ? `\n${passiveTags.join(', ')}` : '';
 
+    // Detect break type from comment
+    const commentString = typeof comment === 'string' ? comment : '';
+    const breakType = detectBreakType(commentString);
+    const breakTypeDisplay = breakType ? ` · ${breakType}` : '';
+
     const displayName = getDisplayName(message);
     const embed = new EmbedBuilder()
         .setColor(EMBED_COLORS.offense)
         .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
-        .setTitle(`Attack ${critString}`)
+        .setTitle(`Attack${breakTypeDisplay} ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/attack.png')
         .addFields(
             { name: '', value: `\`${calculation}\`${passiveDisplay}` },
@@ -223,22 +314,16 @@ async function handleExpertise(message, args, comment) {
   // Build calculation string
   const calculation = `${rollDisplay} + ${mrData.value} (MR-${mrData.rank})${modifiers.display}`;
 
-  // Parse skill name from comment
+  // Detect expertise name from comment
   const commentString = typeof comment === 'string' ? comment : '';
-  let skillName = '';
-  if (commentString) {
-    // Extract text after # and before any other separators
-    const match = commentString.match(/>\s*\*([^*]+)\*/);
-    if (match) {
-      skillName = ` - ${match[1].trim()}`;
-    }
-  }
+  const expertiseName = detectExpertiseName(commentString);
+  const titleSuffix = expertiseName ? ` - ${expertiseName}` : '';
 
   // Embed
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(`Expertise Check${skillName}`)
+    .setTitle(`Expertise Check${titleSuffix}`)
     .setDescription(`\`${calculation}\`\n\n**Total: ${total}**`);
 
   if (comment) {
@@ -306,22 +391,26 @@ async function handleMastery(message, args, comment) {
   // Build calculation string
   const calculation = `${rollDisplay} + ${mrData.value} (MR-${mrData.rank})${modifiers.display}`;
 
-  // Parse mastery name from comment
+  // Detect mastery name and break type from comment
   const commentString = typeof comment === 'string' ? comment : '';
-  let masteryName = '';
-  if (commentString) {
-    // Extract text after # and before any other separators
-    const match = commentString.match(/>\s*\*([^*]+)\*/);
-    if (match) {
-      masteryName = ` - ${match[1].trim()}`;
-    }
+  const masteryName = detectMasteryName(commentString);
+  const breakType = detectBreakType(commentString);
+
+  // Build title suffix with mastery name and break type
+  let titleSuffix = '';
+  if (masteryName && breakType) {
+    titleSuffix = ` - ${masteryName} · ${breakType}`;
+  } else if (masteryName) {
+    titleSuffix = ` - ${masteryName}`;
+  } else if (breakType) {
+    titleSuffix = ` · ${breakType}`;
   }
 
   // Embed
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(`Mastery Check${masteryName}`)
+    .setTitle(`Mastery Check${titleSuffix}`)
     .setDescription(`\`${calculation}\`\n\n**Total: ${total}**`);
 
   if (comment) {

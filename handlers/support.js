@@ -267,19 +267,13 @@ async function handleBuff(message, args, comment) {
   const ngBonus = ng.bonus;
   const ngNote = ng.note;
 
-  // MR rank + buff bonus
+  // MR rank for per-charge bonus
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
   const mrRank = mrRankRaw.toLowerCase();
-  const BUFF_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
-  const buffBonus = BUFF_BONUS[mrRank] ?? 0;
 
-  // Per-charge bonus (added to each charge): 5 (D), 10 (S)
+  // Per-charge bonus (added to each charge for single-target): 5 (D), 10 (S)
   const PER_CHARGE_BONUS = { d: 5, c: 5, b: 8, a: 8, s: 10 };
   const perChargeBonus = PER_CHARGE_BONUS[mrRank] ?? 0;
-
-  // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile/Simulcast)
-  const SINGLE_TARGET_BONUS = { d: 10, c: 10, b: 15, a: 15, s: 20 };
-  const singleTargetBonusTotal = (appliedMode === null) ? (SINGLE_TARGET_BONUS[mrRank] ?? 0) : 0;
 
   // --- Roll: 1d100 (with test overrides) ---
   let r = roll(1, 100);
@@ -313,8 +307,6 @@ async function handleBuff(message, args, comment) {
   // Totals: multiply first, then divide into 3 charges
   const totalBeforeMult =
     r +
-    buffBonus +
-    singleTargetBonusTotal +
     (mrData.value || 0) +
     (wrData.value || 0) +
     (modifiers.total || 0) +
@@ -339,7 +331,7 @@ async function handleBuff(message, args, comment) {
   } else {
     // Single-target: apply per-charge bonus
     const perCharge = Math.floor(multipliedTotal / 3) + perChargeBonus;
-    displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n\n► Single-target bonus activated. ${singleTargetBonusTotal} added (${wrData.rank}-rank).\n`;
+    displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n`;
     perTarget = perCharge; // For calculation display consistency
   }
 
@@ -349,8 +341,6 @@ async function handleBuff(message, args, comment) {
     `${mrData.value} (MR⋅${mrData.rank})`,
     `${wrData.value} (WR⋅${wrData.rank})`,
   ];
-  if (buffBonus > 0) parts.push(`${buffBonus} (buff mod)`);
-  if (singleTargetBonusTotal > 0) parts.push(`${singleTargetBonusTotal} (ST bonus)`);
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
   if (hasMods && modsClean.length > 0) parts.push(`${modsClean} (mods)`);
 
@@ -423,19 +413,13 @@ async function handlePowerBuff(message, args, comment) {
   const ngBonus = ng.bonus;
   const ngNote = ng.note;
 
-  // MR rank + bonuses
+  // MR rank for per-charge bonus
   const mrRankRaw = (mrData.rank ?? String(args[1] ?? '')).toString();
   const mrRank = mrRankRaw.toLowerCase();
-  const BUFF_BONUS = { d: 20, c: 20, b: 30, a:30, s: 40 };
-  const buffBonus = BUFF_BONUS[mrRank] ?? 0;
 
-  // Per-charge bonus (added to each charge): 5 (D), 10 (B), 15 (S)
+  // Per-charge bonus (added to each charge for single-target): 5 (D), 10 (B), 15 (S)
   const PER_CHARGE_BONUS = { d: 5, c: 8, b: 10, a: 12, s: 15 };
   const perChargeBonus = PER_CHARGE_BONUS[mrRank] ?? 0;
-
-  // Single-target flat bonus by MR (applies ONLY when not AoE/Versatile/Simulcast)
-  const SINGLE_TARGET_BONUS = { d: 20, c: 20, b: 30, a:30, s: 40 };
-  const singleTargetBonusTotal = (appliedMode === null) ? (SINGLE_TARGET_BONUS[mrRank] ?? 0) : 0;
 
   // --- Rolls: 2d100 (with test overrides) ---
   let r1 = roll(1, 100);
@@ -503,8 +487,6 @@ async function handlePowerBuff(message, args, comment) {
   // Totals: multiply first, then divide into 3 charges
   const totalBeforeMult =
     (r1 + r2) +
-    buffBonus +
-    singleTargetBonusTotal +
     (mrData.value || 0) +
     (wrData.value || 0) +
     (modifiers.total || 0) +
@@ -529,7 +511,7 @@ async function handlePowerBuff(message, args, comment) {
   } else {
     // Single-target: apply per-charge bonus
     const perCharge = Math.floor(multipliedTotal / 3) + perChargeBonus;
-    displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n\n► Single-target bonus activated. ${singleTargetBonusTotal} added (${wrData.rank}-rank).\n`;
+    displayBlock = `**+${perCharge} damage buff to 1 target (3 charges)**\n`;
     perTarget = perCharge; // For calculation display consistency
   }
 
@@ -539,8 +521,6 @@ async function handlePowerBuff(message, args, comment) {
     `${mrData.value} (MR⋅${mrData.rank})`,
     `${wrData.value} (WR⋅${wrData.rank})`,
   ];
-  if (buffBonus > 0) parts.push(`${buffBonus} (buff mod)`);
-  if (singleTargetBonusTotal > 0) parts.push(`${singleTargetBonusTotal} (ST bonus)`);
   if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
   if (hasMods && modsClean.length > 0) parts.push(`${modsClean} (mods)`);
 
