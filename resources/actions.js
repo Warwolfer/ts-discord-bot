@@ -665,7 +665,7 @@ const actionlist = [
         color: "#1e2131",
         image: "https://terrarp.com/db/action/oba2.png",
         description:
-            "<p>If you attacked an enemy on their space or adjacent to, you may activate the following effects:</p><p>(D) Passive: Deals an instance of 15 (D), 20 (B), 25 (S) damage.</p><p>(D) Bonus Action: Challenge. Double the Duelist passive and turn it into damage modifier.</p><p>Limitation: Duelist cannot be triggered if you are adjacent to the enemy.</p>",
+            "<p>If you attacked an enemy on their space or adjacent to, you may activate the following effects:</p><p>(D) Passive: Deals an instance of 15 (D), 20 (B), 25 (S) damage.</p><p>(D) Bonus Action: Challenge. Double the Duelist passive and turn it into damage modifier.</p>",
         dice: "Passive/Bonus Action",
         use: ["passive", "bonus"],
         roll: "?r duelist <span class='masteryreplace'>MR</span> # Duelist · Character Name · <span class='thrcode'>Code</span>",
