@@ -1,7 +1,7 @@
 // basic.js - Basic and utility action handlers for the Sphera RPG Discord bot
 
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend, parseNGTrigger } = require('../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 // Import resource files
@@ -210,6 +210,11 @@ async function handleSave(message, args, comment) {
   // Parse bonus modifier
   const modifiers = parseModifiers(args, bonusIndex);
 
+  // Parse NG trigger
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
+
   // Roll dice
   let roll1 = roll(1, 100);
   let roll2 = 0;
@@ -226,10 +231,13 @@ async function handleSave(message, args, comment) {
   }
 
   // Calculate total
-  const total = roll1 + modifiers.total;
+  const total = roll1 + modifiers.total + ngBonus;
 
   // Build calculation string
-  const calculation = `${rollDisplay}${modifiers.display}`;
+  const parts = [rollDisplay];
+  if (modifiers.total !== 0) parts.push(`${modifiers.total} (mods)`);
+  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
+  const calculation = parts.join(' + ');
 
   // Parse save type from comment
   const commentString = typeof comment === 'string' ? comment : '';
@@ -247,7 +255,7 @@ async function handleSave(message, args, comment) {
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
     .setTitle(saveType)
-    .setDescription(`\`${calculation}\`\n\n**Total: ${total}**`);
+    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**`);
 
   if (comment) {
     const currentDescription = embed.data.description || '';
@@ -293,6 +301,11 @@ async function handleExpertise(message, args, comment) {
   // Parse additional modifiers (if any)
   const modifiers = parseModifiers(args, rankIndex + 1);
 
+  // Parse NG trigger
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
+
   // Roll dice
   let roll1 = roll(1, 100);
   let roll2 = 0;
@@ -309,10 +322,13 @@ async function handleExpertise(message, args, comment) {
   }
 
   // Calculate total
-  const total = roll1 + mrData.value + modifiers.total;
+  const total = roll1 + mrData.value + modifiers.total + ngBonus;
 
   // Build calculation string
-  const calculation = `${rollDisplay} + ${mrData.value} (MR-${mrData.rank})${modifiers.display}`;
+  const parts = [rollDisplay, `${mrData.value} (MR-${mrData.rank})`];
+  if (modifiers.total !== 0) parts.push(`${modifiers.total} (mods)`);
+  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
+  const calculation = parts.join(' + ');
 
   // Detect expertise name from comment
   const commentString = typeof comment === 'string' ? comment : '';
@@ -324,7 +340,7 @@ async function handleExpertise(message, args, comment) {
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
     .setTitle(`Expertise Check${titleSuffix}`)
-    .setDescription(`\`${calculation}\`\n\n**Total: ${total}**`);
+    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**`);
 
   if (comment) {
     const currentDescription = embed.data.description || '';
@@ -370,6 +386,11 @@ async function handleMastery(message, args, comment) {
   // Parse additional modifiers (if any)
   const modifiers = parseModifiers(args, rankIndex + 1);
 
+  // Parse NG trigger
+  const ng = parseNGTrigger(comment);
+  const ngBonus = ng.bonus;
+  const ngNote = ng.note;
+
   // Roll dice
   let roll1 = roll(1, 100);
   let roll2 = 0;
@@ -386,10 +407,13 @@ async function handleMastery(message, args, comment) {
   }
 
   // Calculate total
-  const total = roll1 + mrData.value + modifiers.total;
+  const total = roll1 + mrData.value + modifiers.total + ngBonus;
 
   // Build calculation string
-  const calculation = `${rollDisplay} + ${mrData.value} (MR-${mrData.rank})${modifiers.display}`;
+  const parts = [rollDisplay, `${mrData.value} (MR-${mrData.rank})`];
+  if (modifiers.total !== 0) parts.push(`${modifiers.total} (mods)`);
+  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
+  const calculation = parts.join(' + ');
 
   // Detect mastery name and break type from comment
   const commentString = typeof comment === 'string' ? comment : '';
@@ -411,7 +435,7 @@ async function handleMastery(message, args, comment) {
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
     .setTitle(`Mastery Check${titleSuffix}`)
-    .setDescription(`\`${calculation}\`\n\n**Total: ${total}**`);
+    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**`);
 
   if (comment) {
     const currentDescription = embed.data.description || '';
