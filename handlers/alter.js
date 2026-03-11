@@ -169,6 +169,8 @@ async function handleMomentum(message, args, comment) {
   // Get rank data
   const mrData = getRankData(args[1], 'mastery');
   const mrRank = mrData?.rank?.toLowerCase();
+  const INSTANCE_REDUCE = { c: 5, b: 5, a: 10, s: 10 };
+  const instanceReduce = INSTANCE_REDUCE[mrRank] ?? 0;
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
   // Parse triggers from the comment
@@ -211,12 +213,12 @@ async function handleMomentum(message, args, comment) {
   if (triggers.blitz) {
     // Blitz (Bonus Action)
     embed.setTitle('(Alter) Momentum - Blitz');
-    description += `► **Bonus Action: Blitz.** Gain a +${attackBonus} attack bonus this cycle when you spend your movements and end your turn on the same space or an adjacent space to your enemy (10 damage per space moved).\n`;
+    description += `► **Bonus Action: Blitz.** Gain +${attackBonus} damage for each movement used in a continuous line this cycle. When a battle map is not in use, let the narrative determine whether you can use a quarter, half, or your full movement amount for this action. Also, reduce each instance of movement damage by ${instanceReduce}.\n`;
 
   } else {
     // Momentum (Free Action)
     embed.setTitle('(Alter) Momentum');
-    description += `► **Free Action.** Gain a +${attackBonus} attack bonus this cycle.\n`;
+    description += `► **Free Action.** Gain +${attackBonus} damage modifiers for each (used or unused) movement you have this cycle.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -341,7 +343,7 @@ async function handleEngage(message, args, comment) {
   const mrRankUp = mrData?.rank?.toUpperCase() ?? 'N/A';
 
   // Rank validation (minimum C rank)
-  if (!validateMinimumRank(message, mrRank, 'C', 'Engage', comment)) {
+  if (!validateMinimumRank(message, mrRank, 'D', 'Engage', comment)) {
     return;
   }
 
@@ -642,7 +644,7 @@ async function handleInfuse(message, args, comment) {
 
   let description;
   if (triggers.aoe) {
-    description = `► **Free Action.** Heal up to **${targetCount} allies** within range, distributing **${healAmount} HP** (MR⋅${mrRankUp}) in increments of **5 HP**.\n`;
+    description = `► **Free Action.** Heal up to **${targetCount} allies** within range, distributing **${healAmount} HP** (MR⋅${mrRankUp}) in multiples of **5**.\n`;
   } else {
     description = `► **Free Action.** Heal up to **${targetCount} allies** within range for **${healAmount} HP** (MR⋅${mrRankUp}).\n`;
   }
@@ -1145,7 +1147,7 @@ async function handleUtilityFocus(message, args, comment) {
     .setTitle('Utility Focus')
     .setThumbnail('https://terrarp.com/db/action/utility-focus.png');
 
-  const description = `► **Passive.** Gain **+${actionBonus}** (MR⋅${mrRankUp}) to all Bonus/Free Actions. Haste and Cleanse gain **${chargeBonus}** additional charge.\n`;
+  const description = `► **Passive.** Gain **+${actionBonus}** (MR⋅${mrRankUp}) to all Bonus and Free Actions. Haste and Cleanse gain **${chargeBonus}** additional charge.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1592,7 +1594,7 @@ async function handleGift(message, args, comment) {
     .setTitle('Gift')
     .setThumbnail('https://terrarp.com/db/action/gift.png');
 
-  let description = `► **Passive.** When you Release your charge, roll another set and take the higher set.\n`;
+  let description = `► **Passive.** When you Release your charge, roll another set and keep the higher set.\n`;
 
   // S rank upgrade
   if (mrRank === 's') {
@@ -1635,7 +1637,7 @@ async function handleFollowUp(message, args, comment) {
     .setTitle('Follow-up')
     .setThumbnail('https://terrarp.com/db/action/follow-up.png');
 
-  const description = `► **Free Action.** You or **${targetName}** may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier when **${targetName}** performs a special attack action within range. If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
+  const description = `► **Free Action.** You or **${targetName}** may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier in either of your posts, which must narratively feature both participants. If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1683,11 +1685,11 @@ async function handleLocomote(message, args, comment) {
   } else {
     // Normal mode (Free Action)
     embed.setTitle('Locomote');
-    description += `► **Free Action.** At the start of the thread, pick **${targetName}** within range, that target gets a **+1 movement** until you switch the target.\n`;
+    description += `► **Free Action.** At the start of the thread, **${targetName}** is chosen as target and gets a **+1 movement** until you switch the target.\n`;
 
     // B rank upgrade
     if (mrRank === 'b' || mrRank === 'a' || mrRank === 's') {
-      description += `\n◦ **B Upgrade:** If you and the Locomote target start on the same space at the start of a cycle, both get the **+1 movement**.\n`;
+      description += `\n◦ **B Upgrade:** If you and the Locomote target start on the same space at the start of a cycle, both gain the **+1 movement**.\n`;
     }
   }
 

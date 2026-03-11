@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, parseModifiers, sendReply, parseArguments, getDisplayName } = require('../helpers');
+const { roll, parseModifiers, sendReply, parseArguments, getDisplayName, finalizeAndSend } = require('../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 async function handleGenericRoll(message, args, comment) {
@@ -44,18 +44,11 @@ async function handleGenericRoll(message, args, comment) {
         .setColor(EMBED_COLORS.generic)
         .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Dice Roll`)
-        .setThumbnail('https://terrarp.com/db/action/roll.png')
-        .addFields(
-            { name: '', value: `\`${calculation}\`` },
-            { name: '', value: `**Total: ${finalTotal}**` }
-        );
+        .setThumbnail('https://terrarp.com/db/action/roll.png');
 
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
+    const description = `\`${calculation}\`\n**Total: ${finalTotal}**\n`;
 
-    // Use an empty string because the comment is already in the embed
-    sendReply(message, embed, '');
+    return finalizeAndSend(message, embed, description, comment);
 }
 
 /////////////////Bot Version

@@ -129,17 +129,11 @@ async function handleAttack(message, args, comment) {
         .setColor(EMBED_COLORS.offense)
         .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Attack${breakTypeDisplay} ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/attack.png')
-        .addFields(
-            { name: '', value: `\`${calculation}\`${passiveDisplay}` },
-            { name: '', value: `**${total} damage**` }
-        );
+        .setThumbnail('https://terrarp.com/db/action/attack.png');
 
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
+    const description = `\`${calculation}\`${passiveDisplay}\n**${total} damage**\n`;
 
-    sendReply(message, embed, '');
+    return finalizeAndSend(message, embed, description, comment);
 }
 
 
@@ -149,14 +143,11 @@ async function handleRush(message, args, comment) {
         .setColor(EMBED_COLORS.utility)
         .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
         .setTitle('(BA) Rush')
-        .setThumbnail('https://terrarp.com/db/action/rush.png')
-        .setDescription('Gain 2 extra movements this cycle.');
+        .setThumbnail('https://terrarp.com/db/action/rush.png');
 
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
+    const description = 'Gain 2 extra movements this cycle.\n';
 
-    await sendReply(message, embed, '');
+    return finalizeAndSend(message, embed, description, comment);
 }
 
 

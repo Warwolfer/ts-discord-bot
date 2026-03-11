@@ -31,18 +31,11 @@ async function handleProtect(message, args, comment) {
         .setColor(EMBED_COLORS.defense)
         .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Protect ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/protect.png')
-        .addFields(
-            { name: '', value: `***Action.*** Make an attack and grant yourself or an ally within range the Protected State.` },
-            { name: '', value: `\`${calculation}\`` },
-            { name: '', value: `**${total} damage**` }
-        );
+        .setThumbnail('https://terrarp.com/db/action/protect.png');
 
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
+    const description = `***Action.*** Make an attack and grant yourself or an ally within range the Protected State.\n\`${calculation}\`\n**${total} damage**\n`;
 
-    sendReply(message, embed, '');
+    return finalizeAndSend(message, embed, description, comment);
 }
 
 // Defense Action MA Counter
@@ -114,18 +107,11 @@ async function handleCounter(message, args, comment) {
         .setColor(EMBED_COLORS.defense)
         .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Counter ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/counter.png')
-        .addFields(
-            { name: '', value: `***Action.*** Make an attack and distribute **${mitigation}** mitigation between and up to 3 targets in multiples of 5s.` },
-            { name: '', value: `\`${calculation}\`${passiveDisplay}${ngNote ? `\n${ngNote}` : ''}` },
-            { name: '', value: `**${total} damage**` }
-        );
+        .setThumbnail('https://terrarp.com/db/action/counter.png');
 
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
+    const description = `***Action.*** Make an attack and distribute **${mitigation}** mitigation between and up to 3 targets in multiples of 5s.\n\`${calculation}\`${passiveDisplay}${ngNote ? `\n${ngNote}` : ''}\n**${total} damage**\n`;
 
-    sendReply(message, embed, '');
+    return finalizeAndSend(message, embed, description, comment);
 }
 
 // Defense Action SA UltraCounter
@@ -262,18 +248,11 @@ async function handleUltraProtect(message, args, comment) {
         .setColor(EMBED_COLORS.defense)
         .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
         .setTitle(`Ultra Protect ${critString}`)
-        .setThumbnail('https://terrarp.com/db/action/uprotect.png')
-        .addFields(
-            { name: '', value: `***Special Action.*** Make an attack and grant up to 3 allies within range the Protected State. You are *Vulnerable*.` },
-            { name: '', value: `\`${calculation}\`` },
-            { name: '', value: `**${total} damage**` }
-        );
+        .setThumbnail('https://terrarp.com/db/action/uprotect.png');
 
-    if (comment) {
-        embed.addFields({ name: '', value: comment });
-    }
+    const description = `***Special Action.*** Make an attack and grant up to 3 allies within range the Protected State. You are *Vulnerable*.\n\`${calculation}\`\n**${total} damage**\n`;
 
-    sendReply(message, embed, '');
+    return finalizeAndSend(message, embed, description, comment);
 }
 
 async function handleTorment(message, args, comment) {

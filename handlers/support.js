@@ -620,10 +620,10 @@ async function handleVersatile(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Free Action.** Apply the effects to 2 targets (instead of 3) and apply the last heal/buff amount to one of those targets.\n`;
+  let description = `► **Free Action.** Apply support action effects to 2 targets (instead of 3) and apply the last heal/buff amount to one of those targets.\n`;
 
   if (triggers.simulcast) {
-    description += `► **Bonus Action: Simulcast.** Target 2 allies with Heal and Buff (both must be special or non-special). Choose if each target gets either the heal or buff.\n`;
+    description += `► **Free Action: Simulcast.** Target 2 allies with Heal and Buff (both must be special or non-special). Choose if each target gets either the heal or buff.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
