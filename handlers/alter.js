@@ -18,7 +18,7 @@ async function handleDefile(message, args, comment) {
   const mrRankUp = mrRankRaw.toUpperCase();
 
   // Rank validation: minimum C
-  if (!validateMinimumRank(message, mrRank, 'C', 'Defile', comment)) {
+  if (!validateMinimumRank(message, mrRank, 'D', 'Defile', comment)) {
     return;
   }
 
