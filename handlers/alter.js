@@ -1362,7 +1362,7 @@ async function handleSavior(message, args, comment) {
   } else {
     // Savior (Passive)
     embed.setTitle('**(Alter) Savior**');
-    description += `► ***Passive.*** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase.\n`;
+    description += `► **Passive.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase.\n`;
   }
 
   description += `\n◦ Limitation: Each character may only have 1 instance of Savior Aura.\n`;
@@ -1484,7 +1484,7 @@ async function handleOverdrive(message, args, comment) {
     .setTitle('**(Alter) Overdrive**')
     .setThumbnail('https://terrarp.com/db/action/overdrive.png');
 
-  const description = `► ***Passive.*** Gain **${hpGain} HP** (${calculationString}, Max ${maxHpForRank}) (MR⋅${mrRankUp}) when you are adjacent to or on the same space as the enemy you attacked this cycle.\n`;
+  const description = `► **Passive.** Gain **${hpGain} HP** (${calculationString}, Max ${maxHpForRank}) (MR⋅${mrRankUp}) when you are adjacent to or on the same space as the enemy you attacked this cycle.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }

@@ -33,7 +33,7 @@ async function handleProtect(message, args, comment) {
         .setTitle(`Protect ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/protect.png');
 
-    const description = `***Action.*** Make an attack and grant yourself or an ally within range the Protected State.\n\`${calculation}\`\n**${total} damage**\n`;
+    const description = `► **Action.** Make an attack and grant yourself or an ally within range the Protected State.\n\`${calculation}\`\n**${total} damage**\n`;
 
     return finalizeAndSend(message, embed, description, comment);
 }
@@ -109,7 +109,7 @@ async function handleCounter(message, args, comment) {
         .setTitle(`Counter ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/counter.png');
 
-    const description = `***Action.*** Make an attack and distribute **${mitigation}** mitigation between and up to 3 targets in multiples of 5s.\n\`${calculation}\`${passiveDisplay}${ngNote ? `\n${ngNote}` : ''}\n**${total} damage**\n`;
+    const description = `► **Action.** Make an attack and distribute **${mitigation}** mitigation between and up to 3 targets in multiples of 5s.\n\`${calculation}\`${passiveDisplay}${ngNote ? `\n${ngNote}` : ''}\n**${total} damage**\n`;
 
     return finalizeAndSend(message, embed, description, comment);
 }
@@ -250,7 +250,7 @@ async function handleUltraProtect(message, args, comment) {
         .setTitle(`Ultra Protect ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/uprotect.png');
 
-    const description = `***Special Action.*** Make an attack and grant up to 3 allies within range the Protected State. You are *Vulnerable*.\n\`${calculation}\`\n**${total} damage**\n`;
+    const description = `► **Special Action.** Make an attack and grant up to 3 allies within range the Protected State. You are *Vulnerable*.\n\`${calculation}\`\n**${total} damage**\n`;
 
     return finalizeAndSend(message, embed, description, comment);
 }
@@ -397,7 +397,7 @@ async function handleTaunt(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/dba.png');
 
   let description =
-    `**Free Action.** When you perform an attack action on an enemy, taunt that enemy ${rankLabel}.\n`;
+    `► **Free Action.** When you perform an attack action on an enemy, taunt that enemy ${rankLabel}.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }

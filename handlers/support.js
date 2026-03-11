@@ -710,7 +710,7 @@ async function handleCleanse(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = '► ***Passive: Cure.*** If you are afflicted with a curable condition, you may remove **1 stack** from yourself each cycle *before* it takes effect.\n';
+  let description = '► **Passive: Cure.** If you are afflicted with a curable condition, you may remove **1 stack** from yourself each cycle *before* it takes effect.\n';
 
   if (cleanseActive) {
     const CLEANSE_VALUES = { d: 2, c: 2, b: 4, a: 4, s: 6 };
@@ -794,7 +794,7 @@ async function handleSmite(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► ***Passive.*** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
+  let description = `► **Passive.** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }

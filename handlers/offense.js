@@ -930,7 +930,7 @@ async function handleAreaEffect(message, args, comment) {
 
   // Trigger: Splash Damage
   const triggers = parseTriggers(comment, {
-    splash: /\bsplash\s*damage\b/i
+    splash: /\bsplash\b/i
   });
   const splashActive = triggers.splash;
 
@@ -953,10 +953,9 @@ async function handleAreaEffect(message, args, comment) {
   let description = '';
 
   if (splashActive) {
-    description += `**Bonus Action.** Deal an instance of **${splashValue}** (${mrRankUp}-rank) damage to all enemies adjacent to your attack target. Take only the highest retaliation damage if there are any.\n`;
-    description += `\n► ***Passive.*** Your attack's damage may be distributed in any amount to any enemies on or adjacent to the target. Take only the highest retaliation damage if any.\n`;
+    description += `► **Bonus Action.** Deal an instance of **${splashValue}** (${mrRankUp}-rank) damage to all enemies adjacent to your attack target. Take only the highest retaliation damage if there are any.\n`;
   } else {
-    description += `► ***Passive.*** Your attack's damage may be distributed in any amount to any enemies on or adjacent to the target. Take only the highest retaliation damage if any.\n`;
+    description += `► **Passive.** Your attack's damage may be distributed in any amount to any enemies on or adjacent to the target. Take only the highest retaliation damage if any.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1005,10 +1004,10 @@ async function handleDuelist(message, args, comment) {
   let description = '';
 
   if (challengeActive) {
-    description += `**Bonus Action.** Your passive damage is doubled and must be used as an attack buff against your passive target.\n`;
+    description += `► **Bonus Action.** Your passive damage is doubled and must be used as an attack buff against your passive target.\n`;
     description += `\n► Challenge activated: gain **${duelValue * 2}** (${mrRankUp}-rank) as a damage buff if you attack an enemy on their space or adjacent to their space.\n`;
   } else {
-    description += `► ***Passive.*** If you attack an enemy on their space or adjacent to their space, deal an instance of **${duelValue}** (${mrRankUp}-rank) damage to them.\n`;
+    description += `► **Passive.** If you attack an enemy on their space or adjacent to their space, deal an instance of **${duelValue}** (${mrRankUp}-rank) damage to them.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1072,15 +1071,15 @@ async function handleSharpshooter(message, args, comment) {
   let description = '';
 
   if (snipeActive) {
-    description += `**Bonus Action.** Maintain focus to empower your ranged attack.\n`;
+    description += `► **Bonus Action.** Maintain focus to empower your ranged attack.\n`;
     if (snipeTriggered) {
       description += `\n► 1d3 (${snipeRoll}). Focus maintained. Snipe triggered.\n`;
     } else {
       description += `\n► 1d3 (${snipeRoll}). Focus lost. Snipe does not trigger.\n`;
     }
-    description += `► ***Passive.*** If you attack an enemy while not in their space, gain **${snipeBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
+    description += `► **Passive.** If you attack an enemy while not in their space, gain **${snipeBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
   } else {
-    description += `► ***Passive.*** If you attack an enemy while not in their space, gain **${baseBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
+    description += `► **Passive.** If you attack an enemy while not in their space, gain **${baseBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
