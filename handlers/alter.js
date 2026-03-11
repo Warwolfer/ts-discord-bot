@@ -1342,7 +1342,7 @@ async function handleSavior(message, args, comment) {
   }
 
   // Define save bonus values based on rank
-  const SAVIOR_VALUES = { d: 15, b: 20, s: 25 };
+  const SAVIOR_VALUES = { d: 15, c: 15, b: 20, a: 20, s: 25 };
   let saveAmount = SAVIOR_VALUES[mrRank] ?? 0;
 
   // Embed setup
