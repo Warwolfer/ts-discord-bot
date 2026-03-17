@@ -209,7 +209,7 @@ async function handleBurst(message, args, comment) {
   let description =
     `\`${calculation}\`\n${passiveDisplay}\n` +
     `**${total} total** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n` +
-    `\n► Status. You are vulnerable.\n` +
+    `\nStatus. You are vulnerable.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
   return finalizeAndSend(message, embed, description, comment);
@@ -293,7 +293,7 @@ async function handleSneak(message, args, comment) {
   let description =
     `\`${calculation}\`\n${passiveDisplay}\n` +
     `**${total} total** (${success ? 'sneak successful!' : 'sneak failed...'})\n\n` +
-    `► Succeeed on ${threshold}+ to add ${successBonus} sneak damage (${mrData.rank}-ranked mastery), otherwise, add 10.\n` +
+    `Succeeed on ${threshold}+ to add ${successBonus} sneak damage (${mrData.rank}-ranked mastery), otherwise, add 10.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
   return finalizeAndSend(message, embed, description, comment);
@@ -327,7 +327,7 @@ async function handleCritical(message, args, comment) {
     if (direct) {
       r1 = Math.max(1, Math.min(100, parseInt(direct[1], 10)));
       r2 = Math.max(1, Math.min(100, parseInt(direct[2], 10)));
-      testNote = '► [TESTING] Forced rolls\n';
+      testNote = '[TESTING] Forced rolls\n';
     } else {
       // Named scenarios
       const t = comment.match(/\btest:(starbreaker|schrodinger|perfect|crit85|ender|fail)\b/i);
@@ -340,7 +340,7 @@ async function handleCritical(message, args, comment) {
           case 'ender':       r1 = 1;   r2 = 1;   break; // WORLD ENDER
           case 'fail':        r1 = 1;   r2 = 42;  break; // single 1
         }
-        testNote = `► [TEST] Forced scenario: ${t[1]}\n`;
+        testNote = `[TEST] Forced scenario: ${t[1]}\n`;
       }
     }
   }
@@ -365,26 +365,26 @@ async function handleCritical(message, args, comment) {
   if (is100_100) {
     multiplier = 7;
     resultTag = '(STAR BREAKER)';
-    triggeredLine = `► **STAR BREAKER (100, 100).** Multiplier **×7** .`;
+    triggeredLine = `**STAR BREAKER (100, 100).** Multiplier **×7** .`;
   } else if (schrodinger) {
     multiplier = 3;
     resultTag = '(schrodinger crit!)';
-    triggeredLine = `► **Schrodinger Crit (100,1).** Perfect crit multiplier ×3 and nat1 event.`;
+    triggeredLine = `**Schrodinger Crit (100,1).** Perfect crit multiplier ×3 and nat1 event.`;
   } else if (perfectCrit) {
     multiplier = 3;
     resultTag = '(perfect crit!)';
-    triggeredLine = `► **Perfect Crit (100).** Multiplier ×3.`;
+    triggeredLine = `**Perfect Crit (100).** Multiplier ×3.`;
   } else if (is1_1) {
     resultTag = '(WORLD ENDER)';
-    triggeredLine = `► **WORLD ENDER (1,1).** Nat1+ event.`;
+    triggeredLine = `**WORLD ENDER (1,1).** Nat1+ event.`;
   } else if (any1) {
     // exactly one die is 1 (since 1,1 handled above)
     resultTag = '(crit fail...)';
-    triggeredLine = `► Crit Fail (1): Chance for Nat1 event.`;
+    triggeredLine = `Crit Fail (1): Chance for Nat1 event.`;
   } else if (crit85) {
     multiplier = CRIT_MULT_BY_RANK[mrRank] ?? BASE_MULT;
     resultTag = '(crit!)';
-    triggeredLine = `► **Crit (85+)** Multiplier ×${multiplier} (${mrData.rank.toUpperCase()}-ranked mastery).`;
+    triggeredLine = `**Crit (85+)** Multiplier ×${multiplier} (${mrData.rank.toUpperCase()}-ranked mastery).`;
   }
 
   // --- NG trigger from comment (only NG1 enabled) ---
@@ -509,31 +509,31 @@ async function handleSharp(message, args, comment) {
     switch (testScenario) {
       case 'crit':
         r1 = 100; r2 = 42;
-        testNote = '► [TEST] Forced scenario: crit\n';
+        testNote = '[TEST] Forced scenario: crit\n';
         break;
       case 'critfail':
         r1 = 42; r2 = 13;
         forcedRisky = true;
         riskyRolls = [1];
-        testNote = '► [TEST] Forced scenario: crit fail\n';
+        testNote = '[TEST] Forced scenario: crit fail\n';
         break;
       case 'starbreaker':
         r1 = 100; r2 = 42;
         forcedRisky = true;
         riskyRolls = [100];
-        testNote = '► [TEST] Forced scenario: star breaker\n';
+        testNote = '[TEST] Forced scenario: star breaker\n';
         break;
       case 'worldender':
         r1 = 1; r2 = 1;
         forcedRisky = true;
         riskyRolls = [1];
-        testNote = '► [TEST] Forced scenario: world ender\n';
+        testNote = '[TEST] Forced scenario: world ender\n';
         break;
       case 'schrodinger':
         r1 = 100; r2 = 42;
         forcedRisky = true;
         riskyRolls = [1];
-        testNote = '► [TEST] Forced scenario: schrodinger crit\n';
+        testNote = '[TEST] Forced scenario: schrodinger crit\n';
         break;
     }
   }
@@ -564,21 +564,21 @@ async function handleSharp(message, args, comment) {
   if (countHundreds >= 2) {
     multiplier = 7;
     resultTag = '(STAR BREAKER)';
-    triggeredLine = `► Star Breaker (200): Multiplier ×7.`;
+    triggeredLine = `Star Breaker (200): Multiplier ×7.`;
   } else if (countOnes >= 2 && countHundreds === 0) {
     resultTag = '(WORLD ENDER)';
-    triggeredLine = `► World Ender (1 & 1+): Chance for Nat1+ event.`;
+    triggeredLine = `World Ender (1 & 1+): Chance for Nat1+ event.`;
   } else if (countHundreds >= 1 && countOnes >= 1) {
     multiplier = 2;
     resultTag = '(schrodinger crit!)';
-    triggeredLine = `► Schrodinger Crit (100 & 1): Multiplier ×2 and chance for Nat1 event.`;
+    triggeredLine = `Schrodinger Crit (100 & 1): Multiplier ×2 and chance for Nat1 event.`;
   } else if (countHundreds >= 1) {
     multiplier = 2;
     resultTag = '(crit!)';
-    triggeredLine = `► Crit (100): Multiplier ×2.`;
+    triggeredLine = `Crit (100): Multiplier ×2.`;
   } else if (countOnes >= 1) {
     resultTag = '(crit fail...)';
-    triggeredLine = `► Crit Fail (1): Chance for Nat1 event.`;
+    triggeredLine = `Crit Fail (1): Chance for Nat1 event.`;
   }
 
   // Totals
@@ -633,9 +633,9 @@ async function handleSharp(message, args, comment) {
     `**${finalTotal} total**${resultTag ? ` ${resultTag}` : ''}\n` +
     (triggeredLine ? `${triggeredLine}\n` : '') +
     (forcedRisky
-      ? `► Risky (TEST) activated: generated ${riskyRolls.length} test d100; remainder ${remainder}.\n`
+      ? `Risky (TEST) activated: generated ${riskyRolls.length} test d100; remainder ${remainder}.\n`
       : (riskyActive
-          ? `► Risky activated: converted ${convertedMods} into ${riskyRolls.length}d100 ${riskyTally}, remainder: +${remainder}.\n`
+          ? `Risky activated: converted ${convertedMods} into ${riskyRolls.length}d100 ${riskyTally}, remainder: +${remainder}.\n`
           : '')) +
     (ngNote ? `${ngNote}\n` : '') +
     (testScenario ? testNote : '');
@@ -734,20 +734,20 @@ async function handleReckless(message, args, comment) {
         // ensure a 100 somewhere in crit pool (use a base d100)
         baseHundreds[0] = 100;
         r200 = 73;
-        testNote += '► [TEST] Forced scenario: crit\n';
+        testNote += '[TEST] Forced scenario: crit\n';
         break;
       case 'critfail':
         // at least one 1 and no 100; avoid world ender
         baseHundreds[0] = 1;
         if (baseHundreds.length > 1) baseHundreds[1] = 17;
         r200 = 42; // not 1/100/200
-        testNote += '► [TEST] Forced scenario: crit fail\n';
+        testNote += '[TEST] Forced scenario: crit fail\n';
         break;
       case 'starbreaker':
         // d200=200 triggers STAR BREAKER by rule
         r200 = 200;
         if (baseHundreds.length > 1) baseHundreds[1] = 42;
-        testNote += '► [TEST] Forced scenario: star breaker (d200=200)\n';
+        testNote += '[TEST] Forced scenario: star breaker (d200=200)\n';
         break;
       case 'worldender':
         // ≥2 ones, no 100s
@@ -755,7 +755,7 @@ async function handleReckless(message, args, comment) {
         baseHundreds[0] = 1;
         if (baseHundreds.length > 1) baseHundreds[1] = 13;
         else { forcedRisky = true; riskyRolls = [1]; }
-        testNote += '► [TEST] Forced scenario: world ender\n';
+        testNote += '[TEST] Forced scenario: world ender\n';
         break;
       case 'schrodinger':
         // at least one 100 and one 1 (mixed)
@@ -763,7 +763,7 @@ async function handleReckless(message, args, comment) {
         if (baseHundreds.length > 1) baseHundreds[1] = 1;
         else { forcedRisky = true; riskyRolls = [1]; }
         r200 = 37;
-        testNote += '► [TEST] Forced scenario: schrodinger crit\n';
+        testNote += '[TEST] Forced scenario: schrodinger crit\n';
         break;
     }
   }
@@ -774,7 +774,7 @@ async function handleReckless(message, args, comment) {
     if (m200) {
       const v = Math.max(1, Math.min(200, parseInt(m200[1], 10)));
       r200 = v;
-      testNote += `► [TEST] Forced d200=${v}\n`;
+      testNote += `[TEST] Forced d200=${v}\n`;
     }
   }
 
@@ -797,13 +797,13 @@ async function handleReckless(message, args, comment) {
   let immediateStarBreaker = false;
   if (r200 === 200) {
     immediateStarBreaker = true;
-    d200Note = '► d200=200 triggers STAR BREAKER.\n';
+    d200Note = 'd200=200 triggers STAR BREAKER.\n';
   } else if (r200 === 100) {
     critPool.push(100);
-    d200Note = '► d200=100 counted as a 100 for crit checks.\n';
+    d200Note = 'd200=100 counted as a 100 for crit checks.\n';
   } else if (r200 === 1) {
     critPool.push(1);
-    d200Note = '► d200=1 counted as a 1 for crit checks.\n';
+    d200Note = 'd200=1 counted as a 1 for crit checks.\n';
   }
 
   const countHundreds = critPool.filter(v => v === 100).length;
@@ -817,25 +817,25 @@ async function handleReckless(message, args, comment) {
   if (immediateStarBreaker) {
     multiplier = 7;
     resultTag = '(STAR BREAKER)';
-    triggeredLine = `► Star Breaker (200): Multiplier ×7.`;
+    triggeredLine = `Star Breaker (200): Multiplier ×7.`;
   } else if (countHundreds >= 2) {
     multiplier = 7;
     resultTag = '(STAR BREAKER)';
-    triggeredLine = `► Star Breaker (100 & 100+): Multiplier ×7.`;
+    triggeredLine = `Star Breaker (100 & 100+): Multiplier ×7.`;
   } else if (countOnes >= 2 && countHundreds === 0) {
     resultTag = '(WORLD ENDER)';
-    triggeredLine = `► World Ender (1 & 1+): Chance for Nat1+ event.`;
+    triggeredLine = `World Ender (1 & 1+): Chance for Nat1+ event.`;
   } else if (countHundreds >= 1 && countOnes >= 1) {
     multiplier = 2;
     resultTag = '(schrodinger crit!)';
-    triggeredLine = `► Schrodinger Crit (100 & 1): Multiplier ×2 and chance for Nat1 event.`;
+    triggeredLine = `Schrodinger Crit (100 & 1): Multiplier ×2 and chance for Nat1 event.`;
   } else if (countHundreds >= 1) {
     multiplier = 2;
     resultTag = '(crit!)';
-    triggeredLine = `► Crit (100): Multiplier ×2.`;
+    triggeredLine = `Crit (100): Multiplier ×2.`;
   } else if (countOnes >= 1) {
     resultTag = '(crit fail...)';
-    triggeredLine = `► Crit Fail (1): Chance for Nat1 event.`;
+    triggeredLine = `Crit Fail (1): Chance for Nat1 event.`;
   }
 
   // --- Totals ---
@@ -900,9 +900,9 @@ async function handleReckless(message, args, comment) {
     `\n\`${calcWithMult}\`\n${passiveDisplay}\n` +
     `**${finalTotal} total**${resultTag ? ` ${resultTag}` : ''}\n` +
     (triggeredLine ? `${triggeredLine}\n` : '') +
-    (`► You are vulnerable.\n`) +
+    (`You are vulnerable.\n`) +
     (riskyActive
-      ? `► Risky activated: converted ${convertedMods} into ${riskyRolls.length}d100 ${riskyTally}, remainder: +${remainder}.\n`
+      ? `Risky activated: converted ${convertedMods} into ${riskyRolls.length}d100 ${riskyTally}, remainder: +${remainder}.\n`
       : '') +
     (ngNote ? `${ngNote}\n` : '') +
     (testScenario || /(?:d200|r200)/i.test(comment || '') ? testNote : '');
@@ -953,9 +953,9 @@ async function handleAreaEffect(message, args, comment) {
   let description = '';
 
   if (splashActive) {
-    description += `► **Bonus Action.** Deal an instance of **${splashValue}** (${mrRankUp}-rank) damage to all enemies adjacent to your attack target. Take only the highest retaliation damage if there are any.\n`;
+    description += `**Bonus Action.** Deal an instance of **${splashValue}** (${mrRankUp}-rank) damage to all enemies adjacent to your attack target. Take only the highest retaliation damage if there are any.\n`;
   } else {
-    description += `► **Passive.** Your attack's damage may be distributed in any amount to any enemies on or adjacent to the target. Take only the highest retaliation damage if any.\n`;
+    description += `**Passive.** Your attack's damage may be distributed in any amount to any enemies on or adjacent to the target. Take only the highest retaliation damage if any.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1004,10 +1004,10 @@ async function handleDuelist(message, args, comment) {
   let description = '';
 
   if (challengeActive) {
-    description += `► **Bonus Action.** Your passive damage is doubled and must be used as an attack buff against your passive target.\n`;
-    description += `\n► Challenge activated: gain **${duelValue * 2}** (${mrRankUp}-rank) as a damage buff if you attack an enemy on their space or adjacent to their space.\n`;
+    description += `**Bonus Action.** Your passive damage is doubled and must be used as an attack buff against your passive target.\n`;
+    description += `\nChallenge activated: gain **${duelValue * 2}** (${mrRankUp}-rank) as a damage buff if you attack an enemy on their space or adjacent to their space.\n`;
   } else {
-    description += `► **Passive.** If you attack an enemy on their space or adjacent to their space, deal an instance of **${duelValue}** (${mrRankUp}-rank) damage to them.\n`;
+    description += `**Passive.** If you attack an enemy on their space or adjacent to their space, deal an instance of **${duelValue}** (${mrRankUp}-rank) damage to them.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1071,15 +1071,15 @@ async function handleSharpshooter(message, args, comment) {
   let description = '';
 
   if (snipeActive) {
-    description += `► **Bonus Action.** Maintain focus to empower your ranged attack.\n`;
+    description += `**Bonus Action.** Maintain focus to empower your ranged attack.\n`;
     if (snipeTriggered) {
-      description += `\n► 1d3 (${snipeRoll}). Focus maintained. Snipe triggered.\n`;
+      description += `\n1d3 (${snipeRoll}). Focus maintained. Snipe triggered.\n`;
     } else {
-      description += `\n► 1d3 (${snipeRoll}). Focus lost. Snipe does not trigger.\n`;
+      description += `\n1d3 (${snipeRoll}). Focus lost. Snipe does not trigger.\n`;
     }
-    description += `► **Passive.** If you attack an enemy while not in their space, gain **${snipeBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
+    description += `**Passive.** If you attack an enemy while not in their space, gain **${snipeBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
   } else {
-    description += `► **Passive.** If you attack an enemy while not in their space, gain **${baseBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
+    description += `**Passive.** If you attack an enemy while not in their space, gain **${baseBuff}** (${mrRankUp}-rank) as a damage buff.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1114,7 +1114,7 @@ async function handleLethal(message, args, comment) {
     .setTitle('Lethal')
     .setThumbnail('https://terrarp.com/db/action/lethal.png');
 
-  let description = `► **Passive.** All attack actions gain **+${modifier}** extra attack modifier (MR⋅${mrRankUp}).\n`;
+  let description = `**Passive.** All attack actions gain **+${modifier}** extra attack modifier (MR⋅${mrRankUp}).\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1147,7 +1147,7 @@ async function handleSwift(message, args, comment) {
     .setTitle('Swift')
     .setThumbnail('https://terrarp.com/db/action/swift.png');
 
-  let description = `► **Passive.** Gain **+${movement} extra movement** (MR⋅${mrRankUp}).\n`;
+  let description = `**Passive.** Gain **+${movement} extra movement** (MR⋅${mrRankUp}).\n`;
 
   if (mrRank === 's') {
     description += `\n◦ **S Upgrade:** Movement bonus increased from +1 to +2.\n`;

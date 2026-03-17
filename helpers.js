@@ -1,6 +1,6 @@
 // helpers.js - Helper functions for the Sphera RPG Discord bot
 
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 require('dotenv').config();
 const {
     PREFIX,
@@ -98,8 +98,16 @@ async function sendReply(message, embed, comment) {
             embed.setDescription(currentDescription + comment);
         }
 
+        // Build copy button row
+        const copyRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('copy_result')
+                .setLabel('Copy Result')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
         // Send the reply. The bot's message will be permanent.
-        await message.reply({ embeds: [embed] });
+        await message.reply({ embeds: [embed], components: [copyRow] });
 
         // After replying, set a timer to delete ONLY the user's original command message.
         setTimeout(() => {
@@ -177,7 +185,7 @@ function parseNGTrigger(comment) {
     if (level === 1) {
         return { bonus: 5, note: '' };
     }
-    return { bonus: 0, note: `► NG⋅${level} is currently disabled.` };
+    return { bonus: 0, note: `NG⋅${level} is currently disabled.` };
 }
 
 /**

@@ -56,7 +56,7 @@ async function handleDefile(message, args, comment) {
     calculation = vilifyTargets > 1 ? `${vilifyTargets}d20 (${rolls.join(', ')})` : `1d20 (${rolls[0]})`;
 
     description += `\`${calculation}\`\n\n`;
-    description += `► **Bonus Action: Vilify.** Add **${totalRoll}** (1d20) to **${vilifyTargets}** (MR⋅${mrRankUp}) already-marked target${vilifyTargets > 1 ? 's' : ''}`;
+    description += `**Bonus Action: Vilify.** Add **${totalRoll}** (1d20) to **${vilifyTargets}** (MR⋅${mrRankUp}) already-marked target${vilifyTargets > 1 ? 's' : ''}`;
 
     // HP loss for second charge at A+
     if (vilifyTargets >= 2) {
@@ -77,7 +77,7 @@ async function handleDefile(message, args, comment) {
     calculation = `${numTargets}d20 (${rolls.join(', ')})`;
 
     description += `\`${calculation}\`\n\n`;
-    description += `► **Free Action.** Mark **${numTargets} targets** (MR⋅${mrRankUp}) (self, allies, enemies); you may stack the marks on a single target. From now until the end of the next damage cycle, lose your total rolled result **${totalRoll}** to all Saves to obtain the following effects:\n\n`;
+    description += `**Free Action.** Mark **${numTargets} targets** (MR⋅${mrRankUp}) (self, allies, enemies); you may stack the marks on a single target. From now until the end of the next damage cycle, lose your total rolled result **${totalRoll}** to all Saves to obtain the following effects:\n\n`;
 
     if (enemyActive) {
       description += `◦ **Enemy:** Deal an instance of **1d20 HP or break damage with advantage** per mark.\n`;
@@ -142,7 +142,7 @@ async function handleVitiate(message, args, comment) {
     .setTitle(`**(Alter) Vitiate${titleSuffix}**`)
     .setThumbnail('https://terrarp.com/db/action/vitiate.png');
 
-  let description = `► ${actionType} Deal an instance of **${finalDamage} Break damage** (MR⋅${mrRankUp}) `;
+  let description = `${actionType} Deal an instance of **${finalDamage} Break damage** (MR⋅${mrRankUp}) `;
 
   if (triggers.radial) {
     description += `to all enemies adjacent to you. When the battle map is not in use, apply damage to all enemies narratively close to you`;
@@ -213,12 +213,12 @@ async function handleMomentum(message, args, comment) {
   if (triggers.blitz) {
     // Blitz (Bonus Action)
     embed.setTitle('(Alter) Momentum - Blitz');
-    description += `► **Bonus Action: Blitz.** Gain +${attackBonus} damage for each movement used in a continuous line this cycle. When a battle map is not in use, let the narrative determine whether you can use a quarter, half, or your full movement amount for this action. Also, reduce each instance of movement damage by ${instanceReduce}.\n`;
+    description += `**Bonus Action: Blitz.** Gain +${attackBonus} damage for each movement used in a continuous line this cycle. When a battle map is not in use, let the narrative determine whether you can use a quarter, half, or your full movement amount for this action. Also, reduce each instance of movement damage by ${instanceReduce}.\n`;
 
   } else {
     // Momentum (Free Action)
     embed.setTitle('(Alter) Momentum');
-    description += `► **Free Action.** Gain +${attackBonus} damage modifiers for each (used or unused) movement you have this cycle.\n`;
+    description += `**Free Action.** Gain +${attackBonus} damage modifiers for each (used or unused) movement you have this cycle.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -244,7 +244,7 @@ async function handleRover(message, args, comment) {
     .setTitle('(Alter) Rover')
     .setThumbnail('https://terrarp.com/db/action/rover.png');
 
-  const description = `► **Bonus Action.** Damage resulting from moving is halved.\n`;
+  const description = `**Bonus Action.** Damage resulting from moving is halved.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -288,7 +288,7 @@ async function handleAcceleration(message, args, comment) {
     .setTitle('(Alter) Acceleration')
     .setThumbnail('https://terrarp.com/db/action/acceleration.png');
 
-  const description = `► **Free Action.** Gain a ${fortWillBonus} bonus to Fortitude and Will, and ${reflexBonus} to Reflex Save per unspent movement in the next damage phase.\n`;
+  const description = `**Free Action.** Gain a ${fortWillBonus} bonus to Fortitude and Will, and ${reflexBonus} to Reflex Save per unspent movement in the next damage phase.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -324,7 +324,7 @@ async function handleExceed(message, args, comment) {
     .setTitle('Exceed')
     .setThumbnail('https://terrarp.com/db/action/exceed.png');
 
-  const description = `► **Free Action.** Reduce your maximum HP by **15 HP** to gain a **+${bonusAmount}** (MR⋅${mrRankUp}) bonus modifier on your next attacks, heals, or buffs.\n`;
+  const description = `**Free Action.** Reduce your maximum HP by **15 HP** to gain a **+${bonusAmount}** (MR⋅${mrRankUp}) bonus modifier on your next attacks, heals, or buffs.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -373,15 +373,15 @@ async function handleEngage(message, args, comment) {
   let description;
   if (triggers.accretion) {
     if (triggers.regalia && reduction > 0) {
-      description = `► **Bonus Action: Accretion.** Lose **${finalAccretionHPCost} HP** (35 - ${reduction} Regalia) to make your Save Roll with advantage.\n`;
+      description = `**Bonus Action: Accretion.** Lose **${finalAccretionHPCost} HP** (35 - ${reduction} Regalia) to make your Save Roll with advantage.\n`;
     } else {
-      description = `► **Bonus Action: Accretion.** Lose **35 HP** to make your Save Roll with advantage.\n`;
+      description = `**Bonus Action: Accretion.** Lose **35 HP** to make your Save Roll with advantage.\n`;
     }
   } else {
     if (triggers.regalia && reduction > 0) {
-      description = `► **Bonus Action: Redo.** Lose **${finalRedoHPCost} HP** (50 - ${reduction} Regalia) to reroll your main action, you must take the new result. Redo Critical Attack uses **1d100** instead of **2d100kh1**.\n`;
+      description = `**Bonus Action: Redo.** Lose **${finalRedoHPCost} HP** (50 - ${reduction} Regalia) to reroll your main action, you must take the new result. Redo Critical Attack uses **1d100** instead of **2d100kh1**.\n`;
     } else {
-      description = `► **Bonus Action: Redo.** Lose **50 HP** to reroll your main action, you must take the new result. Redo Critical Attack uses **1d100** instead of **2d100kh1**.\n`;
+      description = `**Bonus Action: Redo.** Lose **50 HP** to reroll your main action, you must take the new result. Redo Critical Attack uses **1d100** instead of **2d100kh1**.\n`;
     }
   }
 
@@ -412,7 +412,7 @@ async function handleEmpower(message, args, comment) {
     .setTitle('Empower')
     .setThumbnail('https://terrarp.com/db/action/empower.png');
 
-  const description = `► **Free Action.** Once per cycle, reduce your HP by **50 HP** and gain **1 extra bonus action**, you cannot use the same BA twice.\n`;
+  const description = `**Free Action.** Once per cycle, reduce your HP by **50 HP** and gain **1 extra bonus action**, you cannot use the same BA twice.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -451,7 +451,7 @@ async function handleMark(message, args, comment) {
     .setTitle('Mark')
     .setThumbnail('https://terrarp.com/db/action/mark.png');
 
-  const description = `► **Bonus Action.** The next **2 attacks** to **${targetName}** gains a **+${damageBonus}** (MR⋅${mrRankUp}) damage modifier. You cannot recast Mark until all charges are expended, if there are multiple Hyper Sense users, Marks may stack.\n`;
+  const description = `**Bonus Action.** The next **2 attacks** to **${targetName}** gains a **+${damageBonus}** (MR⋅${mrRankUp}) damage modifier. You cannot recast Mark until all charges are expended, if there are multiple Hyper Sense users, Marks may stack.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -500,9 +500,9 @@ async function handleHyperInsight(message, args, comment) {
 
   let description;
   if (triggers.ultra) {
-    description = `► **Bonus Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (${baseBreakDamage} × 2) Break damage and imbue the attack with one of your masteries this cycle.\n`;
+    description = `**Bonus Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (${baseBreakDamage} × 2) Break damage and imbue the attack with one of your masteries this cycle.\n`;
   } else {
-    description = `► **Free Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (MR⋅${mrRankUp}) Break damage and imbue the attack with one of your masteries this cycle.\n`;
+    description = `**Free Action.** Grant yourself or an ally within range an instance of **${finalBreakDamage}** (MR⋅${mrRankUp}) Break damage and imbue the attack with one of your masteries this cycle.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -552,9 +552,9 @@ async function handleHyperInstinct(message, args, comment) {
 
   let description;
   if (triggers.ultra) {
-    description = `► **Bonus Action.** Gain **+${finalSaveBonus}** (${baseSaveBonus} × 2) to a save roll in the next damage phase.\n`;
+    description = `**Bonus Action.** Gain **+${finalSaveBonus}** (${baseSaveBonus} × 2) to a save roll in the next damage phase.\n`;
   } else {
-    description = `► **Passive.** Gain **+${finalSaveBonus}** (MR⋅${mrRankUp}) to a save roll in the next damage phase.\n`;
+    description = `**Passive.** Gain **+${finalSaveBonus}** (MR⋅${mrRankUp}) to a save roll in the next damage phase.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -596,10 +596,10 @@ async function handleRegenerate(message, args, comment) {
 
   let description;
   if (triggers.power) {
-    description = `► **Bonus Action: Power.** Gain **${regenAmount} HP** and grant an ally **${regenAmount} HP**, or forgo your own regeneration and grant an ally **${ 2 * regenAmount} HP**.\n`;
+    description = `**Bonus Action: Power.** Gain **${regenAmount} HP** and grant an ally **${regenAmount} HP**, or forgo your own regeneration and grant an ally **${ 2 * regenAmount} HP**.\n`;
     description += `◦ *Base Regen:* **${regenAmount} HP** (MR⋅${mrRankUp})\n`;
   } else {
-    description = `► **Passive.** Gain **${regenAmount} HP** (MR⋅${mrRankUp}) every cycle.\n`;
+    description = `**Passive.** Gain **${regenAmount} HP** (MR⋅${mrRankUp}) every cycle.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -644,9 +644,9 @@ async function handleInfuse(message, args, comment) {
 
   let description;
   if (triggers.aoe) {
-    description = `► **Free Action.** Heal up to **${targetCount} allies** within range, distributing **${healAmount} HP** (MR⋅${mrRankUp}) in multiples of **5**.\n`;
+    description = `**Free Action.** Heal up to **${targetCount} allies** within range, distributing **${healAmount} HP** (MR⋅${mrRankUp}) in multiples of **5**.\n`;
   } else {
-    description = `► **Free Action.** Heal up to **${targetCount} allies** within range for **${healAmount} HP** (MR⋅${mrRankUp}).\n`;
+    description = `**Free Action.** Heal up to **${targetCount} allies** within range for **${healAmount} HP** (MR⋅${mrRankUp}).\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -694,15 +694,15 @@ async function handleAdapt(message, args, comment) {
 
   let description;
   if (triggers.prowl) {
-    description = `► **Bonus Action: Prowl.** Ignore difficult terrain this cycle.`;
+    description = `**Bonus Action: Prowl.** Ignore difficult terrain this cycle.`;
     if (hasARankProwlUpgrade) {
       description += ` And divide movement damage by 2.`;
     }
     description += `\n`;
   } else if (triggers.fend) {
-    description = `► **Bonus Action: Fend.** **+${fendBonus}** (MR⋅${mrRankUp}) to a save roll this cycle.\n`;
+    description = `**Bonus Action: Fend.** **+${fendBonus}** (MR⋅${mrRankUp}) to a save roll this cycle.\n`;
   } else {
-    description = `► **Passive.** On the first post of a thread, add **${hpBoost} HP** (MR⋅${mrRankUp}) to your current HP. This is not a heal nor does it expand your max HP.\n`;
+    description = `**Passive.** On the first post of a thread, add **${hpBoost} HP** (MR⋅${mrRankUp}) to your current HP. This is not a heal nor does it expand your max HP.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -749,9 +749,9 @@ async function handleEvolve(message, args, comment) {
 
   let description;
   if (triggers.shift) {
-    description = `► **Passive.** Evolved Mastery changed to **${masteryName}**, **+${bonus}** (MR⋅${mrRankUp}) bonus to main action rolls made with this mastery.\n`;
+    description = `**Passive.** Evolved Mastery changed to **${masteryName}**, **+${bonus}** (MR⋅${mrRankUp}) bonus to main action rolls made with this mastery.\n`;
   } else {
-    description = `► **Passive.** Evolved **${masteryName}**, **+${bonus}** (MR⋅${mrRankUp}) bonus to main action rolls made with this mastery.\n`;
+    description = `**Passive.** Evolved **${masteryName}**, **+${bonus}** (MR⋅${mrRankUp}) bonus to main action rolls made with this mastery.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -788,7 +788,7 @@ async function handleCoordinate(message, args, comment) {
     .setTitle('Coordinate')
     .setThumbnail('https://terrarp.com/db/action/coordinate.png');
 
-  const description = `► **Free Action.** Grant **${targetCount} targets** a **+${bonus}** (MR⋅${mrRankUp}) modifier to their next attack, heal, or buff action.\n`;
+  const description = `**Free Action.** Grant **${targetCount} targets** a **+${bonus}** (MR⋅${mrRankUp}) modifier to their next attack, heal, or buff action.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -821,7 +821,7 @@ async function handleAssist(message, args, comment) {
     .setTitle('Assist')
     .setThumbnail('https://terrarp.com/db/action/assist.png');
 
-  const description = `► **Bonus Action: Assign.** Grant **+${assistBonus}** (MR⋅${mrRankUp}) modifier to the next mastery check made by any of your Coordinate targets.\n`;
+  const description = `**Bonus Action: Assign.** Grant **+${assistBonus}** (MR⋅${mrRankUp}) modifier to the next mastery check made by any of your Coordinate targets.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -881,11 +881,11 @@ async function handleCharge(message, args, comment) {
   let description;
   if (releaseActive) {
     description = `\`${calculation}\`\n\n`;
-    description += `► **Bonus Action: Release.** Gain the **+${rollResult}** as a modifier for your attack, buff, heal, or mastery check involving your weapon.\n`;
+    description += `**Bonus Action: Release.** Gain the **+${rollResult}** as a modifier for your attack, buff, heal, or mastery check involving your weapon.\n`;
   } else if (triggers.charging) {
-    description = `► **Bonus Action: Charging.** Add an extra **${chargingDice}** (MR⋅${mrRankUp}) to your Charge Pool.\n`;
+    description = `**Bonus Action: Charging.** Add an extra **${chargingDice}** (MR⋅${mrRankUp}) to your Charge Pool.\n`;
   } else {
-    description = `► **Passive.** Add **${passiveDice}** (MR⋅${mrRankUp}) to your Charge Pool at the start of your turn when combat begins.\n`;
+    description = `**Passive.** Add **${passiveDice}** (MR⋅${mrRankUp}) to your Charge Pool at the start of your turn when combat begins.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -937,11 +937,11 @@ async function handleProfane(message, args, comment) {
   if (triggers.apostasy) {
     // Apostasy mode (Bonus Action)
     embed.setTitle('Profane (Apostasy)');
-    description = `► **Bonus Action: Apostasy.** Gain **5 HP per active condition** (MR⋅${mrRankUp}), max **${maxHP} HP**. You cannot cleanse these conditions after gaining the HP.\n`;
+    description = `**Bonus Action: Apostasy.** Gain **5 HP per active condition** (MR⋅${mrRankUp}), max **${maxHP} HP**. You cannot cleanse these conditions after gaining the HP.\n`;
   } else {
     // Consume mode (Free Action)
     embed.setTitle('Profane');
-    description = `► **Free Action: Consume.** Cleanse **1 curable condition** (MR⋅${mrRankUp}).\n`;
+    description = `**Free Action: Consume.** Cleanse **1 curable condition** (MR⋅${mrRankUp}).\n`;
 
     // Show Apostasy availability
     if (['b', 'a', 's'].includes(mrRank)) {
@@ -998,7 +998,7 @@ async function handleRegalia(message, args, comment) {
       .setTitle('Regalia')
       .setThumbnail('https://terrarp.com/db/action/regalia.png');
 
-    let description = `► **Passive.** Reduces the health cost of **Engage** and **Empower** (MR⋅${mrRankUp}):\n`;
+    let description = `**Passive.** Reduces the health cost of **Engage** and **Empower** (MR⋅${mrRankUp}):\n`;
     description += `\n◦ **Light Armor:** Reduces cost by **${lightRed} HP**.\n`;
     description += `◦ **Medium Armor:** Reduces cost by **${mediumRed} HP**.\n`;
 
@@ -1012,7 +1012,7 @@ async function handleRegalia(message, args, comment) {
     .setTitle(`Regalia (${armorType})`)
     .setThumbnail('https://terrarp.com/db/action/regalia.png');
 
-  const description = `► **Passive.** ${armorType} reduces the health cost of **Engage** and **Empower** by **${reduction} HP** (MR⋅${mrRankUp}).\n`;
+  const description = `**Passive.** ${armorType} reduces the health cost of **Engage** and **Empower** by **${reduction} HP** (MR⋅${mrRankUp}).\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1045,7 +1045,7 @@ async function handleAnatomy(message, args, comment) {
     .setTitle('Anatomy')
     .setThumbnail('https://terrarp.com/db/action/anatomy.png');
 
-  const description = `► **Passive.** On the first post of a thread, add **${hpBonus} HP** (MR⋅${mrRankUp}) to your current HP. This is not a heal nor does it expand your max HP.\n`;
+  const description = `**Passive.** On the first post of a thread, add **${hpBonus} HP** (MR⋅${mrRankUp}) to your current HP. This is not a heal nor does it expand your max HP.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1074,7 +1074,7 @@ async function handleBestowed(message, args, comment) {
     .setTitle('Bestowed')
     .setThumbnail('https://terrarp.com/db/action/bestowed.png');
 
-  const description = `► **Passive.** Use the mastery and mastery rank of any non-support masteries to perform support actions (MR⋅${mrRankUp}). You must have at least 1 support mastery on your character sheet to access support actions.\n`;
+  const description = `**Passive.** Use the mastery and mastery rank of any non-support masteries to perform support actions (MR⋅${mrRankUp}). You must have at least 1 support mastery on your character sheet to access support actions.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1107,7 +1107,7 @@ async function handleCombatFocus(message, args, comment) {
     .setTitle('Combat Focus')
     .setThumbnail('https://terrarp.com/db/action/combat-focus.png');
 
-  let description = `► **Passive.** Gain **+${combatBonus}** (MR⋅${mrRankUp}) to attacks, buffs, and heals.\n`;
+  let description = `**Passive.** Gain **+${combatBonus}** (MR⋅${mrRankUp}) to attacks, buffs, and heals.\n`;
 
   // C rank upgrade
   if (['c', 'b', 'a', 's'].includes(mrRank)) {
@@ -1147,7 +1147,7 @@ async function handleUtilityFocus(message, args, comment) {
     .setTitle('Utility Focus')
     .setThumbnail('https://terrarp.com/db/action/utility-focus.png');
 
-  const description = `► **Passive.** Gain **+${actionBonus}** (MR⋅${mrRankUp}) to all Bonus and Free Actions. Haste and Cleanse gain **${chargeBonus}** additional charge.\n`;
+  const description = `**Passive.** Gain **+${actionBonus}** (MR⋅${mrRankUp}) to all Bonus and Free Actions. Haste and Cleanse gain **${chargeBonus}** additional charge.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1182,7 +1182,7 @@ async function handleDefenseFocus(message, args, comment) {
     .setTitle('Defense Focus')
     .setThumbnail('https://terrarp.com/db/action/defense-focus.png');
 
-  let description = `► **Passive.** Gain **+${hpBonus} HP** and **+${saveBonus}** to all Saves (MR⋅${mrRankUp}).\n`;
+  let description = `**Passive.** Gain **+${hpBonus} HP** and **+${saveBonus}** to all Saves (MR⋅${mrRankUp}).\n`;
   description += `\n⚠ **Restriction:** Cannot take Speed Focus.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1218,7 +1218,7 @@ async function handleSpeedFocus(message, args, comment) {
     .setTitle('Speed Focus')
     .setThumbnail('https://terrarp.com/db/action/speed-focus.png');
 
-  let description = `► **Passive.** Gain **+${hpBonus} HP** and **+${moveBonus} movement** (MR⋅${mrRankUp}).\n`;
+  let description = `**Passive.** Gain **+${hpBonus} HP** and **+${moveBonus} movement** (MR⋅${mrRankUp}).\n`;
   description += `\n⚠ **Restriction:** Cannot take Defense Focus.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1268,14 +1268,14 @@ async function handleGuardian(message, args, comment) {
     // Amplify (Bonus Action)
     mitigationAmount *= 2; // Double the mitigation
     embed.setTitle('**(Alter) Guardian**');
-    description += `► **Bonus Action: Amplify.** Distribute **${mitigationAmount} mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
+    description += `**Bonus Action: Amplify.** Distribute **${mitigationAmount} mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
     description += `\n◦ Effect: Mitigation amount has been doubled.`;
     description += `\n◦ Limitation: Each character may have no more than *60 mitigation* from all effects.\n`;
 
   } else {
     // Guardian (Free Action)
     embed.setTitle('**(Alter) Guardian**');
-    description += `► **Free Action.** Distribute **${mitigationAmount} damage mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
+    description += `**Free Action.** Distribute **${mitigationAmount} damage mitigation** (MR⋅${mrRankUp}) between and up to 3 targets in multiples of 5s.\n`;
     description += `\n◦ Limitation: Each character may have no more than *60 mitigation* from all effects.\n`;
   }
 
@@ -1311,7 +1311,7 @@ async function handleAggress(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/aggress.png');
 
   let description = `\`1d100 (${priorityRoll})\`\n\n`;
-  description += `► **Free Action.** Taunt an enemy. Aggress takes higher priority than regular Taunt. If two Aggress is used on the same target, roll a 1d100, the higher result takes priority.\n`;
+  description += `**Free Action.** Taunt an enemy. Aggress takes higher priority than regular Taunt. If two Aggress is used on the same target, roll a 1d100, the higher result takes priority.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1358,11 +1358,11 @@ async function handleSavior(message, args, comment) {
     // Share (Bonus Action)
     const allies = mrRank === 's' ? '2 allies' : '1 ally';
     embed.setTitle('**(Alter) Savior**');
-    description += `► **Bonus Action: Share.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase, and share the same amount with ***${allies}*** within range.\n`;
+    description += `**Bonus Action: Share.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase, and share the same amount with ***${allies}*** within range.\n`;
   } else {
     // Savior (Passive)
     embed.setTitle('**(Alter) Savior**');
-    description += `► **Passive.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase.\n`;
+    description += `**Passive.** Gain a **+${saveAmount} bonus** (MR⋅${mrRankUp}) to any save roll until the next damage phase.\n`;
   }
 
   description += `\n◦ Limitation: Each character may only have 1 instance of Savior Aura.\n`;
@@ -1414,11 +1414,11 @@ async function handleAcrimony(message, args, comment) {
   if (triggers.meliorate) {
     // Meliorate (Bonus Action)
     embed.setTitle('**(Alter) Acrimony**');
-    description += `► **Bonus Action: Meliorate.** When your Acrimony target dies this cycle, gain **${meliorateAmount} HP** (MR⋅${mrRankUp}).\n`;
+    description += `**Bonus Action: Meliorate.** When your Acrimony target dies this cycle, gain **${meliorateAmount} HP** (MR⋅${mrRankUp}).\n`;
   } else {
     // Acrimony (Free Action)
     embed.setTitle('**(Alter) Acrimony**');
-    description += `► **Free Action.** While Vulnerable, deal an instance of **${damageAmount} damage** (MR⋅${mrRankUp}) to an enemy you are adjacent to or share a space with and regain **${healAmount} HP** (MR⋅${mrRankUp}). You cannot gain the Protected State.\n`;
+    description += `**Free Action.** While Vulnerable, deal an instance of **${damageAmount} damage** (MR⋅${mrRankUp}) to an enemy you are adjacent to or share a space with and regain **${healAmount} HP** (MR⋅${mrRankUp}). You cannot gain the Protected State.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1484,7 +1484,7 @@ async function handleOverdrive(message, args, comment) {
     .setTitle('**(Alter) Overdrive**')
     .setThumbnail('https://terrarp.com/db/action/overdrive.png');
 
-  const description = `► **Passive.** Gain **${hpGain} HP** (${calculationString}, Max ${maxHpForRank}) (MR⋅${mrRankUp}) when you are adjacent to or on the same space as the enemy you attacked this cycle.\n`;
+  const description = `**Passive.** Gain **${hpGain} HP** (${calculationString}, Max ${maxHpForRank}) (MR⋅${mrRankUp}) when you are adjacent to or on the same space as the enemy you attacked this cycle.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1565,9 +1565,9 @@ async function handleRage(message, args, comment) {
   // Description text
   let description = '';
   if (triggers.frenzy) {
-    description += `► **Bonus Action: Frenzied Rage.** Deal **${X} damage** to an enemy you share a space with or are adjacent to based on your taken damage (rage damage has been doubled and has no cap this cycle, MR⋅${mrRankUp})\n`;
+    description += `**Bonus Action: Frenzied Rage.** Deal **${X} damage** to an enemy you share a space with or are adjacent to based on your taken damage (rage damage has been doubled and has no cap this cycle, MR⋅${mrRankUp})\n`;
   } else {
-    description += `► **Free Action.** Deal **${X} damage** to an enemy you share a space with or are adjacent to based on your taken damage (max ${cap} - MR⋅${mrRankUp})\n`;
+    description += `**Free Action.** Deal **${X} damage** to an enemy you share a space with or are adjacent to based on your taken damage (max ${cap} - MR⋅${mrRankUp})\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -1594,7 +1594,7 @@ async function handleGift(message, args, comment) {
     .setTitle('Gift')
     .setThumbnail('https://terrarp.com/db/action/gift.png');
 
-  let description = `► **Passive.** When you Release your charge, roll another set and keep the higher set.\n`;
+  let description = `**Passive.** When you Release your charge, roll another set and keep the higher set.\n`;
 
   // S rank upgrade
   if (mrRank === 's') {
@@ -1637,7 +1637,7 @@ async function handleFollowUp(message, args, comment) {
     .setTitle('Follow-up')
     .setThumbnail('https://terrarp.com/db/action/follow-up.png');
 
-  const description = `► **Free Action.** You or **${targetName}** may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier in either of your posts, which must narratively feature both participants. If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
+  const description = `**Free Action.** You or **${targetName}** may use a **${specialMod}** (MR⋅${mrRankUp}) damage modifier in either of your posts, which must narratively feature both participants. If one follow-up partner crits, this value scales with the crit. Normal attacks may trigger combo at a reduced amount **${normalMod}** (MR⋅${mrRankUp}).\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -1681,11 +1681,11 @@ async function handleLocomote(message, args, comment) {
   if (triggers.switch) {
     // Switch mode (Bonus Action)
     embed.setTitle('Locomote (Switch)');
-    description += `► **Bonus Action: Switch.** Change the Locomote target to **${targetName}**.\n`;
+    description += `**Bonus Action: Switch.** Change the Locomote target to **${targetName}**.\n`;
   } else {
     // Normal mode (Free Action)
     embed.setTitle('Locomote');
-    description += `► **Free Action.** At the start of the thread, **${targetName}** is chosen as target and gets a **+1 movement** until you switch the target.\n`;
+    description += `**Free Action.** At the start of the thread, **${targetName}** is chosen as target and gets a **+1 movement** until you switch the target.\n`;
 
     // B rank upgrade
     if (mrRank === 'b' || mrRank === 'a' || mrRank === 's') {

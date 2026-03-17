@@ -108,7 +108,7 @@ async function handleHeal(message, args, comment) {
           ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
           : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
     (ngNote ? `${ngNote}\n` : '') +
-    `\n► Free Action: Healing Cleanse. Whenever you heal, cleanse 1 curable condition after healing from an ally within range.\n`;
+    `\nFree Action: Healing Cleanse. Whenever you heal, cleanse 1 curable condition after healing from an ally within range.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -226,9 +226,9 @@ async function handlePowerHeal(message, args, comment) {
         : (triggers.aoe
           ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
           : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
-    `\n► Explosions occur on 16+ rolls (25% chance per die).\n` +
-    `► You are vulnerable.\n` +
-    `► Free Action: Power Healing Cleanse. After healing, cleanse **${cleanseX}** (${mrRankUp}-rank) curable conditions from between and up to 3 allies within range. Manually add **5** per unused cleanse charge to your heal amount.\n` +
+    `\nExplosions occur on 16+ rolls (25% chance per die).\n` +
+    `You are vulnerable.\n` +
+    `Free Action: Power Healing Cleanse. After healing, cleanse **${cleanseX}** (${mrRankUp}-rank) curable conditions from between and up to 3 allies within range. Manually add **5** per unused cleanse charge to your heal amount.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
   return finalizeAndSend(message, embed, description, comment);
@@ -283,14 +283,14 @@ async function handleBuff(message, args, comment) {
     const named = comment.match(/\btest:(crit|100|fail|1)\b/i);
     if (named) {
       const k = named[1].toLowerCase();
-      if (k === 'crit' || k === '100') { r = 100; testNote += '\n► [TEST] Forced roll: 100'; }
-      else if (k === 'fail' || k === '1') { r = 1; testNote += '\n► [TEST] Forced roll: 1'; }
+      if (k === 'crit' || k === '100') { r = 100; testNote += '\n[TEST] Forced roll: 100'; }
+      else if (k === 'fail' || k === '1') { r = 1; testNote += '\n[TEST] Forced roll: 1'; }
     }
     // Direct numeric
     const direct = comment.match(/\b(?:r|d100)\s*=\s*(\d{1,3})\b/i);
     if (direct) {
       r = Math.max(1, Math.min(100, parseInt(direct[1], 10)));
-      testNote += `► [TEST] Forced roll via r/d100=: ${r}\n`;
+      testNote += `[TEST] Forced roll via r/d100=: ${r}\n`;
     }
   }
 
@@ -299,9 +299,9 @@ async function handleBuff(message, args, comment) {
   let triggeredLine = '';
   if (r === 100) {
     multiplier = 2;
-    triggeredLine = `► Crit (100). Multiplier ×2.\n`;
+    triggeredLine = `Crit (100). Multiplier ×2.\n`;
   } else if (r === 1) {
-    triggeredLine = `► Crit Fail (1). Nat1 event.\n`;
+    triggeredLine = `Crit Fail (1). Nat1 event.\n`;
   }
 
   // Totals: multiply first, then divide into 3 charges
@@ -432,13 +432,13 @@ async function handlePowerBuff(message, args, comment) {
     if (named) {
       const key = named[1].toLowerCase().replace(/\s+/g, '');
       switch (key) {
-        case 'starbreaker': r1 = 100; r2 = 100; testNote += '\n► [TEST] Forced: STAR BREAKER (100,100)'; break;
-        case 'worldender': r1 = 1; r2 = 1; testNote += '\n► [TEST] Forced: WORLD ENDER (1,1)'; break;
-        case 'schrodinger': r1 = 100; r2 = 1; testNote += '\n► [TEST] Forced: Schrodinger (100,1)'; break;
+        case 'starbreaker': r1 = 100; r2 = 100; testNote += '\n[TEST] Forced: STAR BREAKER (100,100)'; break;
+        case 'worldender': r1 = 1; r2 = 1; testNote += '\n[TEST] Forced: WORLD ENDER (1,1)'; break;
+        case 'schrodinger': r1 = 100; r2 = 1; testNote += '\n[TEST] Forced: Schrodinger (100,1)'; break;
         case 'crit':
-        case '100':         r1 = 100; r2 = 42; testNote += '\n► [TEST] Forced: Crit (100,x)'; break;
+        case '100':         r1 = 100; r2 = 42; testNote += '\n[TEST] Forced: Crit (100,x)'; break;
         case 'fail':
-        case '1':           r1 = 1;   r2 = 42; testNote += '\n► [TEST] Forced: Crit Fail (1,x)'; break;
+        case '1':           r1 = 1;   r2 = 42; testNote += '\n[TEST] Forced: Crit Fail (1,x)'; break;
       }
     }
     // Direct "r=100,86"
@@ -446,13 +446,13 @@ async function handlePowerBuff(message, args, comment) {
     if (both) {
       r1 = Math.max(1, Math.min(100, parseInt(both[1], 10)));
       r2 = Math.max(1, Math.min(100, parseInt(both[2], 10)));
-      testNote += `► [TEST] Forced rolls: ${r1}, ${r2}\n`;
+      testNote += `[TEST] Forced rolls: ${r1}, ${r2}\n`;
     } else {
       // Or "r1=.." and/or "r2=.."
       const m1 = comment.match(/\br1\s*=\s*(\d{1,3})\b/i);
       const m2 = comment.match(/\br2\s*=\s*(\d{1,3})\b/i);
-      if (m1) { r1 = Math.max(1, Math.min(100, parseInt(m1[1], 10))); testNote += `► [TEST] Forced r1: ${r1}\n`; }
-      if (m2) { r2 = Math.max(1, Math.min(100, parseInt(m2[1], 10))); testNote += `► [TEST] Forced r2: ${r2}\n`; }
+      if (m1) { r1 = Math.max(1, Math.min(100, parseInt(m1[1], 10))); testNote += `[TEST] Forced r1: ${r1}\n`; }
+      if (m2) { r2 = Math.max(1, Math.min(100, parseInt(m2[1], 10))); testNote += `[TEST] Forced r2: ${r2}\n`; }
     }
   }
 
@@ -467,21 +467,21 @@ async function handlePowerBuff(message, args, comment) {
   if (countHundreds >= 2) {
     multiplier = 7;
     resultTag = '(STAR BREAKER)';
-    triggeredLine = `► Star Breaker (100 & 100+): Multiplier ×7.\n`;
+    triggeredLine = `Star Breaker (100 & 100+): Multiplier ×7.\n`;
   } else if (countOnes >= 2 && countHundreds === 0) {
     resultTag = '(WORLD ENDER)';
-    triggeredLine = `► World Ender (1 & 1+): Chance for Nat1+ event.\n`;
+    triggeredLine = `World Ender (1 & 1+): Chance for Nat1+ event.\n`;
   } else if (countHundreds >= 1 && countOnes >= 1) {
     multiplier = 2;
     resultTag = '(schrodinger crit!)';
-    triggeredLine = `► Schrodinger Crit (100 & 1): Multiplier ×2 and chance for Nat1 event.\n`;
+    triggeredLine = `Schrodinger Crit (100 & 1): Multiplier ×2 and chance for Nat1 event.\n`;
   } else if (countHundreds >= 1) {
     multiplier = 2;
     resultTag = '(crit!)';
-    triggeredLine = `► Crit (100): Multiplier ×2.\n`;
+    triggeredLine = `Crit (100): Multiplier ×2.\n`;
   } else if (countOnes >= 1) {
     resultTag = '(crit fail...)';
-    triggeredLine = `► Crit Fail (1): Chance for Nat1 event.\n`;
+    triggeredLine = `Crit Fail (1): Chance for Nat1 event.\n`;
   }
 
   // Totals: multiply first, then divide into 3 charges
@@ -594,10 +594,10 @@ async function handleImbue(message, args, comment) {
 
     if (targetName && breakType) {
       // If parsing is successful, use the success message
-      description = `► **Free Action.** Imbued **${targetName}**'s attacks with **${breakType}** break-damage.\n◦ Inform your imbued ally when you switch to another ally.\n`;
+      description = `**Free Action.** Imbued **${targetName}**'s attacks with **${breakType}** break-damage.\n◦ Inform your imbued ally when you switch to another ally.\n`;
     } else {
       // Otherwise, use the fallback message
-      description = `► **Free Action.** If you heal or buff this cycle, you may imbue an ally with any of your support mastery's break-type, which lasts indefinitely, one ally at a time.\n`;
+      description = `**Free Action.** If you heal or buff this cycle, you may imbue an ally with any of your support mastery's break-type, which lasts indefinitely, one ally at a time.\n`;
     }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -620,10 +620,10 @@ async function handleVersatile(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Free Action.** Apply support action effects to 2 targets (instead of 3) and apply the last heal/buff amount to one of those targets.\n`;
+  let description = `**Free Action.** Apply support action effects to 2 targets (instead of 3) and apply the last heal/buff amount to one of those targets.\n`;
 
   if (triggers.simulcast) {
-    description += `► **Free Action: Simulcast.** Target 2 allies with Heal and Buff (both must be special or non-special). Choose if each target gets either the heal or buff.\n`;
+    description += `**Free Action: Simulcast.** Target 2 allies with Heal and Buff (both must be special or non-special). Choose if each target gets either the heal or buff.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -676,7 +676,7 @@ async function handleRevive(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Bonus Action.** ${actionVerb} an ally within range.\n`;
+  let description = `**Bonus Action.** ${actionVerb} an ally within range.\n`;
   description += `◦ **${targetName}** has been ${actionPastTense}.\n`;
   description += `◦ **${targetName}** regains **${hpValueText} HP**.\n`;
 
@@ -710,13 +710,13 @@ async function handleCleanse(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = '► **Passive: Cure.** If you are afflicted with a curable condition, you may remove **1 stack** from yourself each cycle *before* it takes effect.\n';
+  let description = '**Passive: Cure.** If you are afflicted with a curable condition, you may remove **1 stack** from yourself each cycle *before* it takes effect.\n';
 
   if (cleanseActive) {
     const CLEANSE_VALUES = { d: 2, c: 2, b: 4, a: 4, s: 6 };
     const cleanseAmount = CLEANSE_VALUES[mr.rank] ?? 0; // Default to 0 if rank is not in the list
 
-    description += `\n► **Bonus Action: Cleanse.** Remove **${cleanseAmount} stacks** (MR⋅${mr.rankUpper}) of curable conditions between and up to 3 targets.\n`;
+    description += `\n**Bonus Action: Cleanse.** Remove **${cleanseAmount} stacks** (MR⋅${mr.rankUpper}) of curable conditions between and up to 3 targets.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
@@ -746,7 +746,7 @@ async function handleHaste(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Bonus Action.** Distribute **${movementAmount} movements** (MR⋅${mr.rankUpper}) between and up to 3 targets.\n`;
+  let description = `**Bonus Action.** Distribute **${movementAmount} movements** (MR⋅${mr.rankUpper}) between and up to 3 targets.\n`;
   description += `◦ *Duration:* The bonus movements last until the end of the next damage phase.\n◦ *Limitation:* Each target may gain a maximum of *2 movements* from Haste.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
@@ -776,7 +776,7 @@ async function handleInspire(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Bonus Action.** Distribute **+${bonusAmount} bonus** (MR⋅${mr.rankUpper}) between and up to 3 targets in multiple of 5s toward a *mastery check* or *save roll*.\n`;
+  let description = `**Bonus Action.** Distribute **+${bonusAmount} bonus** (MR⋅${mr.rankUpper}) between and up to 3 targets in multiple of 5s toward a *mastery check* or *save roll*.\n`;
   description += `◦ *Duration:* This bonus lasts until the end of the next damage phase.\n◦ *Limitation:* This bonus does not stack.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
@@ -794,7 +794,7 @@ async function handleSmite(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
   // Description
-  let description = `► **Passive.** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
+  let description = `**Passive.** Whenever you *Heal* or *Buff* an ally, you may activate *Torment* or *Area Effect* from that ally's space.\n◦ Activate Torment or Area Effect below.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -825,7 +825,7 @@ async function handleBlessed(message, args, comment) {
     .setTitle('Blessed')
     .setThumbnail('https://terrarp.com/db/action/blessed.png');
 
-  const description = `► **Passive.** All heal and buff actions gain **+${modifier}** extra modifier (MR⋅${mr.rankUpper}).\n`;
+  const description = `**Passive.** All heal and buff actions gain **+${modifier}** extra modifier (MR⋅${mr.rankUpper}).\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }

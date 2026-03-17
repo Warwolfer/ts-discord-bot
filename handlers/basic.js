@@ -169,9 +169,9 @@ async function handleRange(message, args, comment) {
   // Description
   let description = '';
   if (triggers.extend) {
-    description += `► **Bonus Action.** You have **2** additional range this cycle (passive included).\n`;
+    description += `**Bonus Action.** You have **2** additional range this cycle (passive included).\n`;
   } else {
-    description += `► **Passive.** You have 1 additional range.\n`;
+    description += `**Passive.** You have 1 additional range.\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);

@@ -33,7 +33,7 @@ async function handleProtect(message, args, comment) {
         .setTitle(`Protect ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/protect.png');
 
-    const description = `► **Action.** Make an attack and grant yourself or an ally within range the Protected State.\n\`${calculation}\`\n**${total} damage**\n`;
+    const description = `**Action.** Make an attack and grant yourself or an ally within range the Protected State.\n\`${calculation}\`\n**${total} damage**\n`;
 
     return finalizeAndSend(message, embed, description, comment);
 }
@@ -109,7 +109,7 @@ async function handleCounter(message, args, comment) {
         .setTitle(`Counter ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/counter.png');
 
-    const description = `► **Action.** Make an attack and distribute **${mitigation}** mitigation between and up to 3 targets in multiples of 5s.\n\`${calculation}\`${passiveDisplay}${ngNote ? `\n${ngNote}` : ''}\n**${total} damage**\n`;
+    const description = `**Action.** Make an attack and distribute **${mitigation}** mitigation between and up to 3 targets in multiples of 5s.\n\`${calculation}\`${passiveDisplay}${ngNote ? `\n${ngNote}` : ''}\n**${total} damage**\n`;
 
     return finalizeAndSend(message, embed, description, comment);
 }
@@ -200,12 +200,12 @@ async function handleUltraCounter(message, args, comment) {
 
     // Messages
     const counterComment = success
-        ? `► Successful counter on ${threshold}+! ${mrData.counterDMG} damage added. Vulnerability negated.`
-        : `► Failed counter (need ${threshold}+). 0 damage added. You are vulnerable.`;
+        ? `Successful counter on ${threshold}+! ${mrData.counterDMG} damage added. Vulnerability negated.`
+        : `Failed counter (need ${threshold}+). 0 damage added. You are vulnerable.`;
 
     const meleeNote = triggers.melee
-        ? `► Melee triggered. 30 damage added.`
-        : `► Melee not triggered. If you are adjacent to or are on the target's space, manually add 30 damage.`;
+        ? `Melee triggered. 30 damage added.`
+        : `Melee not triggered. If you are adjacent to or are on the target's space, manually add 30 damage.`;
 
     const displayName = getDisplayName(message);
 
@@ -250,7 +250,7 @@ async function handleUltraProtect(message, args, comment) {
         .setTitle(`Ultra Protect ${critString}`)
         .setThumbnail('https://terrarp.com/db/action/uprotect.png');
 
-    const description = `► **Special Action.** Make an attack and grant up to 3 allies within range the Protected State. You are *Vulnerable*.\n\`${calculation}\`\n**${total} damage**\n`;
+    const description = `**Special Action.** Make an attack and grant up to 3 allies within range the Protected State. You are *Vulnerable*.\n\`${calculation}\`\n**${total} damage**\n`;
 
     return finalizeAndSend(message, embed, description, comment);
 }
@@ -320,9 +320,9 @@ async function handleTorment(message, args, comment) {
 
     let description =
       `${actionType} Deal **${totalDamage} damage** ${targetText}\n` +
-      (appliedMode === 'Ultra Torment' ? `\n► Ultra Torment activated. Torment damage doubled.\n` : '') +
-      (appliedMode === 'Radial Torment' ? `\n► Radial Torment activated. All adjacent/melee enemies (battle map or narrative) take torment damage.\n` : '') +
-      (modeNote ? `► ${modeNote}\n` : '');
+      (appliedMode === 'Ultra Torment' ? `\nUltra Torment activated. Torment damage doubled.\n` : '') +
+      (appliedMode === 'Radial Torment' ? `\nRadial Torment activated. All adjacent/melee enemies (battle map or narrative) take torment damage.\n` : '') +
+      (modeNote ? `${modeNote}\n` : '');
 
     return finalizeAndSend(message, embed, description, comment);
 }
@@ -377,7 +377,7 @@ async function handleCover(message, args, comment) {
 
   let description =
     `${actionType} ${ruleText}\n` +
-    (modeNote ? `► ${modeNote}\n` : '');
+    (modeNote ? `${modeNote}\n` : '');
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -397,7 +397,7 @@ async function handleTaunt(message, args, comment) {
     .setThumbnail('https://terrarp.com/db/action/dba.png');
 
   let description =
-    `► **Free Action.** When you perform an attack action on an enemy, taunt that enemy ${rankLabel}.\n`;
+    `**Free Action.** When you perform an attack action on an enemy, taunt that enemy ${rankLabel}.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
@@ -431,7 +431,7 @@ async function handleSturdy(message, args, comment) {
     .setTitle('Sturdy')
     .setThumbnail('https://terrarp.com/db/action/sturdy.png');
 
-  const description = `► **Passive.** Gain **+${hpBonus} HP** maximum (MR⋅${mrRankUp}), capped at **+50 HP**.\n`;
+  const description = `**Passive.** Gain **+${hpBonus} HP** maximum (MR⋅${mrRankUp}), capped at **+50 HP**.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
 }
