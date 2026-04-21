@@ -12,7 +12,7 @@ const {
     finalizeAndSend,
     validateMinimumRank,
     parseTriggers
-} = require('../helpers');
+} = require('../../helpers');
 const { RANK_DATA, EMBED_COLORS } = require('../constants');
 
 // --- OFFENSIVE HANDLERS ---

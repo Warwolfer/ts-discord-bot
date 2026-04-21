@@ -11,7 +11,7 @@ const {
     REPLY_DELETE_TIMEOUT,
     RANK_DATA,
     WEAPON_RANK_DATA
-} = require('./constants');
+} = require('./commands/constants');
 
 // --- Helper Functions ---
 
@@ -203,9 +203,6 @@ async function finalizeAndSend(message, embed, description, comment) {
         description += `${comment}`;
     }
 
-    // Add roll link
-    description += ` · *[Roll Link](${message.url})*`;
-
     // Set description and send (don't pass comment to sendReply since we already added it)
     embed.setDescription(description);
     return sendReply(message, embed);
@@ -250,7 +247,7 @@ function extractRankInfo(args, index = 1, rankType = 'mastery') {
  * @returns {boolean} - True if valid, false if invalid (and error sent)
  */
 function validateMinimumRank(message, rank, minRank, actionName, comment) {
-    const { EMBED_COLORS } = require('./constants');
+    const { EMBED_COLORS } = require('./commands/constants');
     const rankOrder = ['e', 'd', 'c', 'b', 'a', 's'];
     const minIndex = rankOrder.indexOf(minRank.toLowerCase());
     const rankIndex = rankOrder.indexOf(rank?.toLowerCase());

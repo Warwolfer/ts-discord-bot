@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, parseModifiers, sendReply, parseArguments, getDisplayName, finalizeAndSend } = require('../helpers');
+const { roll, parseModifiers, sendReply, parseArguments, getDisplayName, finalizeAndSend } = require('../../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 async function handleGenericRoll(message, args, comment) {

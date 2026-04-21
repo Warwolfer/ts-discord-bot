@@ -1,7 +1,7 @@
 // basic.js - Basic and utility action handlers for the Sphera RPG Discord bot
 
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend, parseNGTrigger } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend, parseNGTrigger } = require('../../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 // Import resource files
@@ -241,19 +241,23 @@ async function handleSave(message, args, comment) {
     saveType = 'Will Save';
   }
 
+  // DC check
+  const dcMatch = commentString.match(/\bDC\s*\(\s*(\d+)\s*\)/i);
+  const dcResult = dcMatch
+    ? (total >= parseInt(dcMatch[1], 10) ? '**Save Success**' : '**Save Failure**')
+    : '';
+
   // Embed
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
     .setTitle(saveType)
-    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**`);
+    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**${dcResult ? `\n${dcResult}` : ''}`);
 
   if (comment) {
     const currentDescription = embed.data.description || '';
     embed.setDescription(currentDescription + comment);
   }
-
-  embed.setDescription((embed.data.description || '') + ` · *[Roll Link](${message.url})*`);
 
   return sendReply(message, embed);
 }
@@ -326,19 +330,23 @@ async function handleExpertise(message, args, comment) {
   const expertiseName = detectExpertiseName(commentString);
   const titleSuffix = expertiseName ? ` - ${expertiseName}` : '';
 
+  // DC check
+  const dcMatch = commentString.match(/\bDC\s*\(\s*(\d+)\s*\)/i);
+  const dcResult = dcMatch
+    ? (total >= parseInt(dcMatch[1], 10) ? '**Expertise Check Success**' : '**Expertise Check Failure**')
+    : '';
+
   // Embed
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
     .setTitle(`Expertise Check${titleSuffix}`)
-    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**`);
+    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**${dcResult ? `\n${dcResult}` : ''}`);
 
   if (comment) {
     const currentDescription = embed.data.description || '';
     embed.setDescription(currentDescription + comment);
   }
-
-  embed.setDescription((embed.data.description || '') + ` · *[Roll Link](${message.url})*`);
 
   return sendReply(message, embed);
 }
@@ -421,19 +429,23 @@ async function handleMastery(message, args, comment) {
     titleSuffix = ` · ${breakType}`;
   }
 
+  // DC check
+  const dcMatch = commentString.match(/\bDC\s*\(\s*(\d+)\s*\)/i);
+  const dcResult = dcMatch
+    ? (total >= parseInt(dcMatch[1], 10) ? '**Mastery Check Success**' : '**Mastery Check Failure**')
+    : '';
+
   // Embed
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLORS.utility)
     .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
     .setTitle(`Mastery Check${titleSuffix}`)
-    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**`);
+    .setDescription(`\`${calculation}\`${ngNote ? `\n${ngNote}` : ''}\n\n**Total: ${total}**${dcResult ? `\n${dcResult}` : ''}`);
 
   if (comment) {
     const currentDescription = embed.data.description || '';
     embed.setDescription(currentDescription + comment);
   }
-
-  embed.setDescription((embed.data.description || '') + ` · *[Roll Link](${message.url})*`);
 
   return sendReply(message, embed);
 }

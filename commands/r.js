@@ -1,6 +1,6 @@
 // r.js (Refactored for Discord.js v14) - Main Coordinator
 const { EmbedBuilder } = require('discord.js');
-const { checkPermissions, parseArguments, sendReply } = require('./helpers');
+const { checkPermissions, parseArguments, sendReply } = require('../helpers');
 const { PREFIX } = require('./constants');
 
 // Import all handler modules

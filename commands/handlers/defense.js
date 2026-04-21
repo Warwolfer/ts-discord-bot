@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseNGTrigger, finalizeAndSend, parseTriggers } = require('../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseNGTrigger, finalizeAndSend, parseTriggers } = require('../../helpers');
 const { RANK_DATA, EMBED_COLORS } = require('../constants');
 
 // Defense Action MA Protect

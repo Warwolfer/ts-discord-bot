@@ -50,6 +50,18 @@ for (const file of commandFiles) {
     }
 }
 
+// --- Slash Command Loading ---
+client.slashCommands = new Collection();
+const slashDir = './commands/slash';
+if (fs.existsSync(slashDir)) {
+    for (const file of fs.readdirSync(slashDir)) {
+        if (!file.endsWith('.js') || file.startsWith('_')) continue;
+        const cmd = require(`${slashDir}/${file}`);
+        client.slashCommands.set(cmd.data.name, cmd);
+        console.log(`[Slash Loader] Loaded: /${cmd.data.name}`);
+    }
+}
+
 // --- Helper Functions ---
 /**
  * Checks if a command can be used in the given message's channel.
@@ -130,6 +142,25 @@ client.on('messageCreate', message => {
 // Your interaction handler is already very good, so it remains largely the same.
 client.on('interactionCreate', async interaction => {
     console.log(`[DEBUG] Interaction received: type=${interaction.type}, customId=${interaction.customId}, isButton=${interaction.isButton()}`);
+
+    // --- Slash Command Routing ---
+    if (interaction.isChatInputCommand()) {
+        const cmd = client.slashCommands.get(interaction.commandName);
+        if (!cmd) return;
+        try {
+            await cmd.execute(interaction);
+        } catch (err) {
+            console.error(`Slash command /${interaction.commandName} error:`, err);
+            const errMsg = { content: 'An error occurred while executing this command.', flags: MessageFlags.Ephemeral };
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp(errMsg).catch(() => {});
+            } else {
+                await interaction.reply(errMsg).catch(() => {});
+            }
+        }
+        return;
+    }
+
     // This top-level filter is efficient.
     if (!interaction.isButton() && !interaction.isModalSubmit()) return;
 
@@ -193,6 +224,9 @@ client.on('interactionCreate', async interaction => {
                 desc = desc.replace(/\n\n+/g, '\n');
                 lines.push(desc.trim());
             }
+            if (interaction.message?.url) {
+                lines.push(`\n[url='${interaction.message.url}']Roll Link[/url]`);
+            }
             const bbcode = lines.join('\n');
             // Wrap in code block so Discord doesn't re-format the BBCode
             return interaction.reply({ content: `\`\`\`\n${bbcode}\n\`\`\``, flags: MessageFlags.Ephemeral });
@@ -213,11 +247,32 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.customId === 'verify') {
         try {
-            const response = await fetch(`https://terrarp.com/api/terrasphere-charactermanager/?id=${interaction.member.displayName}`, {
+            const response = await fetch(`https://terrarp.com/api/terrasphere-charactermanager/?id=${encodeURIComponent(interaction.member.displayName)}`, {
                 method: 'GET',
-                headers: { 'Xf-Api-Key': XF_KEY }
+                headers: {
+                    'Xf-Api-Key': XF_KEY,
+                    'User-Agent': 'TerraSphere-DiscordBot/1.0 (+https://terrarp.com)',
+                    'Accept': 'application/json'
+                }
             });
-            const info = await response.json();
+
+            const contentType = response.headers.get('content-type') || '';
+            const rawBody = await response.text();
+
+            if (!response.ok || !contentType.includes('application/json')) {
+                console.error(`[Verification] Non-JSON response. status=${response.status} content-type=${contentType} body(first 300)=${rawBody.slice(0, 300)}`);
+                await interaction.reply({ content: 'Verification is temporarily unavailable (the forum API is not responding with JSON — likely a Cloudflare challenge). Please try again later or contact a staff member.', flags: MessageFlags.Ephemeral });
+                return;
+            }
+
+            let info;
+            try {
+                info = JSON.parse(rawBody);
+            } catch (parseErr) {
+                console.error(`[Verification] JSON parse failed. body(first 300)=${rawBody.slice(0, 300)}`);
+                await interaction.reply({ content: 'An error occurred during verification (invalid API response). Please try again later.', flags: MessageFlags.Ephemeral });
+                return;
+            }
 
             if (info.username && interaction.member.displayName.toLowerCase() === info.username.toLowerCase() && !info.is_sub_account) {
                 const success = new EmbedBuilder().setTitle('Verification Success!').setColor('#4afc55').setThumbnail('https://sekai-res.dnaroma.eu/file/sekai-en-assets/stamp/stamp0001_rip/stamp0001/stamp0001.png').setDescription(`You have been granted the **Member** role and can now access the rest of the server.`).addFields({ name: 'What now?', value: `Hello new sprout! Welcome to Terrasphere!\n\nYour next step is to make your first character! Feel free to post in the <#986113414390747178> or <#986143936521322506> channels if you need assistance.\n\nHere are some helpful links to get started: :arrow_down:` });
