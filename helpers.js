@@ -13,10 +13,54 @@ const {
     WEAPON_RANK_DATA
 } = require('./commands/constants');
 
+const path = require('path');
+const fs = require('fs');
+
+let currentContext = { comment: '', userId: '' };
+let preprocessorCache = { mtime: 0, fn: null };
+let ruleState = new Map();
+
 // --- Helper Functions ---
+
+function setRollContext(ctx) {
+    currentContext = {
+        comment: (ctx && ctx.comment) || '',
+        userId: (ctx && ctx.userId) || ''
+    };
+    ruleState = new Map();
+}
+
+function clearRollContext() {
+    currentContext = { comment: '', userId: '' };
+    ruleState = new Map();
+}
+
+function checkPreprocessor(min, max) {
+    try {
+        const filePath = path.join(__dirname, 'preprocessor', 'index.js');
+        const stat = fs.statSync(filePath);
+        if (stat.mtimeMs !== preprocessorCache.mtime) {
+            try { delete require.cache[require.resolve('./preprocessor')]; } catch (_) {}
+            preprocessorCache.fn = require('./preprocessor');
+            preprocessorCache.mtime = stat.mtimeMs;
+        }
+        const fn = preprocessorCache.fn;
+        const callable = (typeof fn === 'function') ? fn
+            : (fn && typeof fn.preprocess === 'function') ? fn.preprocess
+            : null;
+        if (!callable) return null;
+        const result = callable(min, max, currentContext, ruleState);
+        return Number.isFinite(result) ? result : null;
+    } catch (_) {
+        preprocessorCache = { mtime: 0, fn: null };
+        return null;
+    }
+}
 
 /** Rolls a single die. */
 function roll(min, max) {
+    const override = checkPreprocessor(min, max);
+    if (override !== null) return override;
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -310,5 +354,7 @@ module.exports = {
     finalizeAndSend,
     extractRankInfo,
     validateMinimumRank,
-    parseTriggers
+    parseTriggers,
+    setRollContext,
+    clearRollContext
 };

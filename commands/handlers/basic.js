@@ -213,12 +213,12 @@ async function handleSave(message, args, comment) {
 
   if (hasAdvantage) {
     roll2 = roll(1, 100);
-    roll1 = Math.max(roll1, roll2);
     rollDisplay = `2d100kh1 (${roll1}, ${roll2})`;
+    roll1 = Math.max(roll1, roll2);
   } else if (hasDisadvantage) {
     roll2 = roll(1, 100);
-    roll1 = Math.min(roll1, roll2);
     rollDisplay = `2d100kl1 (${roll1}, ${roll2})`;
+    roll1 = Math.min(roll1, roll2);
   }
 
   // Calculate total
@@ -308,12 +308,12 @@ async function handleExpertise(message, args, comment) {
 
   if (hasAdvantage) {
     roll2 = roll(1, 100);
-    roll1 = Math.max(roll1, roll2);
     rollDisplay = `2d100kh1 (${roll1}, ${roll2})`;
+    roll1 = Math.max(roll1, roll2);
   } else if (hasDisadvantage) {
     roll2 = roll(1, 100);
-    roll1 = Math.min(roll1, roll2);
     rollDisplay = `2d100kl1 (${roll1}, ${roll2})`;
+    roll1 = Math.min(roll1, roll2);
   }
 
   // Calculate total
@@ -397,12 +397,12 @@ async function handleMastery(message, args, comment) {
 
   if (hasAdvantage) {
     roll2 = roll(1, 100);
-    roll1 = Math.max(roll1, roll2);
     rollDisplay = `2d100kh1 (${roll1}, ${roll2})`;
+    roll1 = Math.max(roll1, roll2);
   } else if (hasDisadvantage) {
     roll2 = roll(1, 100);
-    roll1 = Math.min(roll1, roll2);
     rollDisplay = `2d100kl1 (${roll1}, ${roll2})`;
+    roll1 = Math.min(roll1, roll2);
   }
 
   // Calculate total

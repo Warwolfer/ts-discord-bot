@@ -1,6 +1,6 @@
 // r.js (Refactored for Discord.js v14) - Main Coordinator
 const { EmbedBuilder } = require('discord.js');
-const { checkPermissions, parseArguments, sendReply } = require('../helpers');
+const { checkPermissions, parseArguments, sendReply, setRollContext, clearRollContext } = require('../helpers');
 const { PREFIX } = require('./constants');
 
 // Import all handler modules
@@ -123,28 +123,33 @@ module.exports = {
             return sendReply(message, helpEmbed, '');
         }
 
-        const commandName = args[0].toLowerCase();
-        const handler = commandHandlers[commandName];
+        setRollContext({ comment, userId: message.author.id });
+        try {
+            const commandName = args[0].toLowerCase();
+            const handler = commandHandlers[commandName];
 
-        if (handler) {
-            try {
-                await handler(message, args, comment);
-            } catch (error) {
-                console.error(`Error executing ${commandName}:`, error);
-                const errorEmbed = new EmbedBuilder()
+            if (handler) {
+                try {
+                    await handler(message, args, comment);
+                } catch (error) {
+                    console.error(`Error executing ${commandName}:`, error);
+                    const errorEmbed = new EmbedBuilder()
+                        .setColor('Red')
+                        .setTitle('Error')
+                        .setDescription('An error occurred while executing this command.');
+                    sendReply(message, errorEmbed, comment);
+                }
+            } else if (commandName.includes('d')) {
+                await genericHandlers.handleGenericRoll(message, args, comment);
+            } else {
+                const unknownEmbed = new EmbedBuilder()
                     .setColor('Red')
-                    .setTitle('Error')
-                    .setDescription('An error occurred while executing this command.');
-                sendReply(message, errorEmbed, comment);
+                    .setTitle('Unknown Command')
+                    .setDescription(`The command \`${commandName}\` was not found. Use \`${PREFIX}r\` for help.`);
+                sendReply(message, unknownEmbed, comment);
             }
-        } else if (commandName.includes('d')) {
-            await genericHandlers.handleGenericRoll(message, args, comment);
-        } else {
-            const unknownEmbed = new EmbedBuilder()
-                .setColor('Red')
-                .setTitle('Unknown Command')
-                .setDescription(`The command \`${commandName}\` was not found. Use \`${PREFIX}r\` for help.`);
-            sendReply(message, unknownEmbed, comment);
+        } finally {
+            clearRollContext();
         }
     }
 };
