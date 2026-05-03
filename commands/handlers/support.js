@@ -108,6 +108,7 @@ async function handleHeal(message, args, comment) {
           ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
           : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
     (ngNote ? `${ngNote}\n` : '') +
+    `\nExplosions occur on ${EXPLODE_ON}+ rolls (${(21 - EXPLODE_ON) * 5}% chance per die).\n` +
     `\nFree Action: Healing Cleanse. Whenever you heal, cleanse 1 curable condition after healing from an ally within range.\n`;
 
   return finalizeAndSend(message, embed, description, comment);
@@ -226,7 +227,7 @@ async function handlePowerHeal(message, args, comment) {
         : (triggers.aoe
           ? `**+${perAlly} HP to 3 allies** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`
           : `**+${perAlly} HP to 1 ally** (${numExplosions} explosion${numExplosions === 1 ? '' : 's!'})\n`))) +
-    `\nExplosions occur on 16+ rolls (25% chance per die).\n` +
+    `\nExplosions occur on ${EXPLODE_ON}+ rolls (${(21 - EXPLODE_ON) * 5}% chance per die).\n` +
     `You are vulnerable.\n` +
     `Free Action: Power Healing Cleanse. After healing, cleanse **${cleanseX}** (${mrRankUp}-rank) curable conditions from between and up to 3 allies within range. Manually add **5** per unused cleanse charge to your heal amount.\n` +
     (ngNote ? `${ngNote}\n` : '');
@@ -697,26 +698,22 @@ async function handleCleanse(message, args, comment) {
 
   // Parse triggers
   const triggers = parseTriggers(comment, {
-    cleanse: /\bcleanse\b/i
+    cure: /\bcure\b/i
   });
-  const cleanseActive = triggers.cleanse;
-  const title = cleanseActive ? 'Cleanse' : 'Cure';
 
-  // Embed
   const embed = new EmbedBuilder()
     .setColor(EMBED_COLORS.support)
     .setAuthor({ name: `${displayName}'s Sub-Action`, iconURL: message.author.displayAvatarURL() })
-    .setTitle(title)
+    .setTitle('Cleanse')
     .setThumbnail('https://terrarp.com/db/action/sba.png');
 
-  // Description
-  let description = '**Passive: Cure.** If you are afflicted with a curable condition, you may remove **1 stack** from yourself each cycle *before* it takes effect.\n';
-
-  if (cleanseActive) {
-    const CLEANSE_VALUES = { d: 2, c: 2, b: 4, a: 4, s: 6 };
-    const cleanseAmount = CLEANSE_VALUES[mr.rank] ?? 0; // Default to 0 if rank is not in the list
-
-    description += `\n**Bonus Action: Cleanse.** Remove **${cleanseAmount} stacks** (MR⋅${mr.rankUpper}) of curable conditions between and up to 3 targets.\n`;
+  let description;
+  if (triggers.cure) {
+    const CURE_VALUES = { d: 2, c: 2, b: 4, a: 4, s: 6 };
+    const cureAmount = CURE_VALUES[mr.rank] ?? 0;
+    description = `**Bonus Action: Cure.** Distribute **${cureAmount} cleanses** (MR⋅${mr.rankUpper}) between up to 3 targets.\n`;
+  } else {
+    description = '**Passive:** If you are afflicted with a curable condition, you may remove **1 stack** from yourself each cycle *before* it takes effect.\n';
   }
 
   return finalizeAndSend(message, embed, description, comment);
