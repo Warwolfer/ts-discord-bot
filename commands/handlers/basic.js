@@ -1,7 +1,7 @@
 // basic.js - Basic and utility action handlers for the Sphera RPG Discord bot
 
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend, parseNGTrigger } = require('../../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend, parseNGTrigger, validateMinimumRank } = require('../../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 // Import resource files
@@ -451,11 +451,84 @@ async function handleMastery(message, args, comment) {
 }
 
 
+async function handleSurge(message, args, comment) {
+  const displayName = getDisplayName(message);
+
+  const rankData = getRankData(args[1], 'mastery');
+  const rank = rankData?.rank?.toLowerCase();
+  const rankUp = rankData?.rank?.toUpperCase() ?? 'N/A';
+
+  if (!validateMinimumRank(message, rank, 'D', 'Surge', comment)) {
+    return;
+  }
+
+  const SURGE_BONUS = { d: 60, c: 80, b: 100, a: 120, s: 140 };
+  const bonus = SURGE_BONUS[rank];
+
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLORS.generic)
+    .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('(FA) Surge')
+    .setThumbnail('https://terrarp.com/db/action/roll.png');
+
+  const description = `**Free Action.** Once per thread, gain **+${bonus}** (AR⋅${rankUp}) to an attack, buff, or heal.\n`;
+
+  return finalizeAndSend(message, embed, description, comment);
+}
+
+
+async function handleImmortal(message, args, comment) {
+  const displayName = getDisplayName(message);
+
+  const rankData = getRankData(args[1], 'mastery');
+  const rank = rankData?.rank?.toLowerCase();
+
+  if (!validateMinimumRank(message, rank, 'D', 'Immortal', comment)) {
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLORS.generic)
+    .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('(FA) Immortal')
+    .setThumbnail('https://terrarp.com/db/action/roll.png');
+
+  const description = `**Free Action.** Once per thread before you take damage, restore to full health. If your health reaches zero after the damage calculation, die as normal.\n`;
+
+  return finalizeAndSend(message, embed, description, comment);
+}
+
+
+async function handleTwice(message, args, comment) {
+  const displayName = getDisplayName(message);
+
+  const rankData = getRankData(args[1], 'mastery');
+  const rank = rankData?.rank?.toLowerCase();
+
+  if (!validateMinimumRank(message, rank, 'D', 'Twice', comment)) {
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLORS.generic)
+    .setAuthor({ name: `${displayName}'s Action`, iconURL: message.author.displayAvatarURL() })
+    .setTitle('Twice')
+    .setThumbnail('https://terrarp.com/db/action/roll.png');
+
+  const description = `Once per thread, you may use a second main action on your play sheet. This action must be from a different role and cannot be a Special Action.\n`;
+
+  return finalizeAndSend(message, embed, description, comment);
+}
+
+
 module.exports = {
     handleAttack,
     handleRush,
     handleRange,
     handleSave,
     handleExpertise,
-    handleMastery
+    handleMastery,
+    handleSurge,
+    handleImmortal,
+    handleTwice
 };

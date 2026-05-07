@@ -21,6 +21,9 @@ const commandHandlers = {
     'save': basicHandlers.handleSave,
     'expertise': basicHandlers.handleExpertise,
     'mastery': basicHandlers.handleMastery,
+    'surge': basicHandlers.handleSurge,
+    'immortal': basicHandlers.handleImmortal,
+    'twice': basicHandlers.handleTwice,
 
     // Offense handlers
     'stable': offenseHandlers.handleStable,
