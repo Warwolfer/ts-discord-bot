@@ -195,6 +195,12 @@ async function sendReply(message, embed, comment) {
             embed.setDescription(currentDescription + comment);
         }
 
+        // Snapshot the roll context and tape BEFORE the await. message.reply is a
+        // network round trip, and a concurrent roll calling setRollContext during
+        // it would otherwise swap this roll's record for the other one's.
+        const ctx = getRollContext();
+        const rolledTape = getCurrentTape() || {};
+
         const sent = await message.reply({
             embeds: [embed],
             components: [buildRollButtons()]
@@ -202,11 +208,10 @@ async function sendReply(message, embed, comment) {
 
         if (message.capturesOnly) return;
 
-        const ctx = getRollContext();
         if (ctx.commandText) {
             store.put(sent.id, {
                 commandText: ctx.commandText,
-                tape: getCurrentTape() || {},
+                tape: rolledTape,
                 userId: ctx.userId,
                 channelId: sent.channelId,
                 // The first roll seeds rootUrl; revisions carry it forward, so

@@ -137,11 +137,6 @@ async function onModalSubmit(interaction) {
         clearRollContext();
     }
 
-    // Fewer dice than recorded is refused too: the count must match exactly.
-    if (cursor && cursor.hasLeftovers()) {
-        return ephemeral(interaction, DICE_MISMATCH);
-    }
-
     const payload = adapter.captured;
     if (!payload || !payload.embeds || !payload.embeds[0]) {
         return ephemeral(interaction, 'Something went wrong while revising this roll.');
@@ -149,9 +144,20 @@ async function onModalSubmit(interaction) {
 
     const embed = EmbedBuilder.from(payload.embeds[0]);
 
-    // A revision that fails validation is shown privately, not posted.
+    // Check for a validation-error embed BEFORE the dice-count check. A
+    // handler that produced an error embed did no legitimate roll, so there
+    // is no dice result to protect either way, and nothing is posted to the
+    // channel under either order. But the error embed carries the actual
+    // reason (e.g. "Invalid Rank"), which is more useful than the generic
+    // dice-mismatch message, so it must win when both would otherwise fire.
+    // Do not reorder this back below the leftovers check.
     if (isErrorEmbed(embed)) {
         return ephemeral(interaction, embed.data.description || 'That revision is not valid.');
+    }
+
+    // Fewer dice than recorded is refused too: the count must match exactly.
+    if (cursor && cursor.hasLeftovers()) {
+        return ephemeral(interaction, DICE_MISMATCH);
     }
 
     const suffix = nextCount === 1 ? '(revised)' : `(revised ${nextCount}x)`;

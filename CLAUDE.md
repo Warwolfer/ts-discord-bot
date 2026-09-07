@@ -208,6 +208,9 @@ Rules, all enforced in `revise/index.js`:
 - Revisions chain. Every revision replays the same original tape, so the dice
   never drift, and the "Revised from" link always points at the first roll.
 - All refusals are ephemeral. Nothing is posted to the channel.
+- A revision whose handler produces a validation-error embed (e.g. an invalid
+  rank) reports that embed's own error text rather than the generic
+  dice-count message, even when the dice count also mismatches.
 
 The store is memory only. A bot restart clears it, and revising an older roll
 then reports "This roll can no longer be revised."
