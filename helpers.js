@@ -13,27 +13,53 @@ const {
     WEAPON_RANK_DATA
 } = require('./commands/constants');
 const { parseCommandString } = require('./commands/parseCommand');
+const tape = require('./revise/tape');
 
 const path = require('path');
 const fs = require('fs');
 
-let currentContext = { comment: '', userId: '' };
+const EMPTY_CONTEXT = { comment: '', userId: '', commandText: '', rootUrl: null, revisionCount: 0 };
+
+let currentContext = { ...EMPTY_CONTEXT };
 let preprocessorCache = { mtime: 0, fn: null };
 let ruleState = new Map();
+let currentTape = null;      // recording target; null means not recording
+let replayCursor = null;     // set only while a revision is replaying
 
 // --- Helper Functions ---
 
 function setRollContext(ctx) {
     currentContext = {
         comment: (ctx && ctx.comment) || '',
-        userId: (ctx && ctx.userId) || ''
+        userId: (ctx && ctx.userId) || '',
+        commandText: (ctx && ctx.commandText) || '',
+        rootUrl: (ctx && ctx.rootUrl) || null,
+        revisionCount: (ctx && ctx.revisionCount) || 0
     };
     ruleState = new Map();
+    currentTape = tape.createTape();
+    replayCursor = null;   // callers that want replay call startReplay AFTER this
 }
 
 function clearRollContext() {
-    currentContext = { comment: '', userId: '' };
+    currentContext = { ...EMPTY_CONTEXT };
     ruleState = new Map();
+    currentTape = null;
+    replayCursor = null;
+}
+
+/** Puts roll() into replay mode for a revision. Call after setRollContext. */
+function startReplay(recordedTape) {
+    replayCursor = tape.startReplay(recordedTape);
+    return replayCursor;
+}
+
+function getRollContext() {
+    return currentContext;
+}
+
+function getCurrentTape() {
+    return currentTape;
 }
 
 function checkPreprocessor(min, max) {
@@ -58,11 +84,19 @@ function checkPreprocessor(min, max) {
     }
 }
 
-/** Rolls a single die. */
+/** Rolls a single die, recording the result so the roll can be revised later. */
 function roll(min, max) {
-    const override = checkPreprocessor(min, max);
-    if (override !== null) return override;
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    // Replay wins outright. Whatever the preprocessor produced originally is
+    // already baked into the tape, so it must not run a second time.
+    if (replayCursor) return replayCursor.take(min, max);
+
+    let value = checkPreprocessor(min, max);
+    if (value === null) {
+        value = Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    if (currentTape) tape.record(currentTape, min, max, value);
+    return value;
 }
 
 /**
@@ -369,5 +403,8 @@ module.exports = {
     validateMinimumRank,
     parseTriggers,
     setRollContext,
-    clearRollContext
+    clearRollContext,
+    startReplay,
+    getRollContext,
+    getCurrentTape
 };
