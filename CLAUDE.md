@@ -17,13 +17,23 @@ ts-discord-bot/
 ├── r.js                    # Main coordinator (142 lines)
 ├── constants.js            # Game constants and lookup arrays (~120 lines)
 ├── helpers.js              # Utility functions (~150 lines)
-└── handlers/
-    ├── generic.js          # Generic rolls and version (~50 lines)
-    ├── basic.js            # Basic & utility actions (~75 lines)
-    ├── offense.js          # Offensive actions (~1,230 lines)
-    ├── defense.js          # Defense actions (~500 lines)
-    ├── support.js          # Healing/buff actions (~910 lines)
-    └── alter.js            # Passive/alter abilities (~2,150 lines)
+├── handlers/
+│   ├── generic.js          # Generic rolls and version (~50 lines)
+│   ├── basic.js            # Basic & utility actions (~75 lines)
+│   ├── offense.js          # Offensive actions (~1,230 lines)
+│   ├── defense.js          # Defense actions (~500 lines)
+│   ├── support.js          # Healing/buff actions (~910 lines)
+│   └── alter.js            # Passive/alter abilities (~2,150 lines)
+├── revise/
+│   ├── index.js            # Revise button + modal glue
+│   ├── tape.js             # Dice tape: record and replay
+│   ├── store.js            # In-memory revisable-roll store (24h TTL)
+│   ├── components.js       # Copy Result + Revise Command button row
+│   └── captureAdapter.js   # Collects a reply payload without sending
+└── commands/
+    ├── commandHandlers.js  # Command name to handler map + resolveHandler
+    ├── parseCommand.js     # parseCommandString, dependency free
+    └── runRoll.js          # Shared roll entry point
 ```
 
 **Module Responsibilities:**
@@ -174,6 +184,40 @@ Verified implementations (✓ = implemented):
 - ✓ `handleHeal` (handlers/support.js) - Heal action with passive tag detection
 - Support actions use the same pattern with `getPassiveModifiers('support', comment)`
 
+### Revise Command System
+
+Every roll embed carries a **Revise Command** button next to **Copy Result**.
+It lets the original roller fix modifiers, comments, and tags without
+rerolling the dice.
+
+How the dice are preserved: `roll()` in `helpers.js` records every result into
+a "dice tape" grouped by die type (`{"1-100": [47], "1-20": [14, 3]}`). The
+tape plus the raw command text is saved in `revise/store.js`, keyed by the
+bot's reply message id, for 24 hours. Clicking Revise opens a modal prefilled
+with that command text. On submit the same handler is re-run against a
+`CaptureAdapter` while `roll()` replays the recorded values, and the result is
+posted as a new message linking back to the original.
+
+Rules, all enforced in `revise/index.js`:
+- Only the original roller may revise.
+- `args[0]` is locked. The action word (and, for generic rolls, the dice
+  notation) cannot change.
+- The dice count must match exactly. More or fewer is refused.
+- Exception: when the original rolled zero dice (a validation error, or a
+  passive with no roll), fresh dice are allowed.
+- Revisions chain. Every revision replays the same original tape, so the dice
+  never drift, and the "Revised from" link always points at the first roll.
+- All refusals are ephemeral. Nothing is posted to the channel.
+
+The store is memory only. A bot restart clears it, and revising an older roll
+then reports "This roll can no longer be revised."
+
+**When adding a new handler:** nothing extra is needed. `sendReply` is the
+single send point for every handler, including those routed through
+`finalizeAndSend`, so the button and the record land automatically.
+
+Tests: `node --test`
+
 ### Available Roll Commands
 
 **Generic Rolling:**
@@ -286,6 +330,8 @@ TEST_CHANNEL_ID=
 5. **Comment Support**: Users can add `# comments` to any roll for context
 6. **Passive Tag Detection**: Universal system detects passive ability tags (Lethal, Blessed, Combat Focus) for display
 7. **Display-Only Tags**: Tags show what passive abilities are active without auto-calculating bonuses
+8. **Revisable Rolls**: Dice results are recorded and replayed so inputs can be
+   corrected after the fact without rerolling
 
 ### Common Patterns
 

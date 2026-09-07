@@ -167,6 +167,20 @@ client.on('interactionCreate', async interaction => {
 
     // --- MODAL SUBMIT LOGIC ---
     if (interaction.isModalSubmit()) {
+        if (interaction.customId.startsWith('revise_modal:')) {
+            try {
+                await revise.onModalSubmit(interaction);
+            } catch (e) {
+                console.error('[revise_modal] Error:', e);
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: 'Failed to revise this roll.',
+                        flags: MessageFlags.Ephemeral
+                    }).catch(() => {});
+                }
+            }
+            return;
+        }
         if (interaction.customId === "lfgpost") {
             try {
                 const threadlink = interaction.fields.getTextInputValue('threadlink');
