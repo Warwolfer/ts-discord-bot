@@ -65,7 +65,7 @@ function advantageMode(args) {
  */
 function lockedArgs(args) {
     return args
-        .filter(a => !/^-?\d+$/.test(a))
+        .filter(a => !/^[+-]?\d+$/.test(a))
         .map(a => a.toLowerCase());
 }
 
