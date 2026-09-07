@@ -16,4 +16,14 @@ function buildRollButtons() {
     );
 }
 
-module.exports = { buildRollButtons };
+/** For messages that are not rolls and can never be revised. */
+function buildCopyOnlyButtons() {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('copy_result')
+            .setLabel('Copy Result')
+            .setStyle(ButtonStyle.Secondary)
+    );
+}
+
+module.exports = { buildRollButtons, buildCopyOnlyButtons };

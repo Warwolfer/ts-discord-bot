@@ -23,7 +23,7 @@ module.exports = {
                     { name: 'Basic Action', value: `\`${PREFIX}r attack MR WR [mods] # comment\`` },
                     { name: 'Generic Roll', value: `\`${PREFIX}r XdY [mods] # comment\`` }
                 );
-            return sendReply(message, helpEmbed, '');
+            return sendReply(message, helpEmbed, '', { skipRevise: true });
         }
 
         const commandName = args[0].toLowerCase();
@@ -34,7 +34,7 @@ module.exports = {
                 .setColor('Red')
                 .setTitle('Unknown Command')
                 .setDescription(`The command \`${commandName}\` was not found. Use \`${PREFIX}r\` for help.`);
-            return sendReply(message, unknownEmbed, comment);
+            return sendReply(message, unknownEmbed, comment, { skipRevise: true });
         }
 
         await runRoll({ message, args, comment, commandText, handler });

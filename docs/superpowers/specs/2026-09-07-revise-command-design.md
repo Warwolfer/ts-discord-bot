@@ -41,6 +41,7 @@ button on every roll embed.
 | Retention | In memory, 24 hour expiry; a bot restart clears it |
 | Command word may change | No. `args[0]` is locked |
 | Dice count may change | No. Must match exactly, up or down |
+| Advantage/disadvantage may change | No. `args[1]`'s adv/dis mode is locked. User ruling: replaying `adv`<->`dis` keeps the same dice count so no other refusal catches it, but the player would be choosing the better of two numbers already on screen, which is exactly the fishing this feature must prevent. |
 | Original rolled no dice | Fresh dice allowed; there is no result to protect |
 | Disk persistence | Out of scope |
 | Staff override | Out of scope |
@@ -88,7 +89,11 @@ Record shape:
 ```js
 {
   commandText: "attack a s 10 # Lethal",  // raw, exactly as the modal shows
-  tape: { "1-100": [47] },                // always the ORIGINAL tape
+  tape: { "1-100": [47] },                // the tape THIS record's dice came
+                                           // from: the original roll's tape
+                                           // when it had dice, or this
+                                           // revision's own freshly-rolled
+                                           // tape when the seed had none
   userId: "123...",                       // original roller
   channelId: "456...",
   rootUrl: "https://discord.com/...",     // the FIRST roll in the chain
@@ -234,8 +239,18 @@ submit "attack a s 10 5 # Lethal Combat Focus"
 ```
 
 `rootUrl` is copied forward unchanged, so the tenth revision still links to
-the very first roll. `tape` is copied forward unchanged, so the dice never
-drift no matter how many times a roll is revised.
+the very first roll.
+
+`tape` is copied forward unchanged only when the seed had dice — that is
+what keeps the dice from drifting across a chain of revisions. When the seed
+had no dice (a validation error, or a passive with no roll), this revision's
+own freshly-rolled tape is stored as the new seed instead. Storing the
+original's empty tape there would let every future revision roll fresh dice
+again too, turning the "fix a typo'd rank" exception into an unlimited
+reroll loop. This was a spec defect: the two rules ("tape is copied forward
+unchanged" and "an empty seed allows fresh dice") are each correct alone but
+unsound together, and shipped that way until the whole-branch review caught
+the chain.
 
 ### CaptureAdapter
 
@@ -255,6 +270,7 @@ It exposes `author` (the original roller, so `message.author.id` and
 | Record missing or expired | This roll can no longer be revised. |
 | Clicker is not the roller | This is not your roll. |
 | `args[0]` changed | The action must stay the same (`attack`). Make a fresh roll instead. |
+| `args[1]`'s advantage/disadvantage mode changed | Advantage/disadvantage must stay the same. Make a fresh roll instead. |
 | Dice count differs | This change needs a different number of dice than the original roll. Make a fresh roll instead. |
 | Revision yields an error embed | (the handler's own error text) |
 

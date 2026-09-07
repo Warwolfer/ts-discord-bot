@@ -204,9 +204,15 @@ Rules, all enforced in `revise/index.js`:
   notation) cannot change.
 - The dice count must match exactly. More or fewer is refused.
 - Exception: when the original rolled zero dice (a validation error, or a
-  passive with no roll), fresh dice are allowed.
-- Revisions chain. Every revision replays the same original tape, so the dice
-  never drift, and the "Revised from" link always points at the first roll.
+  passive with no roll), fresh dice are allowed. That revision's own
+  freshly-rolled dice are then locked in as the seed for the next revision,
+  so the empty-tape exception can't be chained into unlimited rerolls.
+- Advantage/disadvantage is locked. `args[1]`'s adv/dis mode may not change,
+  because the dice count stays the same either way and the player would be
+  picking the better of two numbers already on screen.
+- Revisions chain. When the seed had dice, every revision replays the same
+  original tape, so the dice never drift, and the "Revised from" link always
+  points at the first roll.
 - All refusals are ephemeral. Nothing is posted to the channel.
 - A revision whose handler produces a validation-error embed (e.g. an invalid
   rank) reports that embed's own error text rather than the generic

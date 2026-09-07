@@ -16,7 +16,7 @@ const tape = require('./tape');
 const { CaptureAdapter } = require('./captureAdapter');
 const { parseCommandString } = require('../commands/parseCommand');
 const { resolveHandler } = require('../commands/commandHandlers');
-const { setRollContext, clearRollContext, startReplay } = require('../helpers');
+const { setRollContext, clearRollContext, startReplay, getCurrentTape } = require('../helpers');
 const { EMBED_COLORS } = require('../commands/constants');
 
 const MODAL_PREFIX = 'revise_modal:';
@@ -36,6 +36,18 @@ const ERROR_COLOR = typeof resolveColor === 'function'
 /** Replies with a note only the clicker can see. */
 function ephemeral(interaction, content) {
     return interaction.reply({ content, flags: MessageFlags.Ephemeral });
+}
+
+/**
+ * Normalizes args[1] to an advantage mode. Revisions may not change it: the
+ * dice count stays the same, so no other refusal fires, but the player would
+ * be picking the better of two numbers already on screen.
+ */
+function advantageMode(args) {
+    const arg = String(args[1] ?? '').toLowerCase();
+    if (arg === 'adv' || arg === 'advantage') return 'adv';
+    if (arg === 'dis' || arg === 'disadvantage') return 'dis';
+    return 'none';
 }
 
 /** Handles a click on the Revise Command button. */
@@ -98,6 +110,13 @@ async function onModalSubmit(interaction) {
         );
     }
 
+    if (advantageMode(args) !== advantageMode(oldArgs)) {
+        return ephemeral(
+            interaction,
+            'Advantage/disadvantage must stay the same. Make a fresh roll instead.'
+        );
+    }
+
     const handler = resolveHandler(newName);
     if (!handler) {
         return ephemeral(interaction, `Unknown action \`${newName}\`.`);
@@ -115,6 +134,7 @@ async function onModalSubmit(interaction) {
     const nextCount = record.revisionCount + 1;
 
     let cursor = null;
+    let producedTape = null;
     try {
         // setRollContext clears the replay cursor, so it must come first.
         setRollContext({
@@ -127,6 +147,11 @@ async function onModalSubmit(interaction) {
         if (originalHadDice) cursor = startReplay(record.tape);
 
         await handler(adapter, args, comment);
+
+        // Capture before the finally clears it. When the seed had no dice this
+        // revision rolled fresh ones, and they must be locked in for the NEXT
+        // revision, or the chain becomes an unlimited reroll.
+        producedTape = getCurrentTape();
     } catch (err) {
         if (err instanceof tape.NeedsFreshDice) {
             return ephemeral(interaction, DICE_MISMATCH);
@@ -175,9 +200,13 @@ async function onModalSubmit(interaction) {
 
     store.put(sent.id, {
         commandText: newText,
-        // The ORIGINAL tape carries forward, so the dice never drift no matter
-        // how many times a roll is revised.
-        tape: record.tape,
+        // When the seed had dice, the ORIGINAL tape carries forward unchanged
+        // so the dice never drift. When the seed had none, this revision's own
+        // freshly-rolled tape becomes the new seed, or the next revision would
+        // roll fresh again too, letting the chain fish for a better result.
+        // A replay leaves currentTape empty, because roll() returns from the
+        // cursor before recording, so producedTape only matters in this branch.
+        tape: originalHadDice ? record.tape : (producedTape || {}),
         userId: record.userId,
         channelId: sent.channelId,
         rootUrl: record.rootUrl,

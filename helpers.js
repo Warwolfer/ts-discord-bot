@@ -15,7 +15,7 @@ const {
 const { parseCommandString } = require('./commands/parseCommand');
 const tape = require('./revise/tape');
 const store = require('./revise/store');
-const { buildRollButtons } = require('./revise/components');
+const { buildRollButtons, buildCopyOnlyButtons } = require('./revise/components');
 
 const path = require('path');
 const fs = require('fs');
@@ -25,6 +25,11 @@ const EMPTY_CONTEXT = { comment: '', userId: '', commandText: '', rootUrl: null,
 let currentContext = { ...EMPTY_CONTEXT };
 let preprocessorCache = { mtime: 0, fn: null };
 let ruleState = new Map();
+// currentTape and replayCursor are module-level, so no command handler may
+// `await` between its roll() calls. An await mid-roll would let a concurrent
+// roll interleave with this one and corrupt both. Every handler today does
+// all its rolls in one synchronous burst and only awaits at its final
+// sendReply, which is what keeps this safe.
 let currentTape = null;      // recording target; null means not recording
 let replayCursor = null;     // set only while a revision is replaying
 
@@ -86,7 +91,11 @@ function checkPreprocessor(min, max) {
     }
 }
 
-/** Rolls a single die, recording the result so the roll can be revised later. */
+/**
+ * Rolls a single die, recording the result so the roll can be revised later.
+ * Must not be called with an `await` between it and any other roll() in the
+ * same handler run — see the currentTape/replayCursor comment above.
+ */
 function roll(min, max) {
     // Replay wins outright. Whatever the preprocessor produced originally is
     // already baked into the tape, so it must not run a second time.
@@ -187,8 +196,15 @@ function checkPermissions(message) {
  * @param {import('discord.js').Message} message
  * @param {import('discord.js').EmbedBuilder} embed
  * @param {string} comment
+ * @param {{skipRevise?: boolean}} [options] - Pass `skipRevise: true` for a
+ *   reply that is not a roll (the `?r` help embed, the unknown-command
+ *   embed) so it gets a Copy-only button row and is never stored for revise.
+ *   Those two are not rolled inside a roll context of their own, so storing
+ *   them under the ambient context risks capturing whatever other user's
+ *   roll happens to be in flight. Omit for every roll handler; the default
+ *   preserves existing behaviour.
  */
-async function sendReply(message, embed, comment) {
+async function sendReply(message, embed, comment, options = {}) {
     try {
         if (comment) {
             const currentDescription = embed.data.description || "";
@@ -203,12 +219,12 @@ async function sendReply(message, embed, comment) {
 
         const sent = await message.reply({
             embeds: [embed],
-            components: [buildRollButtons()]
+            components: [options.skipRevise ? buildCopyOnlyButtons() : buildRollButtons()]
         });
 
         if (message.capturesOnly) return;
 
-        if (ctx.commandText) {
+        if (!options.skipRevise && ctx.commandText) {
             store.put(sent.id, {
                 commandText: ctx.commandText,
                 tape: rolledTape,
@@ -230,6 +246,9 @@ async function sendReply(message, embed, comment) {
 
     } catch (err) {
         console.error("Failed to send reply or schedule deletion:", err);
+        // A revision must never post to the channel; revise/index.js surfaces
+        // the failure to the user ephemerally instead.
+        if (message.capturesOnly) return;
         message.channel.send("Sorry, I encountered an error trying to reply.").catch();
     }
 }
