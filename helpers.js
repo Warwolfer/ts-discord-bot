@@ -14,6 +14,8 @@ const {
 } = require('./commands/constants');
 const { parseCommandString } = require('./commands/parseCommand');
 const tape = require('./revise/tape');
+const store = require('./revise/store');
+const { buildRollButtons } = require('./revise/components');
 
 const path = require('path');
 const fs = require('fs');
@@ -174,41 +176,54 @@ function checkPermissions(message) {
 }
 
 /**
- * Sends a formatted reply and DELETES ONLY THE USER'S ORIGINAL COMMAND after a delay.
- * The bot's reply will remain in the channel.
- * @param {import('discord.js').Message} message - The original message object from discord.js.
- * @param {import('discord.js').EmbedBuilder} embed - The embed to be sent.
- * @param {string} comment - The user's comment to append to the description.
+ * Sends a formatted reply and deletes only the user's original command after
+ * a delay. The bot's reply stays in the channel.
+ *
+ * Also saves a revise record keyed by the sent message id, so the Revise
+ * Command button can replay the exact dice later. When the target is a
+ * CaptureAdapter (a revision in progress) nothing is sent or stored: there is
+ * no message id yet, and revise/index.js owns that step.
+ *
+ * @param {import('discord.js').Message} message
+ * @param {import('discord.js').EmbedBuilder} embed
+ * @param {string} comment
  */
 async function sendReply(message, embed, comment) {
     try {
-        // Add the user's comment to the embed, if it exists.
         if (comment) {
             const currentDescription = embed.data.description || "";
             embed.setDescription(currentDescription + comment);
         }
 
-        // Build copy button row
-        const copyRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('copy_result')
-                .setLabel('Copy Result')
-                .setStyle(ButtonStyle.Secondary)
-        );
+        const sent = await message.reply({
+            embeds: [embed],
+            components: [buildRollButtons()]
+        });
 
-        // Send the reply. The bot's message will be permanent.
-        await message.reply({ embeds: [embed], components: [copyRow] });
+        if (message.capturesOnly) return;
 
-        // After replying, set a timer to delete ONLY the user's original command message.
+        const ctx = getRollContext();
+        if (ctx.commandText) {
+            store.put(sent.id, {
+                commandText: ctx.commandText,
+                tape: getCurrentTape() || {},
+                userId: ctx.userId,
+                channelId: sent.channelId,
+                // The first roll seeds rootUrl; revisions carry it forward, so
+                // the tenth revision still links to the very first roll.
+                rootUrl: ctx.rootUrl || sent.url,
+                revisionCount: ctx.revisionCount || 0,
+                createdAt: Date.now()
+            });
+        }
+
         setTimeout(() => {
             message.delete().catch(() => {
-                // This catch block prevents a crash if the message is already gone
-                // (e.g., deleted by a moderator). We can leave it empty.
+                // Already gone (deleted by a moderator, say). Nothing to do.
             });
-        }, REPLY_DELETE_TIMEOUT); // Using the timeout constant from the top of the file
+        }, REPLY_DELETE_TIMEOUT);
 
     } catch (err) {
-        // This handles errors related to sending the reply itself.
         console.error("Failed to send reply or schedule deletion:", err);
         message.channel.send("Sorry, I encountered an error trying to reply.").catch();
     }
