@@ -12,7 +12,11 @@ class InteractionAdapter {
     }
 
     async reply(payload) {
-        return this._interaction.reply(payload);
+        await this._interaction.reply(payload);
+        // interaction.reply() resolves to an InteractionResponse whose id is the
+        // interaction id, not the message id. sendReply keys the revise store by
+        // the message id, so fetch the real Message here.
+        return this._interaction.fetchReply();
     }
 
     // No user message to delete for slash invocations.
