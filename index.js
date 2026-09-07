@@ -2,6 +2,7 @@ const { Client, Collection, GatewayIntentBits, ChannelType, EmbedBuilder, Action
 const fs = require('node:fs');
 const http = require('node:http');
 require('dotenv').config();
+const revise = require('./revise');
 
 // --- Environment Variable Setup ---
 // Destructure variables from .env for clarity and to catch missing ones early.
@@ -200,6 +201,18 @@ client.on('interactionCreate', async interaction => {
     }
 
     // --- BUTTON INTERACTION LOGIC ---
+    if (interaction.customId === 'revise_command') {
+        try {
+            return await revise.onButton(interaction);
+        } catch (e) {
+            console.error('[revise_command] Error:', e);
+            return interaction.reply({
+                content: 'Failed to open the revise form.',
+                flags: MessageFlags.Ephemeral
+            }).catch(() => {});
+        }
+    }
+
     if (interaction.customId === 'copy_result') {
         try {
             const embed = interaction.message.embeds[0];
