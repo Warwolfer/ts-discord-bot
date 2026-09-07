@@ -14,7 +14,10 @@
 
 - **No new dependencies.** This repo has no `package.json` and no `node_modules`. Everything must run on Node 22 built-ins plus the already-present `discord.js` v14 and `dotenv`.
 - **CommonJS only.** `require` / `module.exports`. No ESM, no TypeScript.
-- **Test command:** `node --test revise commands`
+- **Test command:** `node --test` run from the repo root, with NO path arguments.
+  Node 22.14 on Windows treats a directory argument as a module entry point and
+  crashes with MODULE_NOT_FOUND, so `node --test revise commands` does not work.
+  Bare `node --test` recursively finds every `*.test.js` and skips `node_modules`.
 - **Only dependency-free modules get unit tests.** `helpers.js` and anything importing `discord.js` or `dotenv` cannot be loaded in this checkout, so logic that must be tested belongs in a dependency-free module. This is why `parseCommandString` moves to its own file in Task 3.
 - **Dice count must match exactly.** A revision that needs more or fewer dice than the original is refused. The only exception is an original that rolled zero dice.
 - **`args[0]` is locked.** A revision may not change the action word.
@@ -160,7 +163,7 @@ test('isEmpty distinguishes no dice from some dice', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `node --test revise`
+Run: `node --test`
 Expected: FAIL, `Cannot find module './tape'`
 
 - [ ] **Step 3: Write the implementation**
@@ -234,7 +237,7 @@ module.exports = { NeedsFreshDice, createTape, record, isEmpty, startReplay };
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `node --test revise`
+Run: `node --test`
 Expected: PASS, 7 tests
 
 - [ ] **Step 5: Commit**
@@ -354,7 +357,7 @@ test('exceeding the size cap evicts the oldest record first', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `node --test revise`
+Run: `node --test`
 Expected: FAIL, `Cannot find module './store'`
 
 - [ ] **Step 3: Write the implementation**
@@ -420,7 +423,7 @@ module.exports = { put, get, sweep, _reset, TTL_MS, MAX_RECORDS };
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `node --test revise`
+Run: `node --test`
 Expected: PASS, 13 tests total across both files, and the command exits rather than hanging
 
 - [ ] **Step 5: Commit**
@@ -500,7 +503,7 @@ test('keeps generic dice notation as args[0]', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `node --test commands`
+Run: `node --test`
 Expected: FAIL, `Cannot find module './parseCommand'`
 
 - [ ] **Step 3: Write the implementation**
@@ -538,7 +541,7 @@ module.exports = { parseCommandString };
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `node --test commands`
+Run: `node --test`
 Expected: PASS, 7 tests
 
 - [ ] **Step 5: Rewrite `parseArguments` in `helpers.js` to delegate**
@@ -716,7 +719,7 @@ Add `startReplay`, `getRollContext`, and `getCurrentTape` to the `module.exports
 
 - [ ] **Step 6: Verify nothing broke**
 
-Run: `node --test revise commands`
+Run: `node --test`
 Expected: PASS, 20 tests. These do not exercise `helpers.js`, but they must still pass, which confirms `revise/tape.js` was not disturbed.
 
 Then check the file parses:
@@ -810,7 +813,7 @@ test('delete is a harmless no-op', async () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `node --test revise`
+Run: `node --test`
 Expected: FAIL, `Cannot find module './captureAdapter'`
 
 - [ ] **Step 3: Write the implementation**
@@ -849,7 +852,7 @@ module.exports = { CaptureAdapter };
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `node --test revise`
+Run: `node --test`
 Expected: PASS, 18 tests in `revise/`
 
 - [ ] **Step 5: Fix `InteractionAdapter.reply` to return the real message**
@@ -1000,7 +1003,7 @@ async function sendReply(message, embed, comment) {
 Run: `node --check revise/components.js && node --check helpers.js`
 Expected: no output, exit 0
 
-Run: `node --test revise commands`
+Run: `node --test`
 Expected: PASS, 25 tests
 
 - [ ] **Step 5: Commit**
@@ -1279,7 +1282,7 @@ node --check commands/slash/save.js
 
 Expected: no output, exit 0
 
-Run: `node --test revise commands`
+Run: `node --test`
 Expected: PASS, 25 tests
 
 - [ ] **Step 7: Commit**
@@ -1614,7 +1617,7 @@ The surrounding block already ends with `return;`, so the `lfgpost` branch is un
 Run: `node --check revise/index.js && node --check index.js`
 Expected: no output, exit 0
 
-Run: `node --test revise commands`
+Run: `node --test`
 Expected: PASS, 25 tests
 
 - [ ] **Step 5: Manual test in the test channel**
@@ -1693,7 +1696,7 @@ then reports "This roll can no longer be revised."
 single send point for every handler, including those routed through
 `finalizeAndSend`, so the button and the record land automatically.
 
-Tests: `node --test revise commands`
+Tests: `node --test`
 ```
 
 Also update the **Key Design Decisions** list with an eighth entry:
@@ -1721,7 +1724,7 @@ cannot be used to fish for a better roll."
 After Task 9, confirm the whole feature:
 
 ```bash
-node --test revise commands
+node --test
 ```
 
 Expected: 25 tests passing, process exits cleanly.
