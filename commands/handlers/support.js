@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, extractRankInfo, validateMinimumRank, parseTriggers, parseNGTrigger, finalizeAndSend } = require('../../helpers');
+const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, extractRankInfo, validateMinimumRank, parseTriggers, parseNGTrigger, finalizeAndSend, isReplaying } = require('../../helpers');
 const { EMBED_COLORS } = require('../constants');
 
 
@@ -279,7 +279,10 @@ async function handleBuff(message, args, comment) {
   // --- Roll: 1d100 (with test overrides) ---
   let r = roll(1, 100);
   let testNote = '';
-  if (typeof comment === 'string') {
+  // isReplaying(): a revision replays dice the player has already read off the
+  // screen. These overrides run AFTER roll(), so the tape and the dice count
+  // stay identical and no revise refusal fires — they must not run at all.
+  if (!isReplaying() && typeof comment === 'string') {
     // Named tests
     const named = comment.match(/\btest:(crit|100|fail|1)\b/i);
     if (named) {
@@ -287,8 +290,9 @@ async function handleBuff(message, args, comment) {
       if (k === 'crit' || k === '100') { r = 100; testNote += '\n[TEST] Forced roll: 100'; }
       else if (k === 'fail' || k === '1') { r = 1; testNote += '\n[TEST] Forced roll: 1'; }
     }
-    // Direct numeric
-    const direct = comment.match(/\b(?:r|d100)\s*=\s*(\d{1,3})\b/i);
+    // Direct numeric: test:r=100 / test:d100=100. The "test:" prefix is
+    // mandatory so no plain-English comment can force a roll.
+    const direct = comment.match(/\btest[:=]\s*(?:r|d100)\s*=\s*(\d{1,3})\b/i);
     if (direct) {
       r = Math.max(1, Math.min(100, parseInt(direct[1], 10)));
       testNote += `[TEST] Forced roll via r/d100=: ${r}\n`;
@@ -427,9 +431,11 @@ async function handlePowerBuff(message, args, comment) {
   let r2 = roll(1, 100);
   let testNote = '';
 
-  if (typeof comment === 'string') {
+  // isReplaying(): see handleBuff. The "test:" separator is mandatory too, so
+  // a comment like "just a test crit" cannot force a scenario.
+  if (!isReplaying() && typeof comment === 'string') {
     // Named scenarios
-    const named = comment.match(/\btest[:=]?\s*(star\s*breaker|world\s*ender|schrodinger|crit|100|fail|1)\b/i);
+    const named = comment.match(/\btest[:=]\s*(star\s*breaker|world\s*ender|schrodinger|crit|100|fail|1)\b/i);
     if (named) {
       const key = named[1].toLowerCase().replace(/\s+/g, '');
       switch (key) {
@@ -442,16 +448,16 @@ async function handlePowerBuff(message, args, comment) {
         case '1':           r1 = 1;   r2 = 42; testNote += '\n[TEST] Forced: Crit Fail (1,x)'; break;
       }
     }
-    // Direct "r=100,86"
-    const both = comment.match(/\br\s*=\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
+    // Direct "test:r=100,86" — the "test:" prefix is mandatory.
+    const both = comment.match(/\btest[:=]\s*r\s*=\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
     if (both) {
       r1 = Math.max(1, Math.min(100, parseInt(both[1], 10)));
       r2 = Math.max(1, Math.min(100, parseInt(both[2], 10)));
       testNote += `[TEST] Forced rolls: ${r1}, ${r2}\n`;
     } else {
-      // Or "r1=.." and/or "r2=.."
-      const m1 = comment.match(/\br1\s*=\s*(\d{1,3})\b/i);
-      const m2 = comment.match(/\br2\s*=\s*(\d{1,3})\b/i);
+      // Or "test:r1=.." and/or "test:r2=.." (each needs its own prefix)
+      const m1 = comment.match(/\btest[:=]\s*r1\s*=\s*(\d{1,3})\b/i);
+      const m2 = comment.match(/\btest[:=]\s*r2\s*=\s*(\d{1,3})\b/i);
       if (m1) { r1 = Math.max(1, Math.min(100, parseInt(m1[1], 10))); testNote += `[TEST] Forced r1: ${r1}\n`; }
       if (m2) { r2 = Math.max(1, Math.min(100, parseInt(m2[1], 10))); testNote += `[TEST] Forced r2: ${r2}\n`; }
     }

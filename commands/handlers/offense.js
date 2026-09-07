@@ -11,7 +11,8 @@ const {
     parseNGTrigger,
     finalizeAndSend,
     validateMinimumRank,
-    parseTriggers
+    parseTriggers,
+    isReplaying
 } = require('../../helpers');
 const { RANK_DATA, EMBED_COLORS } = require('../constants');
 
@@ -322,9 +323,13 @@ async function handleCritical(message, args, comment) {
   let r2 = roll(1, 100);
   let testNote = '';
 
-  if (typeof comment === 'string') {
-    // Direct override: r=100,86  (spaces allowed)
-    const direct = comment.match(/\br\s*=\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
+  // isReplaying(): a revision replays dice the player has already read off the
+  // screen. These overrides run AFTER roll(), so the tape and the dice count
+  // stay identical and no revise refusal fires — they must not run at all.
+  if (!isReplaying() && typeof comment === 'string') {
+    // Direct override: test:r=100,86  (spaces allowed). The "test:" prefix is
+    // mandatory so no plain-English comment can force a roll.
+    const direct = comment.match(/\btest[:=]\s*r\s*=\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
     if (direct) {
       r1 = Math.max(1, Math.min(100, parseInt(direct[1], 10)));
       r2 = Math.max(1, Math.min(100, parseInt(direct[2], 10)));
@@ -444,7 +449,8 @@ async function handleCritical(message, args, comment) {
 
 // Action: Sharp Attack — 2d100 (keep highest). "Risky" converts mods → extra d100s (can crit). NG1 supported.
 // TEST TRIGGERS (via comment): "test:crit", "test:crit fail", "test:star breaker", "test:world ender", "test:schrodinger crit"
-// Also accepts without "test:" (e.g., "crit fail") — but prefer "test:..." to avoid accidental matches.
+// The "test:" prefix is REQUIRED. A bare keyword (e.g. "crit fail") is ignored, so a plain-English
+// comment cannot force a scenario. Overrides are also skipped entirely while a revision replays dice.
 // Crits for this action: ONLY Nat100-based sets (no 85+ crit).
 // Multipliers/events: Crit (≥1×100) ×2, Schrodinger (≥1×100 & ≥1×1) ×2 + Nat1 event,
 // Star Breaker (≥2×100) ×7, World Ender (≥2×1 & no 100) event, Crit Fail (≥1×1 & no 100 & not World Ender) event.
@@ -481,9 +487,13 @@ async function handleSharp(message, args, comment) {
   const ngNote = ng.note;
 
   // --- TEST SCENARIOS ---
+  // isReplaying(): see handleCritical. The overrides run after roll(), so a
+  // revision could force a 100 onto dice already on screen.
+  // The "test:" prefix is mandatory: without it a comment like
+  // "going for a crit" forced a 100 on a real roll.
   let testScenario = null;
-  if (typeof comment === 'string') {
-    const t = comment.match(/\b(?:test[:=]\s*)?(star\s*breaker|world\s*ender|schrodinger\s*crit|crit\s*fail|crit)\b/i);
+  if (!isReplaying() && typeof comment === 'string') {
+    const t = comment.match(/\btest[:=]\s*(star\s*breaker|world\s*ender|schrodinger\s*crit|crit\s*fail|crit)\b/i);
     if (t) {
       const k = t[1].toLowerCase().replace(/\s+/g, '');
       if (k === 'starbreaker') testScenario = 'starbreaker';
@@ -647,7 +657,7 @@ async function handleSharp(message, args, comment) {
 // Action: Reckless Attack — MR E/D/C: 1d200 + 1d100; MR B/A: 1d200 + 1d100 + 1d100; MR S: 1d200 + 1d100 + 2d100kh1 (dropped die does NOT crit).
 // TYPE: Special Action
 // TEST TRIGGERS (via comment): "test:crit", "test:crit fail", "test:star breaker", "test:world ender", "test:schrodinger crit"
-// NEW d200 OVERRIDE (via comment): "test:d200=200", "d200=200", "r200=200", or with space/colon "test d200 1", "d200: 150" (clamped to 1–200).
+// NEW d200 OVERRIDE (via comment): "test:d200=200" or "test:r200=200" (the "test:" prefix is REQUIRED; clamped to 1–200).
 // Crits for this action: ONLY Nat100-based sets (no 85+ crit).
 // Multipliers/events (pre-defined): Crit (≥1×100) ×2, Schrodinger (≥1×100 & ≥1×1) ×2 + Nat1 event,
 // Star Breaker (≥2×100) ×7, World Ender (≥2×1 & no 100) event, Crit Fail (≥1×1 & no 100 & not World Ender) event.
@@ -694,9 +704,11 @@ async function handleReckless(message, args, comment) {
   const baseD100s = (mrRank === 'b' || mrRank === 'a') ? 2 : 1;
 
   // --- TEST SCENARIOS ---
+  // isReplaying(): see handleCritical. The "test:" prefix is mandatory so a
+  // comment like "going for a crit" cannot force a scenario.
   let testScenario = null;
-  if (typeof comment === 'string') {
-    const t = comment.match(/\b(?:test[:=]\s*)?(star\s*breaker|world\s*ender|schrodinger\s*crit|crit\s*fail|crit)\b/i);
+  if (!isReplaying() && typeof comment === 'string') {
+    const t = comment.match(/\btest[:=]\s*(star\s*breaker|world\s*ender|schrodinger\s*crit|crit\s*fail|crit)\b/i);
     if (t) {
       const k = t[1].toLowerCase().replace(/\s+/g, '');
       if (k === 'starbreaker') testScenario = 'starbreaker';
@@ -770,8 +782,9 @@ async function handleReckless(message, args, comment) {
   }
 
   // NEW: explicit d200 override (after scenario so this takes precedence)
-  if (typeof comment === 'string') {
-    const m200 = comment.match(/\b(?:test[:=]\s*)?(?:d200|r200)\s*(?:[:=]|\s)\s*(\d{1,3})\b/i);
+  // isReplaying(): see handleCritical. The "test:" prefix is mandatory.
+  if (!isReplaying() && typeof comment === 'string') {
+    const m200 = comment.match(/\btest[:=]\s*(?:d200|r200)\s*(?:[:=]|\s)\s*(\d{1,3})\b/i);
     if (m200) {
       const v = Math.max(1, Math.min(200, parseInt(m200[1], 10)));
       r200 = v;

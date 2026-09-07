@@ -69,6 +69,18 @@ function getCurrentTape() {
     return currentTape;
 }
 
+/**
+ * True while a revision is replaying recorded dice.
+ *
+ * Handlers use this to switch off their `[TEST]` comment overrides. Those
+ * blocks clobber roll results AFTER the dice are drawn, so the tape and the
+ * dice count are untouched and no revise refusal fires — a revision could
+ * otherwise force a 100 onto dice the player has already seen.
+ */
+function isReplaying() {
+    return replayCursor !== null;
+}
+
 function checkPreprocessor(min, max) {
     try {
         const filePath = path.join(__dirname, 'preprocessor', 'index.js');
@@ -445,5 +457,6 @@ module.exports = {
     clearRollContext,
     startReplay,
     getRollContext,
-    getCurrentTape
+    getCurrentTape,
+    isReplaying
 };
