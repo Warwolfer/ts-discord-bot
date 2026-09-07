@@ -12,6 +12,7 @@ const {
     RANK_DATA,
     WEAPON_RANK_DATA
 } = require('./commands/constants');
+const { parseCommandString } = require('./commands/parseCommand');
 
 const path = require('path');
 const fs = require('fs');
@@ -64,22 +65,25 @@ function roll(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/** Parses arguments, removing comments and the primary command itself. */
+/**
+ * Parses a full prefixed message: strips the prefix and the "r"/"roll" token,
+ * then splits the rest into args and a comment.
+ * @returns {{args: string[], comment: string, commandText: string}}
+ *   commandText is the bare command, e.g. "attack a s 10 # Lethal".
+ *   It is what the revise modal shows and what parseCommandString consumes.
+ */
 function parseArguments(content) {
     const mobileFix = content.replace(/\u00A0/g, ' ');
     const contentWithoutPrefix = mobileFix.slice(PREFIX.length).trim();
 
-    let argsString = contentWithoutPrefix;
-    let comment = "";
-    const commentIndex = contentWithoutPrefix.indexOf('#');
-    if (commentIndex !== -1) {
-        comment = `\n> *${contentWithoutPrefix.substring(commentIndex + 1).trim()}*`;
-        argsString = contentWithoutPrefix.substring(0, commentIndex).trim();
-    }
+    // Drop the leading "r" or "roll" token.
+    const firstSpace = contentWithoutPrefix.search(/\s/);
+    const commandText = firstSpace === -1
+        ? ''
+        : contentWithoutPrefix.slice(firstSpace + 1).trim();
 
-    const args = argsString.split(' ').filter(arg => arg !== '');
-    args.shift(); // THE FIX: Removes 'r' or 'roll', leaving only the sub-command and its args.
-    return { args, comment };
+    const { args, comment } = parseCommandString(commandText);
+    return { args, comment, commandText };
 }
 
 /** Parses numerical modifiers from arguments array. */
@@ -344,6 +348,7 @@ function parseTriggers(comment, triggerPatterns) {
 module.exports = {
     roll,
     parseArguments,
+    parseCommandString,
     parseModifiers,
     getRankData,
     checkPermissions,
