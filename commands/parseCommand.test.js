@@ -40,3 +40,15 @@ test('keeps generic dice notation as args[0]', () => {
     const { args } = parseCommandString('2d6 5 # boom');
     assert.deepStrictEqual(args, ['2d6', '5']);
 });
+
+test('a comment glued to the front is still extracted', () => {
+    const { args, comment } = parseCommandString('#test');
+    assert.deepStrictEqual(args, []);
+    assert.strictEqual(comment, '\n> *test*');
+});
+
+test('a glued front comment keeps all of its words', () => {
+    const { args, comment } = parseCommandString('#hello world');
+    assert.deepStrictEqual(args, []);
+    assert.strictEqual(comment, '\n> *hello world*');
+});

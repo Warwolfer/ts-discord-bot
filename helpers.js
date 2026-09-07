@@ -76,11 +76,19 @@ function parseArguments(content) {
     const mobileFix = content.replace(/\u00A0/g, ' ');
     const contentWithoutPrefix = mobileFix.slice(PREFIX.length).trim();
 
-    // Drop the leading "r" or "roll" token.
-    const firstSpace = contentWithoutPrefix.search(/\s/);
-    const commandText = firstSpace === -1
-        ? ''
-        : contentWithoutPrefix.slice(firstSpace + 1).trim();
+    // Drop the leading "r" or "roll" token. The boundary is the first
+    // whitespace OR '#': a comment glued straight to the token (?r#note)
+    // ends the token without a space, and the '#' must survive into
+    // commandText so parseCommandString still sees the comment.
+    const boundary = contentWithoutPrefix.search(/[\s#]/);
+    let commandText;
+    if (boundary === -1) {
+        commandText = '';
+    } else if (contentWithoutPrefix[boundary] === '#') {
+        commandText = contentWithoutPrefix.slice(boundary).trim();
+    } else {
+        commandText = contentWithoutPrefix.slice(boundary + 1).trim();
+    }
 
     const { args, comment } = parseCommandString(commandText);
     return { args, comment, commandText };
