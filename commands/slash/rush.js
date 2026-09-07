@@ -3,6 +3,7 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const basicHandlers = require('../handlers/basic');
 const { InteractionAdapter } = require('../../adapters/interactionAdapter');
 const { checkPermissions } = require('../../helpers');
+const { runRoll } = require('../runRoll');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,6 +18,12 @@ module.exports = {
                 flags: MessageFlags.Ephemeral
             });
         }
-        await basicHandlers.handleRush(adapter, ['rush'], '');
+        await runRoll({
+            message: adapter,
+            args: ['rush'],
+            comment: '',
+            commandText: 'rush',
+            handler: basicHandlers.handleRush
+        });
     }
 };

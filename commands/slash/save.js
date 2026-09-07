@@ -3,6 +3,7 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const basicHandlers = require('../handlers/basic');
 const { InteractionAdapter } = require('../../adapters/interactionAdapter');
 const { checkPermissions } = require('../../helpers');
+const { runRoll } = require('../runRoll');
 
 const ROLL_CHOICES = [
     { name: 'Normal', value: 'normal' },
@@ -41,6 +42,16 @@ module.exports = {
 
         const formattedComment = comment ? `\n> *${comment}*` : '';
 
-        await basicHandlers.handleSave(adapter, args, formattedComment);
+        const commandText = comment
+            ? `${args.join(' ')} # ${comment}`
+            : args.join(' ');
+
+        await runRoll({
+            message: adapter,
+            args,
+            comment: formattedComment,
+            commandText,
+            handler: basicHandlers.handleSave
+        });
     }
 };

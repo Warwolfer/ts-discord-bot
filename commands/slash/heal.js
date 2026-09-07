@@ -4,6 +4,7 @@ const supportHandlers = require('../handlers/support');
 const { InteractionAdapter } = require('../../adapters/interactionAdapter');
 const { checkPermissions } = require('../../helpers');
 const { RANK_CHOICES } = require('./_choices');
+const { runRoll } = require('../runRoll');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -41,6 +42,16 @@ module.exports = {
 
         const formattedComment = comment ? `\n> *${comment}*` : '';
 
-        await supportHandlers.handleHeal(adapter, args, formattedComment);
+        const commandText = comment
+            ? `${args.join(' ')} # ${comment}`
+            : args.join(' ');
+
+        await runRoll({
+            message: adapter,
+            args,
+            comment: formattedComment,
+            commandText,
+            handler: supportHandlers.handleHeal
+        });
     }
 };

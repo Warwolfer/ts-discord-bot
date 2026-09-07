@@ -3,6 +3,7 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const genericHandlers = require('../handlers/generic');
 const { InteractionAdapter } = require('../../adapters/interactionAdapter');
 const { checkPermissions } = require('../../helpers');
+const { runRoll } = require('../runRoll');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -36,6 +37,16 @@ module.exports = {
 
         const formattedComment = comment ? `\n> *${comment}*` : '';
 
-        await genericHandlers.handleGenericRoll(adapter, args, formattedComment);
+        const commandText = comment
+            ? `${args.join(' ')} # ${comment}`
+            : args.join(' ');
+
+        await runRoll({
+            message: adapter,
+            args,
+            comment: formattedComment,
+            commandText,
+            handler: genericHandlers.handleGenericRoll
+        });
     }
 };
