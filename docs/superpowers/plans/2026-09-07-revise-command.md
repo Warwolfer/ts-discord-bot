@@ -542,7 +542,7 @@ module.exports = { parseCommandString };
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `node --test`
-Expected: PASS, 7 tests
+Expected: PASS, 20 tests (7 tape + 6 store + 7 parseCommand). Bare `node --test` runs every test file in the repo, not just the new one.
 
 - [ ] **Step 5: Rewrite `parseArguments` in `helpers.js` to delegate**
 
@@ -853,7 +853,7 @@ module.exports = { CaptureAdapter };
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `node --test`
-Expected: PASS, 18 tests in `revise/`
+Expected: PASS, 25 tests (20 from earlier tasks + 5 captureAdapter)
 
 - [ ] **Step 5: Fix `InteractionAdapter.reply` to return the real message**
 
@@ -1431,7 +1431,7 @@ git commit -m "Add Revise Command button that opens a prefilled modal"
 
 Order of operations that matters: `setRollContext` clears the replay cursor, so it must be called **before** `startReplay`.
 
-Error-embed detection compares the resolved colour against `EMBED_COLORS.error`, which is the string `'Red'`. `resolveColor('Red')` gives `15548997`, distinct from the offense red `#d84848` (`14173768`), so there is no false match.
+Error-embed detection compares the resolved colour against `EMBED_COLORS.error`, which is the string `'Red'`. `resolveColor('Red')` gives `15548997`, distinct from the offense red `#d84848` (`14173768`), so there is no false match. `resolveColor` cannot be verified in this checkout (no `node_modules`), so the code falls back to the literal `15548997` if discord.js does not re-export it.
 
 - [ ] **Step 1: Add the imports to `revise/index.js`**
 
@@ -1458,7 +1458,14 @@ const { EMBED_COLORS } = require('../commands/constants');
 
 const DICE_MISMATCH =
     'This change needs a different number of dice than the original roll. Make a fresh roll instead.';
-const ERROR_COLOR = resolveColor(EMBED_COLORS.error);
+
+// EMBED_COLORS.error is the string 'Red'. A built embed stores the resolved
+// number, so compare numbers. 15548997 is discord.js's 'Red'; the offense red
+// #d84848 resolves to 14173768, so there is no false match. The fallback covers
+// discord.js builds that do not re-export resolveColor at the top level.
+const ERROR_COLOR = typeof resolveColor === 'function'
+    ? resolveColor(EMBED_COLORS.error)
+    : 15548997;
 ```
 
 - [ ] **Step 2: Add `onModalSubmit` to `revise/index.js`**
