@@ -242,7 +242,8 @@ async function handleSneak(message, args, comment) {
   // Success bonus by MR rank on success; otherwise +10
   const mrRank = (mrData.rank ?? String(args[1] ?? '')).toLowerCase();
   const SNEAK_BONUS = { d: 25, c: 25, b: 30, a: 35, s: 40 };
-  const successBonus = success ? (SNEAK_BONUS[mrRank] ?? 10) : 10;
+  const rankBonus = SNEAK_BONUS[mrRank] ?? 10;
+  const successBonus = success ? rankBonus : 10;
 
   // Mods print logic
   const rawMods = (modifiers.display ?? '').toString();
@@ -293,7 +294,7 @@ async function handleSneak(message, args, comment) {
   let description =
     `\`${calculation}\`\n${passiveDisplay}\n` +
     `**${total} total** (${success ? 'sneak successful!' : 'sneak failed...'})\n\n` +
-    `Succeeed on ${threshold}+ to add ${successBonus} sneak damage (${mrData.rank}-ranked mastery), otherwise, add 10.\n` +
+    `Success on ${threshold}+ to add ${rankBonus} sneak damage (${mrData.rank}-ranked mastery), otherwise, add 10.\n` +
     (ngNote ? `${ngNote}\n` : '');
 
   return finalizeAndSend(message, embed, description, comment);

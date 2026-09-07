@@ -213,12 +213,12 @@ async function handleMomentum(message, args, comment) {
   if (triggers.blitz) {
     // Blitz (Bonus Action)
     embed.setTitle('(Alter) Momentum - Blitz');
-    description += `**Bonus Action: Blitz.** Gain +${attackBonus} damage for each movement used in a continuous line this cycle. When a battle map is not in use, let the narrative determine whether you can use a quarter, half, or your full movement amount for this action. Also, reduce each instance of movement damage by ${instanceReduce}.\n`;
+    description += `**Bonus Action: Blitz.** Gain +10 damage modifiers for each movement used in a continuous line this cycle (total +${attackBonus}). When a battle map is not in use, let the narrative determine whether you can use a quarter, half, or your full movement amount for this action. Also, reduce each instance of movement damage by ${instanceReduce}.\n`;
 
   } else {
     // Momentum (Free Action)
     embed.setTitle('(Alter) Momentum');
-    description += `**Free Action.** Gain +${attackBonus} damage modifiers for each (used or unused) movement you have this cycle.\n`;
+    description += `**Free Action.** Gain +5 damage modifiers for each (used or unused) movement you have this cycle (total +${attackBonus}).\n`;
   }
 
   return finalizeAndSend(message, embed, description, comment);
