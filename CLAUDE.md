@@ -200,13 +200,36 @@ posted as a new message linking back to the original.
 
 Rules, all enforced in `revise/index.js`:
 - Only the original roller may revise.
+- The channel must still be roll-eligible. `checkPermissions` runs on both the
+  button click and the modal submit, because clicking a component needs no
+  SEND_MESSAGES and a channel can be locked, renamed, or moved out of the
+  story category after the roll.
 - `args[0]` is locked. The action word (and, for generic rolls, the dice
   notation) cannot change.
+- **Every non-numeric argument is locked** when the seed rolled dice. Only
+  args matching `/^-?\d+$/` may change. A rank replays the same dice but moves
+  success thresholds (`SNEAK_THRESHOLDS`, `COUNTER_THRESHOLDS`), multiplier
+  tiers (`CRIT_MULT_BY_RANK`), and trigger bonuses (`SNIPE_TRIG_X`), so a rank
+  bump on a visible 28 or 86 is a free damage upgrade. Advantage/disadvantage
+  has its own earlier, more specific refusal; both checks stay.
+- The comment's `DC (n)` token is locked when the seed rolled dice. The rest of
+  the comment stays editable, but `DC (60)` -> `DC (50)` would flip a visible
+  Save Failure into a Save Success.
+- Comment **mode triggers deliberately stay editable** (`aoe`, `versatile`,
+  `simulcast`, `melee`, `risky`, `snipe`, `vilify`, `release`, `ultra`). User
+  ruling: forgetting to type `aoe` is exactly the mistake this feature exists
+  to fix. A trigger that reshapes the roll changes its dice count and is caught
+  by the dice-count refusal anyway — `?r defile c` (2d20) -> `# vilify` (1d20)
+  is refused on leftovers — and the rank beside it is now locked.
 - The dice count must match exactly. More or fewer is refused.
 - Exception: when the original rolled zero dice (a validation error, or a
-  passive with no roll), fresh dice are allowed. That revision's own
-  freshly-rolled dice are then locked in as the seed for the next revision,
-  so the empty-tape exception can't be chained into unlimited rerolls.
+  passive with no roll), fresh dice are allowed **once**. The locked-arg and
+  locked-DC refusals are skipped there too, since there is no visible result to
+  protect and fixing a typo'd rank is the point. That revision's own
+  freshly-rolled dice are then written back to BOTH the new record and the
+  root record, so clicking Revise on the same original message a second time
+  replays instead of rerolling. Without the root re-seed, every click of that
+  one button rolled fresh dice and reported "(revised)" — an unlimited reroll.
 - Advantage/disadvantage is locked. `args[1]`'s adv/dis mode may not change,
   because the dice count stays the same either way and the player would be
   picking the better of two numbers already on screen.
@@ -217,13 +240,29 @@ Rules, all enforced in `revise/index.js`:
 - A revision whose handler produces a validation-error embed (e.g. an invalid
   rank) reports that embed's own error text rather than the generic
   dice-count message, even when the dice count also mismatches.
+- A `channel.send` that fails after `deferUpdate()` is reported with
+  `followUp`, not `reply`: the defer already acknowledged the interaction, so
+  the wrapper in `index.js` (guarded by `!replied && !deferred`) cannot answer
+  and the user would see the modal close and nothing else.
+- The modal uses `TextInputStyle.Short`. A command is one line, and
+  `parseCommandString` splits on a literal space, so a newline from a Paragraph
+  input would surface as "Invalid Rank" with no hint why.
 
 The store is memory only. A bot restart clears it, and revising an older roll
 then reports "This roll can no longer be revised."
 
-**When adding a new handler:** nothing extra is needed. `sendReply` is the
-single send point for every handler, including those routed through
-`finalizeAndSend`, so the button and the record land automatically.
+**When adding a new handler:** nothing extra is needed for the button itself.
+`sendReply` is the single send point for every handler, including those routed
+through `finalizeAndSend`, so the button and the record land automatically.
+Two things to keep in mind:
+- Any `[TEST]` comment-override block **must** be guarded with
+  `!isReplaying()` (from `helpers.js`), and its pattern must require the
+  `test:` prefix (`\btest[:=]\s*`). Overrides run after `roll()`, so during a
+  replay they leave the dice count untouched and no refusal fires — a
+  revision could force a 100 onto dice already on screen. A bare keyword also
+  misfires on ordinary comments: `# going for a crit` used to force a 100.
+- A new threshold or multiplier keyed on a rank needs no extra protection.
+  Ranks are non-numeric args, so the lock above already covers them.
 
 Tests: `node --test`
 

@@ -42,7 +42,13 @@ button on every roll embed.
 | Command word may change | No. `args[0]` is locked |
 | Dice count may change | No. Must match exactly, up or down |
 | Advantage/disadvantage may change | No. `args[1]`'s adv/dis mode is locked. User ruling: replaying `adv`<->`dis` keeps the same dice count so no other refusal catches it, but the player would be choosing the better of two numbers already on screen, which is exactly the fishing this feature must prevent. |
-| Original rolled no dice | Fresh dice allowed; there is no result to protect |
+| Any other non-numeric argument may change | No, on a roll that recorded dice. Locking adv/dis fixed one instance of a whole class: a rank change replays the *same* dice but moves the success threshold (`SNEAK_THRESHOLDS`, `COUNTER_THRESHOLDS`), the multiplier tier (`CRIT_MULT_BY_RANK`), the trigger bonus (`SNIPE_TRIG_X`), or the per-target dice count (`defile`). `lockedArgs(args)` — every arg that is not `/^-?\d+$/`, lowercased — must be unchanged. Only numeric modifiers stay editable, which is what this feature is for. |
+| Comment mode triggers may change | **Yes.** `aoe`, `versatile`, `simulcast`, `melee`, `risky`, `snipe`, `vilify`, `release`, `ultra` stay editable. User ruling, asked directly: forgetting to type `aoe` is exactly the mistake this feature exists to fix, so locking them would gut the feature. This is safe because a trigger that changes the *shape* of the roll changes its dice count, which the dice-count refusal already catches — `?r defile c` -> `?r defile c # vilify` goes from 2d20 to 1d20 and is refused on leftovers. Triggers that only change arithmetic on dice already drawn are not a fishing vector on their own, and the accompanying rank is now locked. |
+| Save DC may change | No, on a roll that recorded dice. The DC is read out of the comment (`/\bDC\s*\(\s*(\d+)\s*\)/i` in `handleSave`, `handleExpertise`, `handleMastery`), and the comment must stay editable for tags and flavour, so only that one token is locked: `DC (60)` -> `DC (50)` flips a visible Save Failure into a Save Success. |
+| Original rolled no dice | Fresh dice allowed once; the ROOT record is then re-seeded with the dice this revision rolled |
+| `[TEST]` comment overrides during replay | Never run. Guarded by `!isReplaying()` in every handler that has one |
+| Channel eligibility re-checked | Yes. `checkPermissions` runs on both the button click and the modal submit |
+| Modal input style | `TextInputStyle.Short`. A command is one line, and `parseCommandString` splits on a literal space, so a newline from a Paragraph input surfaces as "Invalid Rank" with no hint why |
 | Disk persistence | Out of scope |
 | Staff override | Out of scope |
 
@@ -153,6 +159,10 @@ function roll(min, max) {
 `setRollContext()` also accepts `commandText`, `rootUrl`, and
 `revisionCount`, and calls `tape.startRecording()`.
 
+`isReplaying()` is exported alongside the other roll-context accessors and is
+simply `replayCursor !== null`. Handlers use it to switch off their `[TEST]`
+comment overrides during a replay.
+
 `sendReply()` attaches the Revise button and, after sending, saves the
 record keyed by the sent message id. It reads `commandText` from the roll
 context, so no return value needs threading through 70 handlers.
@@ -211,11 +221,20 @@ click [Revise Command]
   record = store.get(interaction.message.id)
   record missing            -> ephemeral "This roll can no longer be revised."
   record.userId !== clicker -> ephemeral "This is not your roll."
-  show modal, one paragraph field prefilled with record.commandText
+  channel not roll-eligible -> ephemeral "Rolls cannot be revised in this channel."
+  show modal, one Short field prefilled with record.commandText
 
 submit "attack a s 10 5 # Lethal Combat Focus"
+  same record / owner / channel checks again
   parseCommandString(newText) -> { args, comment }
+  parseCommandString(record.commandText) -> { oldArgs, oldComment }
+  originalHadDice = !tape.isEmpty(record.tape)
   args[0] !== oldArgs[0]      -> ephemeral "The action must stay the same (`attack`)."
+  advantageMode differs       -> ephemeral "Advantage/disadvantage must stay the same."
+  originalHadDice && lockedArgs(args) differs
+                              -> ephemeral "Only numeric modifiers and the comment can change..."
+  originalHadDice && declaredDC(comment) !== declaredDC(oldComment)
+                              -> ephemeral "The DC cannot change..."
 
   cursor = tape.startReplay(record.tape)
   run handler against a CaptureAdapter (collects the payload, sends nothing)
@@ -233,9 +252,15 @@ submit "attack a s 10 5 # Lethal Combat Focus"
             description + "\n\nRevised from [original roll](record.rootUrl)"
   interaction.deferUpdate()
   channel.send(payload)
+    throws                  -> followUp ephemeral "Could not post the revised roll here."
+                               (reply is impossible: the defer already acknowledged)
   store.put(newMsg.id, { ...record,
                          commandText: newText,
                          revisionCount: record.revisionCount + 1 })
+  !originalHadDice        -> store.put(messageId, { ...record,
+                                                    tape: producedTape,
+                                                    createdAt: record.createdAt })
+                             so the ROOT button replays instead of rerolling
 ```
 
 `rootUrl` is copied forward unchanged, so the tenth revision still links to
@@ -251,6 +276,26 @@ reroll loop. This was a spec defect: the two rules ("tape is copied forward
 unchanged" and "an empty seed allows fresh dice") are each correct alone but
 unsound together, and shipped that way until the whole-branch review caught
 the chain.
+
+**The ROOT record is re-seeded too.** Writing the new tape only to
+`store.put(sent.id, ...)` closes the chain but not the root. The button the
+player clicked is keyed to `messageId`, and that record still holds the empty
+tape, so `originalHadDice` is `false` on *every* click of it: scroll back to
+the same "Invalid Rank" message, click Revise again, and the dice are rolled
+fresh again. Every attempt reads "(revised)" rather than "(revised 2x)",
+because each derives `revisionCount` from the untouched root — nothing
+distinguishes the seventh attempt from the first. Measured against the real
+`tape.js` and `store.js`: eight clicks on one seed produced eight different
+d100 values. So a successful revision off an empty seed also does
+
+```js
+store.put(messageId, { ...record, tape: producedTape || {}, createdAt: record.createdAt });
+```
+
+`createdAt` is passed explicitly because `store.put` only stamps it when
+absent; re-seeding must not extend the 24h TTL. The second click on the
+original message then sees a non-empty tape, replays it, and every later
+refusal (locked args, locked DC, dice count) applies as normal.
 
 ### CaptureAdapter
 
@@ -269,20 +314,61 @@ It exposes `author` (the original roller, so `message.author.id` and
 |---|---|
 | Record missing or expired | This roll can no longer be revised. |
 | Clicker is not the roller | This is not your roll. |
+| Channel is not roll-eligible | Rolls cannot be revised in this channel. |
 | `args[0]` changed | The action must stay the same (`attack`). Make a fresh roll instead. |
 | `args[1]`'s advantage/disadvantage mode changed | Advantage/disadvantage must stay the same. Make a fresh roll instead. |
+| A non-numeric argument changed, seed had dice | Only numeric modifiers and the comment can change on a roll that already rolled dice. Ranks and flags are locked. Make a fresh roll instead. |
+| The comment's `DC (n)` changed, seed had dice | The DC cannot change on a roll that already rolled dice. Make a fresh roll instead. |
 | Dice count differs | This change needs a different number of dice than the original roll. Make a fresh roll instead. |
 | Revision yields an error embed | (the handler's own error text) |
+| `channel.send` fails after the defer | Could not post the revised roll here. The channel may be locked or gone. |
 
 All are ephemeral. None post to the channel.
+
+The last one is a `followUp`, not a `reply`: `deferUpdate()` has already
+acknowledged the interaction by then, so the `interactionCreate` wrapper in
+`index.js` (guarded by `!replied && !deferred`) cannot answer for us and the
+user would otherwise see the modal close and nothing else. The same `try`
+covers an uncached `interaction.channel`, where `channel.send` is a
+`TypeError` on that identical silent path.
+
+The permission check is the same `checkPermissions(message)` that `commands/r.js`
+and every slash command call before rolling. It reads only `.channel`, which an
+interaction exposes, so the interaction is passed unchanged. Without it, two real
+holes stayed open: clicking a component needs no SEND_MESSAGES, so a player
+locked out of a read-only story channel could still have the bot post roll embeds
+there for the rest of the 24h window; and a channel renamed off "rolls" or moved
+out of the story category stopped accepting `?r` while Revise kept working.
 
 ## Edge cases
 
 - **No dice rolled.** Some alter passives and every validation-error embed
   record an empty tape. Both the exhaustion check and the leftovers check
-  are skipped for an empty tape, so fresh dice are allowed. This makes
-  Revise the natural fix for a typed rank: `?r attack a z 10` returns
-  "Invalid Rank", and revising it to `a s` produces a real roll.
+  are skipped for an empty tape, so fresh dice are allowed **once**. This
+  makes Revise the natural fix for a typed rank: `?r attack a z 10` returns
+  "Invalid Rank", and revising it to `a s` produces a real roll. The
+  locked-args and locked-DC refusals are also skipped on an empty seed —
+  there is no visible result to protect, and correcting the rank is the
+  point. Both the new record *and the root record* are then seeded with the
+  dice that revision rolled, so a second click on the same original message
+  replays them instead of rolling again.
+- **`[TEST]` comment overrides.** Five handlers (`critical`, `sharp`,
+  `reckless`, `buff`, `powerbuff`) let a comment force roll values for
+  manual testing. Every override block sits *after* the `roll()` calls, so
+  a replay draws from the tape normally and the overrides merely clobber the
+  local variables: the dice count is bit-identical, no refusal fires, and
+  the embed keeps its normal action colour so `isErrorEmbed` does not catch
+  it either. `?r sharp a s 10` revised to `# test:star breaker` would force
+  `100, 42` with a forced risky `[100]`, a ×7 multiplier. Each block is now
+  guarded with `!isReplaying()` (new accessor in `helpers.js`, true while a
+  replay cursor is set).
+- **`[TEST]` prefix was optional.** Independently of Revise, several of
+  those patterns accepted the bare keyword: `/\b(?:test[:=]\s*)?(…|crit)\b/i`
+  matched the comment "going for a crit" and forced a 100 on a live roll.
+  Every override pattern now requires the `test:` prefix
+  (`\btest[:=]\s*`), including the bare value-forcing forms, which became
+  `test:r=100`, `test:r1=100`, `test:r2=50`, `test:d100=100`,
+  `test:d200=200`, `test:r200=150`.
 - **Concurrent revisions.** `startReplay` returns a per-revision cursor and
   never mutates the stored tape, so two people revising at the same moment
   cannot interfere.
@@ -293,9 +379,10 @@ All are ephemeral. None post to the channel.
   code.
 - **Bot restart.** The store empties. Clicking Revise on an older roll
   gives the "can no longer be revised" message. Accepted.
-- **Lower rank on a per-target command.** Refused, because the dice count
-  would change. This also closes the `defile` case, where a lower total is
-  the better outcome.
+- **Lower rank on a per-target command.** Refused twice over: the rank is a
+  non-numeric argument and so is locked outright, and the dice count would
+  change anyway. This closes the `defile` case, where a lower total is the
+  better outcome.
 
 ## Testing
 
@@ -317,10 +404,20 @@ added. Node 22 supplies `node --test`.
 
 Run: `node --test revise/`
 
+`lockedArgs`, `declaredDC` and `advantageMode` live in `revise/index.js`,
+which imports discord.js, so they cannot be unit tested in this repo. Moving
+them into a dependency-free module to make them testable is a larger
+refactor than the fix waves have carried so far; it is the obvious next step
+if these predicates grow. Until then they are verified by running the same
+regexes and comparisons standalone against real command strings.
+
 The Discord glue is verified manually in the test channel:
-button visible, ownership refusal, expiry refusal, command-word refusal,
+button visible, ownership refusal, expiry refusal, channel-permission
+refusal, command-word refusal, locked-arg (rank) refusal, locked-DC refusal,
 dice-count refusal, a successful mod change, a successful comment/tag
-change, a two-step revision chain, and revising a failed roll.
+change, a successful mode-trigger change (`# aoe`), a two-step revision
+chain, revising a failed roll, and revising that same failed roll a second
+time (which must replay, not reroll).
 
 ## Out of scope
 
