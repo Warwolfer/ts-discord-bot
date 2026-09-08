@@ -3,15 +3,6 @@
 // same numbers can be replayed when a command is revised. No imports:
 // this file must stay loadable without node_modules so it can be tested.
 
-class NeedsFreshDice extends Error {
-    constructor(min, max) {
-        super(`No recorded die left for ${min}-${max}`);
-        this.name = 'NeedsFreshDice';
-        this.min = min;
-        this.max = max;
-    }
-}
-
 /** Bucket key for a die type. A 1d20 and a 1d100 never share a queue. */
 function bucketKey(min, max) {
     return `${min}-${max}`;
@@ -28,6 +19,12 @@ function record(tape, min, max, value) {
     const key = bucketKey(min, max);
     if (!tape[key]) tape[key] = [];
     tape[key].push(value);
+}
+
+/** How many dice the tape holds, across every bucket. */
+function countDice(tape) {
+    if (!tape) return 0;
+    return Object.values(tape).reduce((n, queue) => n + queue.length, 0);
 }
 
 /** True when the tape holds no dice at all. */
@@ -48,9 +45,12 @@ function startReplay(tape) {
     }
 
     return {
+        // null means "the original never rolled this die". A revision may add
+        // dice, so the caller rolls a fresh one and records it. Removing dice
+        // is still refused, by hasLeftovers() below.
         take(min, max) {
             const queue = remaining[bucketKey(min, max)];
-            if (!queue || queue.length === 0) throw new NeedsFreshDice(min, max);
+            if (!queue || queue.length === 0) return null;
             return queue.shift();
         },
         hasLeftovers() {
@@ -59,4 +59,4 @@ function startReplay(tape) {
     };
 }
 
-module.exports = { NeedsFreshDice, createTape, record, isEmpty, startReplay };
+module.exports = { createTape, record, countDice, isEmpty, startReplay };

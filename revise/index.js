@@ -206,7 +206,10 @@ async function onModalSubmit(interaction) {
             rootUrl: record.rootUrl,
             revisionCount: nextCount
         });
-        if (originalHadDice) cursor = startReplay(record.tape);
+        // Always replay, even from an empty tape: take() returns null when a
+        // die was never recorded, and roll() then rolls it fresh. That folds
+        // the old empty-seed special case into the ordinary path.
+        cursor = startReplay(record.tape);
 
         await handler(adapter, args, comment);
 
@@ -215,9 +218,6 @@ async function onModalSubmit(interaction) {
         // revision, or the chain becomes an unlimited reroll.
         producedTape = getCurrentTape();
     } catch (err) {
-        if (err instanceof tape.NeedsFreshDice) {
-            return ephemeral(interaction, DICE_MISMATCH);
-        }
         console.error('[revise] Handler threw during replay:', err);
         return ephemeral(interaction, 'Something went wrong while revising this roll.');
     } finally {
@@ -242,15 +242,24 @@ async function onModalSubmit(interaction) {
         return ephemeral(interaction, embed.data.description || 'That revision is not valid.');
     }
 
-    // Fewer dice than recorded is refused too: the count must match exactly.
-    if (cursor && cursor.hasLeftovers()) {
+    // Removing dice is refused: those dice are already on screen, and dropping
+    // one is how you would discard a bad result. Adding dice is allowed — it is
+    // cleaner than rolling a separate 1d100 by hand — and the added dice are
+    // recorded below, so a later revision replays them instead of rerolling.
+    if (cursor.hasLeftovers()) {
         return ephemeral(interaction, DICE_MISMATCH);
     }
 
+    const diceAdded = tape.countDice(producedTape) - tape.countDice(record.tape);
+
     const suffix = nextCount === 1 ? '(revised)' : `(revised ${nextCount}x)`;
     embed.setTitle(`${embed.data.title ?? ''} ${suffix}`.trim());
+    // Say so when the revision rolled dice the original never had. The player
+    // chose to add them after seeing the base result, so it has to be visible
+    // to anyone reading the thread.
+    const addedNote = diceAdded > 0 ? `\nRevision added ${diceAdded} more dice` : '';
     embed.setDescription(
-        `${embed.data.description ?? ''}\n\nRevised from [original roll](${record.rootUrl})`
+        `${embed.data.description ?? ''}\n${addedNote}\nRevised from [original roll](${record.rootUrl})`
     );
 
     // Close the modal quietly, then post the revision as a new message.
@@ -274,15 +283,14 @@ async function onModalSubmit(interaction) {
         }).catch(() => {});
     }
 
+    // producedTape is exactly the dice this run used: the replayed ones plus
+    // any the revision added. Storing it locks the added dice in, so a later
+    // revision replays them rather than rolling new ones.
+    const usedTape = producedTape || {};
+
     store.put(sent.id, {
         commandText: newText,
-        // When the seed had dice, the ORIGINAL tape carries forward unchanged
-        // so the dice never drift. When the seed had none, this revision's own
-        // freshly-rolled tape becomes the new seed, or the next revision would
-        // roll fresh again too, letting the chain fish for a better result.
-        // A replay leaves currentTape empty, because roll() returns from the
-        // cursor before recording, so producedTape only matters in this branch.
-        tape: originalHadDice ? record.tape : (producedTape || {}),
+        tape: usedTape,
         userId: record.userId,
         channelId: sent.channelId,
         rootUrl: record.rootUrl,
@@ -290,14 +298,15 @@ async function onModalSubmit(interaction) {
         createdAt: Date.now()
     });
 
-    // Re-seed the ROOT record when the seed had no dice. Otherwise the button
-    // on the original message keeps reporting an empty tape and every click
-    // rolls fresh dice — an unlimited reroll. Preserve createdAt so re-seeding
-    // does not extend the 24h TTL.
-    if (!originalHadDice) {
+    // Re-seed the ROOT too. The clicked button reads the record at messageId,
+    // so if that record still held the shorter tape, every click would roll
+    // the added dice fresh again — an unlimited reroll of exactly the dice the
+    // player chose to add. The tape only ever grows, since removing dice is
+    // refused above. Preserve createdAt so re-seeding does not extend the TTL.
+    if (diceAdded > 0) {
         store.put(messageId, {
             ...record,
-            tape: producedTape || {},
+            tape: usedTape,
             createdAt: record.createdAt
         });
     }

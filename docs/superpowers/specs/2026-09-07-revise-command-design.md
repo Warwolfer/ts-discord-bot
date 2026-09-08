@@ -38,14 +38,14 @@ button on every roll embed.
 | Input method | One modal text field, prefilled with the whole command |
 | Output | New message linking back to the original; original untouched |
 | Who may revise | The original roller only |
-| Retention | In memory, 24 hour expiry; a bot restart clears it |
+| Retention | In memory, 72 hour expiry; a bot restart clears it |
 | Command word may change | No. `args[0]` is locked |
-| Dice count may change | No. Must match exactly, up or down |
+| Dice count may change | Removing dice is refused; adding dice is allowed and recorded |
 | Advantage/disadvantage may change | No. `args[1]`'s adv/dis mode is locked. User ruling: replaying `adv`<->`dis` keeps the same dice count so no other refusal catches it, but the player would be choosing the better of two numbers already on screen, which is exactly the fishing this feature must prevent. |
 | Any other non-numeric argument may change | No, on a roll that recorded dice. Locking adv/dis fixed one instance of a whole class: a rank change replays the *same* dice but moves the success threshold (`SNEAK_THRESHOLDS`, `COUNTER_THRESHOLDS`), the multiplier tier (`CRIT_MULT_BY_RANK`), the trigger bonus (`SNIPE_TRIG_X`), or the per-target dice count (`defile`). `lockedArgs(args)` — every arg that is not `/^-?\d+$/`, lowercased — must be unchanged. Only numeric modifiers stay editable, which is what this feature is for. |
-| Comment mode triggers may change | **Yes.** `aoe`, `versatile`, `simulcast`, `melee`, `risky`, `snipe`, `vilify`, `release`, `ultra` stay editable. User ruling, asked directly: forgetting to type `aoe` is exactly the mistake this feature exists to fix, so locking them would gut the feature. This is safe because a trigger that changes the *shape* of the roll changes its dice count, which the dice-count refusal already catches — `?r defile c` -> `?r defile c # vilify` goes from 2d20 to 1d20 and is refused on leftovers. Triggers that only change arithmetic on dice already drawn are not a fishing vector on their own, and the accompanying rank is now locked. |
+| Comment mode triggers may change | **Yes.** `aoe`, `versatile`, `simulcast`, `melee`, `risky`, `snipe`, `vilify`, `release`, `ultra` stay editable. User ruling, asked directly: forgetting to type `aoe` is exactly the mistake this feature exists to fix, so locking them would gut the feature. **This is an accepted gap, not a backstopped one.** Some triggers do change the dice count and are caught — `?r defile c` -> `# vilify` goes 2d20 to 1d20 and is refused on leftovers. But `aoe`/`versatile`/`simulcast` do NOT: `BASE_DICE` is a literal in `handleHeal` (2) and `handlePowerHeal` (4), and `handleBuff` rolls one d100, so they only pick a divisor and a target count. `# aoe` showing "+20 HP to 3 allies" can be revised to "+60 HP to 1 ally" on the same dice. Accepted because locking it would gut the feature; both messages stay linked and visible. |
 | Save DC may change | No, on a roll that recorded dice. The DC is read out of the comment (`/\bDC\s*\(\s*(\d+)\s*\)/i` in `handleSave`, `handleExpertise`, `handleMastery`), and the comment must stay editable for tags and flavour, so only that one token is locked: `DC (60)` -> `DC (50)` flips a visible Save Failure into a Save Success. |
-| Original rolled no dice | Fresh dice allowed once; the ROOT record is then re-seeded with the dice this revision rolled |
+| Original rolled no dice | No special case any more. An empty tape means every die is fresh, through the same path. The locked-arg and locked-DC refusals are still skipped there |
 | `[TEST]` comment overrides during replay | Never run. Guarded by `!isReplaying()` in every handler that has one |
 | Channel eligibility re-checked | Yes. `checkPermissions` runs on both the button click and the modal submit |
 | Modal input style | `TextInputStyle.Short`. A command is one line, and `parseCommandString` splits on a literal space, so a newline from a Paragraph input surfaces as "Invalid Rank" with no hint why |
@@ -77,14 +77,16 @@ Exports:
 - `takeTape()` — return the finished tape and stop recording
 - `startReplay(tape)` — return a replay cursor object; does not mutate the
   input tape, so the same tape can be replayed any number of times
-- `cursor.take(min, max)` — next recorded value, or throw `NeedsFreshDice`
-  when the bucket is exhausted
+- `cursor.take(min, max)` — next recorded value, or `null` when the bucket
+  is exhausted, meaning the revision is adding a die the original never rolled
+- `countDice(tape)` — how many dice the tape holds, used to report added dice
 - `cursor.hasLeftovers()` — true when any bucket still holds unconsumed
   values after the run
 - `isEmpty(tape)` — true when no dice were recorded at all
 
-`NeedsFreshDice` is an `Error` subclass carrying `min` and `max` so the
-refusal message can be specific.
+There is no `NeedsFreshDice`. Running out of tape is ordinary now: adding
+dice is allowed, so `take` returns `null` and `roll()` rolls a fresh one.
+Removing dice is still refused, by `hasLeftovers()`.
 
 #### `revise/store.js`
 
@@ -95,11 +97,10 @@ Record shape:
 ```js
 {
   commandText: "attack a s 10 # Lethal",  // raw, exactly as the modal shows
-  tape: { "1-100": [47] },                // the tape THIS record's dice came
-                                           // from: the original roll's tape
-                                           // when it had dice, or this
-                                           // revision's own freshly-rolled
-                                           // tape when the seed had none
+  tape: { "1-100": [47] },                // exactly the dice the run that
+                                           // produced this record used:
+                                           // replayed ones plus any the
+                                           // revision added. Only ever grows.
   userId: "123...",                       // original roller
   channelId: "456...",
   rootUrl: "https://discord.com/...",     // the FIRST roll in the chain
@@ -109,7 +110,7 @@ Record shape:
 ```
 
 Exports `put`, `get` (returns `null` when missing or expired), and `sweep`.
-Expiry is 24 hours. A size cap with oldest-first eviction bounds memory.
+Expiry is 72 hours. A size cap with oldest-first eviction bounds memory.
 Sweep runs on an interval and lazily on `get`.
 
 #### `revise/index.js`
@@ -148,13 +149,23 @@ is already baked into the tape:
 
 ```js
 function roll(min, max) {
-    if (activeReplayCursor) return activeReplayCursor.take(min, max);
+    if (replayCursor) {
+        let value = replayCursor.take(min, max);
+        // null means the original never rolled this die and the revision is
+        // adding one. Roll it fresh, but still skip the preprocessor.
+        if (value === null) value = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (currentTape) tape.record(currentTape, min, max, value);
+        return value;
+    }
     let value = checkPreprocessor(min, max);
     if (value === null) value = Math.floor(Math.random() * (max - min + 1)) + min;
-    tape.record(min, max, value);
+    if (currentTape) tape.record(currentTape, min, max, value);
     return value;
 }
 ```
+
+`currentTape` records every die a run uses, replayed or fresh, so the stored
+tape is always exactly what that run used.
 
 `setRollContext()` also accepts `commandText`, `rootUrl`, and
 `revisionCount`, and calls `tape.startRecording()`.
@@ -293,7 +304,7 @@ store.put(messageId, { ...record, tape: producedTape || {}, createdAt: record.cr
 ```
 
 `createdAt` is passed explicitly because `store.put` only stamps it when
-absent; re-seeding must not extend the 24h TTL. The second click on the
+absent; re-seeding must not extend the 72h TTL. The second click on the
 original message then sees a non-empty tape, replays it, and every later
 refusal (locked args, locked DC, dice count) applies as normal.
 
@@ -337,7 +348,7 @@ and every slash command call before rolling. It reads only `.channel`, which an
 interaction exposes, so the interaction is passed unchanged. Without it, two real
 holes stayed open: clicking a component needs no SEND_MESSAGES, so a player
 locked out of a read-only story channel could still have the bot post roll embeds
-there for the rest of the 24h window; and a channel renamed off "rolls" or moved
+there for the rest of the 72h window; and a channel renamed off "rolls" or moved
 out of the story category stopped accepting `?r` while Revise kept working.
 
 ## Edge cases
@@ -399,7 +410,7 @@ added. Node 22 supplies `node --test`.
 
 `revise/store.test.js`
 - put then get returns the record
-- get past the 24h expiry returns `null`
+- get past the 72h expiry returns `null`
 - exceeding the size cap evicts the oldest record
 
 Run: `node --test revise/`

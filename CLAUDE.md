@@ -27,7 +27,7 @@ ts-discord-bot/
 ├── revise/
 │   ├── index.js            # Revise button + modal glue
 │   ├── tape.js             # Dice tape: record and replay
-│   ├── store.js            # In-memory revisable-roll store (24h TTL)
+│   ├── store.js            # In-memory revisable-roll store (72h TTL)
 │   ├── components.js       # Copy Result + Revise Command button row
 │   └── captureAdapter.js   # Collects a reply payload without sending
 └── commands/
@@ -193,7 +193,7 @@ rerolling the dice.
 How the dice are preserved: `roll()` in `helpers.js` records every result into
 a "dice tape" grouped by die type (`{"1-100": [47], "1-20": [14, 3]}`). The
 tape plus the raw command text is saved in `revise/store.js`, keyed by the
-bot's reply message id, for 24 hours. Clicking Revise opens a modal prefilled
+bot's reply message id, for 72 hours. Clicking Revise opens a modal prefilled
 with that command text. On submit the same handler is re-run against a
 `CaptureAdapter` while `roll()` replays the recorded values, and the result is
 posted as a new message linking back to the original.
@@ -237,15 +237,32 @@ Rules, all enforced in `revise/index.js`:
   also adds `PER_CHARGE_BONUS`. Accepted because locking it would block the
   feature's main use case, and both messages stay linked and visible in the
   channel.
-- The dice count must match exactly. More or fewer is refused.
-- Exception: when the original rolled zero dice (a validation error, or a
-  passive with no roll), fresh dice are allowed **once**. The locked-arg and
-  locked-DC refusals are skipped there too, since there is no visible result to
-  protect and fixing a typo'd rank is the point. That revision's own
-  freshly-rolled dice are then written back to BOTH the new record and the
-  root record, so clicking Revise on the same original message a second time
-  replays instead of rerolling. Without the root re-seed, every click of that
-  one button rolled fresh dice and reported "(revised)" — an unlimited reroll.
+- **Removing dice is refused; adding dice is allowed.** Dropping a die is how
+  you would discard a result already on screen, so `cursor.hasLeftovers()`
+  refuses it. Needing a die the original never rolled is fine — it is cleaner
+  than rolling a separate `?r 1d100` by hand — so `cursor.take()` returns
+  `null` when a bucket runs dry and `roll()` rolls a fresh one.
+  The preprocessor stays skipped for those added dice, or a revision could add
+  a trigger phrase and conjure the die it acts on in one edit.
+- **Added dice are recorded and written back to BOTH records**, the new one and
+  the root the button reads. `currentTape` records every die a run uses,
+  replayed or fresh, so the stored tape is exactly what the run used. Without
+  the root write-back, every click of that one button would roll the added dice
+  fresh again — an unlimited reroll of exactly the dice the player chose to
+  add. The tape only ever grows, since removing is refused.
+- The revised embed says `Revision added N more dice` whenever N > 0. The
+  player picks how many to add *after* seeing the base roll, so it has to be
+  visible to anyone reading the thread. **This is an informed decision, not a
+  blind one:** on `sharp`/`reckless`, `# risky` converts 40 points of flat
+  bonus into an extra d100 that joins the crit pool, and the multiplier ladder
+  only climbs with more 100s. Buying crit dice once you know the base roll was
+  bad is strictly better than deciding blind. Accepted deliberately, with the
+  embed note as the control; `release (N)` on `charge` has the same shape.
+- Zero-dice originals (a validation error, or a passive with no roll) need no
+  special case any more: an empty tape simply means every die is fresh, through
+  the same code path. The locked-arg and locked-DC refusals are still skipped
+  there, since there is no visible result to protect and fixing a typo'd rank
+  is the point.
 - Advantage/disadvantage is locked. `args[1]`'s adv/dis mode may not change,
   because the dice count stays the same either way and the player would be
   picking the better of two numbers already on screen.

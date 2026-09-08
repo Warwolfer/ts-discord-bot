@@ -109,9 +109,25 @@ function checkPreprocessor(min, max) {
  * same handler run — see the currentTape/replayCursor comment above.
  */
 function roll(min, max) {
-    // Replay wins outright. Whatever the preprocessor produced originally is
-    // already baked into the tape, so it must not run a second time.
-    if (replayCursor) return replayCursor.take(min, max);
+    if (replayCursor) {
+        // Replay wins outright. Whatever the preprocessor produced originally
+        // is already baked into the tape, so it must not run a second time.
+        let value = replayCursor.take(min, max);
+
+        if (value === null) {
+            // The original never rolled this die, so the revision is adding
+            // one. Roll it fresh, but still skip the preprocessor: letting it
+            // run here would let a revision add a trigger phrase AND conjure
+            // the die it acts on in a single edit.
+            value = Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Record either way. currentTape ends up holding exactly the dice this
+        // run used, so storing it locks the added dice in and the next revision
+        // replays them instead of rolling new ones.
+        if (currentTape) tape.record(currentTape, min, max, value);
+        return value;
+    }
 
     let value = checkPreprocessor(min, max);
     if (value === null) {

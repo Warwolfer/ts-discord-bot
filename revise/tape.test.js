@@ -22,24 +22,50 @@ test('die types have separate queues', () => {
     assert.strictEqual(cursor.take(1, 100), 47);
 });
 
-test('taking from an exhausted queue throws NeedsFreshDice with the bounds', () => {
+test('taking from an exhausted queue returns null so the caller can roll fresh', () => {
     const t = tape.createTape();
     tape.record(t, 1, 100, 47);
 
     const cursor = tape.startReplay(t);
-    cursor.take(1, 100);
-    assert.throws(
-        () => cursor.take(1, 100),
-        (err) => err.name === 'NeedsFreshDice' && err.min === 1 && err.max === 100
-    );
+    assert.strictEqual(cursor.take(1, 100), 47);
+    assert.strictEqual(cursor.take(1, 100), null, 'a revision may add dice the original never rolled');
 });
 
-test('taking a die type that was never recorded throws NeedsFreshDice', () => {
+test('taking a die type that was never recorded returns null', () => {
     const t = tape.createTape();
     tape.record(t, 1, 100, 47);
 
     const cursor = tape.startReplay(t);
-    assert.throws(() => cursor.take(1, 20), (err) => err.name === 'NeedsFreshDice');
+    assert.strictEqual(cursor.take(1, 20), null);
+});
+
+test('an empty tape replays as all-fresh rather than failing', () => {
+    const cursor = tape.startReplay(tape.createTape());
+    assert.strictEqual(cursor.take(1, 100), null);
+    assert.strictEqual(cursor.hasLeftovers(), false, 'nothing recorded means nothing left over');
+});
+
+test('countDice totals every bucket', () => {
+    assert.strictEqual(tape.countDice(tape.createTape()), 0);
+    assert.strictEqual(tape.countDice(null), 0);
+    assert.strictEqual(tape.countDice(undefined), 0);
+
+    const t = tape.createTape();
+    tape.record(t, 1, 100, 47);
+    tape.record(t, 1, 20, 14);
+    tape.record(t, 1, 20, 3);
+    assert.strictEqual(tape.countDice(t), 3, 'd100 and d20 buckets both count');
+});
+
+test('countDice is how a revision reports the dice it added', () => {
+    const original = tape.createTape();
+    tape.record(original, 1, 100, 47);
+
+    const produced = tape.createTape();
+    tape.record(produced, 1, 100, 47);   // replayed
+    tape.record(produced, 1, 100, 88);   // added by the revision
+
+    assert.strictEqual(tape.countDice(produced) - tape.countDice(original), 1);
 });
 
 test('hasLeftovers is true when the replay used fewer dice than recorded', () => {

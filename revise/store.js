@@ -3,7 +3,7 @@
 // Cleared by a bot restart, which is intentional: see the design doc.
 // No imports: this file must stay loadable without node_modules.
 
-const TTL_MS = 24 * 60 * 60 * 1000;   // 24 hours
+const TTL_MS = 72 * 60 * 60 * 1000;   // 72 hours
 const MAX_RECORDS = 5000;
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000;   // hourly
 
