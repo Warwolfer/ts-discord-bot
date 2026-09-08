@@ -215,12 +215,28 @@ Rules, all enforced in `revise/index.js`:
 - The comment's `DC (n)` token is locked when the seed rolled dice. The rest of
   the comment stays editable, but `DC (60)` -> `DC (50)` would flip a visible
   Save Failure into a Save Success.
+  Note the lock is deliberately partial: the same flip stays reachable by
+  adding a modifier (`?r save a # DC (60)` rolling 58 -> `?r save a 5` totals
+  63 and passes), and by `dc50` inside a generic roll's `args[0]`. The DC is
+  the GM's number, so it is locked; a modifier is the player's own claim and
+  is visible in the embed, so it is not. Do not read this lock as closing the
+  failure-to-success flip in general.
 - Comment **mode triggers deliberately stay editable** (`aoe`, `versatile`,
   `simulcast`, `melee`, `risky`, `snipe`, `vilify`, `release`, `ultra`). User
   ruling: forgetting to type `aoe` is exactly the mistake this feature exists
-  to fix. A trigger that reshapes the roll changes its dice count and is caught
-  by the dice-count refusal anyway — `?r defile c` (2d20) -> `# vilify` (1d20)
-  is refused on leftovers — and the rank beside it is now locked.
+  to fix.
+  **This one is a genuine, accepted gap, not a backstopped one.** Some triggers
+  do change the dice count and are caught by the dice-count refusal —
+  `?r defile c` (2d20) -> `# vilify` (1d20) is refused on leftovers, and
+  `# release(3)` -> `# release(2)` likewise. But `aoe`/`versatile`/`simulcast`
+  do NOT: `BASE_DICE` is a literal in `handleHeal` (2) and `handlePowerHeal`
+  (4), and `handleBuff`/`handlePowerBuff` roll a single d100, so the trigger
+  only picks a divisor and a target count. `?r heal a s # aoe` showing
+  "+20 HP to 3 allies" can be revised to `?r heal a s` and become
+  "+60 HP to 1 ally" on the same two dice; in `handleBuff`, dropping `aoe`
+  also adds `PER_CHARGE_BONUS`. Accepted because locking it would block the
+  feature's main use case, and both messages stay linked and visible in the
+  channel.
 - The dice count must match exactly. More or fewer is refused.
 - Exception: when the original rolled zero dice (a validation error, or a
   passive with no roll), fresh dice are allowed **once**. The locked-arg and
@@ -263,6 +279,18 @@ Two things to keep in mind:
   misfires on ordinary comments: `# going for a crit` used to force a 100.
 - A new threshold or multiplier keyed on a rank needs no extra protection.
   Ranks are non-numeric args, so the lock above already covers them.
+- **Do not read a numeric positional argument.** `lockedArgs` filters the
+  numbers out before comparing, so it is position-blind: `?r attack a s 10`
+  and `?r attack 10 a s` compare equal. Nothing exploits that today, because
+  no numeric string is a valid rank or flag and the reorder just fails
+  downstream on `getRankData`. A handler that read, say, a target count or a
+  die count from `args[2]` would slip straight through the lock. Read such a
+  value from the comment instead, and make sure it drives the dice count so
+  the dice-count refusal covers it — that is what `release (N)` does.
+- **A multiplier amplifies the freely-editable modifier.** Modifiers stay
+  editable by design, so a player who sees a ×7 can then revise a `+100` onto
+  it for +700. That is the accepted cost of the feature, not a defect, but
+  keep it in mind when setting a new multiplier's ceiling.
 
 Tests: `node --test`
 
