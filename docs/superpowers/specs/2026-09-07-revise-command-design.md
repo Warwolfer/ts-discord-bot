@@ -72,9 +72,8 @@ between branches.
 
 Exports:
 
-- `startRecording()` — begin a fresh tape for the current roll
-- `record(min, max, value)` — append a value to the matching bucket
-- `takeTape()` — return the finished tape and stop recording
+- `createTape()` — a fresh empty tape
+- `record(tape, min, max, value)` — append a value to the matching bucket
 - `startReplay(tape)` — return a replay cursor object; does not mutate the
   input tape, so the same tape can be replayed any number of times
 - `cursor.take(min, max)` — next recorded value, or `null` when the bucket
@@ -220,7 +219,7 @@ Two new routes in `interactionCreate`:
 ```
 ?r attack a s 10 # Lethal
   runRoll: context = { commandText: "attack a s 10 # Lethal", userId }
-           tape.startRecording()
+           currentTape = tape.createTape()
   handleAttack: roll(1,100) -> 47, recorded as "1-100": [47]
   sendReply: send embed + [Copy Result] [Revise Command]
              store.putTape(sent.id, tape)          // a first roll is its own root
@@ -244,7 +243,7 @@ submit "attack a s 10 5 # Lethal Combat Focus"
   parseCommandString(record.commandText) -> { oldArgs, oldComment }
   rootId      = record.rootId || messageId
   chainTape   = store.getTape(rootId)
-  chainTape === null -> ephemeral "This roll can no longer be revised."
+  chainTape == null -> ephemeral   // loose ==: undefined must not read as {} "This roll can no longer be revised."
   originalHadDice = !tape.isEmpty(chainTape)
   args[0] !== oldArgs[0]      -> ephemeral "The action must stay the same (`attack`)."
   advantageMode differs       -> ephemeral "Advantage/disadvantage must stay the same."
@@ -256,10 +255,13 @@ submit "attack a s 10 5 # Lethal Combat Focus"
   cursor = tape.startReplay(chainTape)
   run handler against a CaptureAdapter (collects the payload, sends nothing)
 
-    cursor.hasLeftovers()   -> ephemeral DICE_MISMATCH (fewer dice than the chain holds)
-      (hasLeftovers is vacuous on an empty tape, not skipped)
     captured embed colour is EMBED_COLORS.error
                             -> ephemeral, show the error text, post nothing
+                               (checked FIRST: an error embed did no legitimate
+                                roll, and its own reason beats the generic
+                                dice message. Do not reorder.)
+    cursor.hasLeftovers()   -> ephemeral DICE_MISMATCH (fewer dice than the chain holds)
+      (hasLeftovers is vacuous on an empty tape, not skipped)
 
   n = record.revisionCount + 1
   decorate: title + " (revised)"  when n === 1
@@ -321,7 +323,8 @@ It exposes `author` (the original roller, so `message.author.id` and
 | `args[1]`'s advantage/disadvantage mode changed | Advantage/disadvantage must stay the same. Make a fresh roll instead. |
 | A non-numeric argument changed, seed had dice | Only numeric modifiers and the comment can change on a roll that already rolled dice. Ranks and flags are locked. Make a fresh roll instead. |
 | The comment's `DC (n)` changed, seed had dice | The DC cannot change on a roll that already rolled dice. Make a fresh roll instead. |
-| Dice count differs | This change needs a different number of dice than the original roll. Make a fresh roll instead. |
+| The revision uses FEWER dice than the chain holds | This uses fewer dice than the roll now has, and dropping a die that is already on screen is not allowed. If this chain has had dice added, revise the most recent version instead. Otherwise make a fresh roll. |
+| The chain tape is gone (expired or evicted) while the record lives | This roll can no longer be revised. Checked in `onButton` too, so the modal does not open. |
 | Revision yields an error embed | (the handler's own error text) |
 | `channel.send` fails after the defer | Could not post the revised roll here. The channel may be locked or gone. |
 
@@ -351,9 +354,26 @@ out of the story category stopped accepting `?r` while Revise kept working.
   "Invalid Rank", and revising it to `a s` produces a real roll. The
   locked-args and locked-DC refusals are also skipped on an empty seed —
   there is no visible result to protect, and correcting the rank is the
-  point. Both the new record *and the root record* are then seeded with the
-  dice that revision rolled, so a second click on the same original message
-  replays them instead of rolling again.
+  point. The dice that revision rolls are committed to the CHAIN tape, so a
+  second click on the same original message replays them instead of rolling
+  again. There is no per-record "root re-seed" any more: that was the patch
+  for leak 2, and it was superseded by chain-scoped tapes. Do not reintroduce
+  a per-record write here — that is leak 3, the sibling fork, measured at six
+  distinct values from six siblings.
+  Note also that no "exhaustion check" exists (`NeedsFreshDice` was removed)
+  and `hasLeftovers` is **not** skipped on an empty seed; it is simply vacuous,
+  because an empty tape has nothing left over.
+- **A failed post after the tape is committed.** `putTape` runs before
+  `deferUpdate`, so if `channel.send` then fails the dice are committed but
+  nothing was published. This is deliberate and fail-closed: a retry replays
+  those dice rather than resampling them, and nothing about them is visible to
+  the player in the meantime. The visible wrinkle is that every existing
+  message in the chain then refuses with `DICE_MISMATCH` until the player
+  retypes the dice-adding edit, because their prefilled commands use fewer dice
+  than the chain now holds.
+- **Both submits post when two race.** The loser replays the winner's dice, so
+  its `diceAdded` is 0 and it carries no "Revision added N more dice" note.
+  Two identical rolls in the channel, not two different ones.
 - **`[TEST]` comment overrides.** Five handlers (`critical`, `sharp`,
   `reckless`, `buff`, `powerbuff`) let a comment force roll values for
   manual testing. Every override block sits *after* the `roll()` calls, so
@@ -371,8 +391,16 @@ out of the story category stopped accepting `?r` while Revise kept working.
   (`\btest[:=]\s*`), including the bare value-forcing forms, which became
   `test:r=100`, `test:r1=100`, `test:r2=50`, `test:d100=100`,
   `test:d200=200`, `test:r200=150`.
-- **Concurrent revisions.** `startReplay` returns a per-revision cursor and
-  never mutates the stored tape, so two people revising at the same moment
+- **Concurrent revisions.** The per-revision cursor and the non-mutating
+  `startReplay` are NOT what makes this safe — that reasoning was wrong, and
+  concurrent submits really could substitute a die already published. Safety
+  comes from committing the grown chain tape BEFORE `deferUpdate` and
+  `channel.send`, so the read-modify-write does not span two Discord round
+  trips. Two simultaneous submits both post; the loser replays the winner's
+  dice and its `diceAdded` is 0. **Do not move `store.putTape` back below the
+  awaits**, however tempting it is to avoid committing dice on a failed send:
+  that reopens A posting 92, B posting 6, and revising A replaying 6.
+  The old text said two people revising at the same moment
   cannot interfere.
 - **Modal 3 second limit.** The replay is pure computation. Acknowledge the
   modal before the `channel.send`.

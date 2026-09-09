@@ -291,7 +291,11 @@ async function onModalSubmit(interaction) {
     // — the fail-closed direction, since the next revision replays them.
     // One place, so there is no second copy to fork from: that is the whole
     // point of keying tapes by root id rather than by message.
-    store.putTape(rootId, producedTape || {});
+    // Fall back to chainTape, not {}: an empty tape would read as "rolled no
+    // dice" on every later revision and unlock every rank/flag and DC refusal
+    // for the whole chain. Unreachable today — setRollContext always allocates
+    // one — but the fallback should fail closed, not open.
+    store.putTape(rootId, producedTape || chainTape);
 
     const suffix = nextCount === 1 ? '(revised)' : `(revised ${nextCount}x)`;
     embed.setTitle(`${embed.data.title ?? ''} ${suffix}`.trim());
