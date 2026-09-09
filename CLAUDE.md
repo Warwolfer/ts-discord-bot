@@ -27,7 +27,7 @@ ts-discord-bot/
 ├── revise/
 │   ├── index.js            # Revise button + modal glue
 │   ├── tape.js             # Dice tape: record and replay
-│   ├── store.js            # In-memory revisable-roll store (72h TTL)
+│   ├── store.js            # Revisable-roll records + per-chain dice tapes (72h)
 │   ├── components.js       # Copy Result + Revise Command button row
 │   └── captureAdapter.js   # Collects a reply payload without sending
 └── commands/
@@ -244,12 +244,22 @@ Rules, all enforced in `revise/index.js`:
   `null` when a bucket runs dry and `roll()` rolls a fresh one.
   The preprocessor stays skipped for those added dice, or a revision could add
   a trigger phrase and conjure the die it acts on in one edit.
-- **Added dice are recorded and written back to BOTH records**, the new one and
-  the root the button reads. `currentTape` records every die a run uses,
-  replayed or fresh, so the stored tape is exactly what the run used. Without
-  the root write-back, every click of that one button would roll the added dice
-  fresh again — an unlimited reroll of exactly the dice the player chose to
-  add. The tape only ever grows, since removing is refused.
+- **The dice tape belongs to the revision CHAIN, not to any one message.** It
+  lives in `revise/store.js` keyed by the chain's root message id; records carry
+  a `rootId` and no tape of their own. `currentTape` records every die a run
+  uses, replayed or fresh, and the grown tape is written back to the chain in
+  one place.
+  This is structural, and it was arrived at the hard way. Storing the tape per
+  message leaked three times: an empty seed could be re-revised, then the root
+  record could, then — the one that finally forced this design — a
+  modifier-only revision would **clone** the shorter tape into a sibling
+  record. Mint five siblings with `10` -> `11` -> `12`, then buy a risky die
+  from each, and you get five independent rolls of the same die to pick from.
+  Measured: six siblings, six distinct values, best 99 against an honest 40.
+  One tape per chain leaves no second copy to fork from.
+  A record whose chain tape is missing is treated as **expired**, not as
+  "rolled no dice" — otherwise it would hand out fresh dice for a roll whose
+  originals are still on screen.
 - The revised embed says `Revision added N more dice` whenever N > 0. The
   player picks how many to add *after* seeing the base roll, so it has to be
   visible to anyone reading the thread. **This is an informed decision, not a
@@ -266,9 +276,14 @@ Rules, all enforced in `revise/index.js`:
 - Advantage/disadvantage is locked. `args[1]`'s adv/dis mode may not change,
   because the dice count stays the same either way and the player would be
   picking the better of two numbers already on screen.
-- Revisions chain. When the seed had dice, every revision replays the same
-  original tape, so the dice never drift, and the "Revised from" link always
-  points at the first roll.
+- Revisions chain. Every revision replays the chain's tape, so dice already on
+  screen never change; the tape only ever grows, since removing is refused. The
+  "Revised from" link always points at the first roll.
+  One consequence worth knowing: once any revision adds dice, the ORIGINAL
+  message's button still prefills the ORIGINAL command, which now uses fewer
+  dice than the chain holds — so submitting it unchanged is refused. That is
+  correct (you cannot drop a published die) but it looks like nothing changed,
+  so `DICE_MISMATCH` explains the chain rather than blaming the edit.
 - All refusals are ephemeral. Nothing is posted to the channel.
 - A revision whose handler produces a validation-error embed (e.g. an invalid
   rank) reports that embed's own error text rather than the generic

@@ -253,9 +253,13 @@ async function sendReply(message, embed, comment, options = {}) {
         if (message.capturesOnly) return;
 
         if (!options.skipRevise && ctx.commandText) {
+            // A first roll is its own chain root. The dice live in the chain
+            // tape, keyed by this id, not on the record — see revise/store.js
+            // for why per-record tapes let siblings fork.
+            store.putTape(sent.id, rolledTape);
             store.put(sent.id, {
                 commandText: ctx.commandText,
-                tape: rolledTape,
+                rootId: sent.id,
                 userId: ctx.userId,
                 channelId: sent.channelId,
                 // The first roll seeds rootUrl; revisions carry it forward, so

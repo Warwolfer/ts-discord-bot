@@ -97,10 +97,10 @@ Record shape:
 ```js
 {
   commandText: "attack a s 10 # Lethal",  // raw, exactly as the modal shows
-  tape: { "1-100": [47] },                // exactly the dice the run that
-                                           // produced this record used:
-                                           // replayed ones plus any the
-                                           // revision added. Only ever grows.
+  rootId: "789...",                       // the chain this record belongs to.
+                                           // The dice tape lives in the chain
+                                           // map under this id, NOT here — see
+                                           // "Chain-scoped tapes" below.
   userId: "123...",                       // original roller
   channelId: "456...",
   rootUrl: "https://discord.com/...",     // the FIRST roll in the chain
@@ -239,7 +239,10 @@ submit "attack a s 10 5 # Lethal Combat Focus"
   same record / owner / channel checks again
   parseCommandString(newText) -> { args, comment }
   parseCommandString(record.commandText) -> { oldArgs, oldComment }
-  originalHadDice = !tape.isEmpty(record.tape)
+  rootId      = record.rootId || messageId
+  chainTape   = store.getTape(rootId)
+  chainTape === null -> ephemeral "This roll can no longer be revised."
+  originalHadDice = !tape.isEmpty(chainTape)
   args[0] !== oldArgs[0]      -> ephemeral "The action must stay the same (`attack`)."
   advantageMode differs       -> ephemeral "Advantage/disadvantage must stay the same."
   originalHadDice && lockedArgs(args) differs
@@ -247,13 +250,11 @@ submit "attack a s 10 5 # Lethal Combat Focus"
   originalHadDice && declaredDC(comment) !== declaredDC(oldComment)
                               -> ephemeral "The DC cannot change..."
 
-  cursor = tape.startReplay(record.tape)
+  cursor = tape.startReplay(chainTape)
   run handler against a CaptureAdapter (collects the payload, sends nothing)
 
-    NeedsFreshDice thrown   -> ephemeral "This change needs a different number
-                                          of dice than the original roll."
     cursor.hasLeftovers()   -> same refusal
-      (both checks skipped when tape.isEmpty(record.tape))
+      (hasLeftovers is vacuous on an empty tape, not skipped)
     captured embed colour is EMBED_COLORS.error
                             -> ephemeral, show the error text, post nothing
 
@@ -265,11 +266,12 @@ submit "attack a s 10 5 # Lethal Combat Focus"
   channel.send(payload)
     throws                  -> followUp ephemeral "Could not post the revised roll here."
                                (reply is impossible: the defer already acknowledged)
-  store.put(newMsg.id, { ...record,
-                         commandText: newText,
+  store.putTape(rootId, producedTape)        // the CHAIN's tape, one place
+  store.put(newMsg.id, { commandText: newText, rootId,
+                         userId, channelId, rootUrl,
                          revisionCount: record.revisionCount + 1 })
   !originalHadDice        -> store.put(messageId, { ...record,
-                                                    tape: producedTape,
+                                                    rootId,
                                                     createdAt: record.createdAt })
                              so the ROOT button replays instead of rerolling
 ```
@@ -277,36 +279,21 @@ submit "attack a s 10 5 # Lethal Combat Focus"
 `rootUrl` is copied forward unchanged, so the tenth revision still links to
 the very first roll.
 
-`tape` is copied forward unchanged only when the seed had dice — that is
-what keeps the dice from drifting across a chain of revisions. When the seed
-had no dice (a validation error, or a passive with no roll), this revision's
-own freshly-rolled tape is stored as the new seed instead. Storing the
-original's empty tape there would let every future revision roll fresh dice
-again too, turning the "fix a typo'd rank" exception into an unlimited
-reroll loop. This was a spec defect: the two rules ("tape is copied forward
-unchanged" and "an empty seed allows fresh dice") are each correct alone but
-unsound together, and shipped that way until the whole-branch review caught
-the chain.
-
-**The ROOT record is re-seeded too.** Writing the new tape only to
-`store.put(sent.id, ...)` closes the chain but not the root. The button the
-player clicked is keyed to `messageId`, and that record still holds the empty
-tape, so `originalHadDice` is `false` on *every* click of it: scroll back to
-the same "Invalid Rank" message, click Revise again, and the dice are rolled
-fresh again. Every attempt reads "(revised)" rather than "(revised 2x)",
-because each derives `revisionCount` from the untouched root — nothing
-distinguishes the seventh attempt from the first. Measured against the real
-`tape.js` and `store.js`: eight clicks on one seed produced eight different
-d100 values. So a successful revision off an empty seed also does
+The tape is NOT copied forward per record. It lives on the chain, keyed by
+`rootId`, and a revision writes the grown tape back there — see
+"Chain-scoped dice tapes" at the end of this document for why, and for the
+three separate leaks that a per-record tape produced before the model was
+changed.
 
 ```js
-store.put(messageId, { ...record, tape: producedTape || {}, createdAt: record.createdAt });
+store.putTape(rootId, producedTape || {});
 ```
 
-`createdAt` is passed explicitly because `store.put` only stamps it when
-absent; re-seeding must not extend the 72h TTL. The second click on the
-original message then sees a non-empty tape, replays it, and every later
-refusal (locked args, locked DC, dice count) applies as normal.
+`putTape` keeps the chain's original `createdAt`, so growing the tape must not
+and does not extend the 72h TTL. Every record in the chain — the root, the
+message just posted, and any sibling minted by an earlier modifier-only
+revision — reads that one tape, so the next click replays it and every later
+refusal (locked args, locked DC, fewer dice) applies as normal.
 
 ### CaptureAdapter
 
@@ -403,7 +390,7 @@ added. Node 22 supplies `node --test`.
 `revise/tape.test.js`
 - record then replay returns the same values in the same order
 - a `1d20` take does not consume a `1d100` value
-- taking from an exhausted bucket throws `NeedsFreshDice` with the bounds
+- taking from an exhausted bucket returns `null`, so the caller rolls fresh
 - `hasLeftovers` is true when the replay used fewer dice than recorded
 - `startReplay` does not mutate the stored tape, so the same tape replays
   identically twice
@@ -413,7 +400,7 @@ added. Node 22 supplies `node --test`.
 - get past the 72h expiry returns `null`
 - exceeding the size cap evicts the oldest record
 
-Run: `node --test revise/`
+Run: `node --test` (bare — a directory argument crashes on Node 22.14 Windows)
 
 `lockedArgs`, `declaredDC` and `advantageMode` live in `revise/index.js`,
 which imports discord.js, so they cannot be unit tested in this repo. Moving
@@ -436,3 +423,41 @@ time (which must replay, not reroll).
 - A staff or GM override
 - Undoing or deleting a revision; the chain is append-only
 - Editing the original message in place
+
+
+## Chain-scoped dice tapes
+
+**The tape belongs to a revision chain, not to a message.** `revise/store.js`
+holds two maps: records keyed by message id (carrying `commandText`, `rootId`,
+`userId`, `channelId`, `rootUrl`, `revisionCount`), and dice tapes keyed by the
+chain's **root message id**. A first roll is its own root.
+
+This was reached the hard way. A per-message tape leaked three separate times,
+each fixed locally and each time leaving another copy to leak from:
+
+1. An empty-tape seed could be revised repeatedly, rolling fresh dice each time.
+   Fixed by storing the revision's own tape on the new record.
+2. The ROOT record still held the empty tape, so clicking the original message's
+   button kept rolling fresh. Fixed by writing back to the root as well.
+3. **A modifier-only revision clones the tape into a sibling record.** `10` ->
+   `11` -> `12` mints siblings that each hold the pre-add tape. Buy a risky die
+   from each and you get an independent roll of the same die per sibling.
+   Measured against the real modules: six siblings, six distinct values, best
+   99 against the honest 40. On `charge # release (N)` it is pure upside.
+
+Leaks 1 and 2 were symptoms; the cause is that a revision **forks** the record
+graph rather than extending a line, so any per-record tape has copies. One tape
+per chain has no copies. `putTape` keeps the chain's original `createdAt`, so
+growing the tape does not buy another TTL.
+
+**A record whose chain tape is missing is treated as expired**, not as "rolled
+no dice". The other reading would hand out fresh dice for a roll whose original
+dice are still on screen.
+
+### Refusal wording
+
+`DICE_MISMATCH` covers only the "fewer dice" direction now. It also fires on an
+edit that changed nothing: once a chain has added dice, the original message's
+button still prefills the original command, which uses fewer dice than the
+chain holds. The message therefore explains the chain instead of blaming the
+edit, and points the player at the most recent version.

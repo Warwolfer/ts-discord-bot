@@ -66,3 +66,72 @@ test('exceeding the size cap evicts the oldest record first', () => {
     assert.strictEqual(store.get('msg-1'), null, 'second oldest evicted');
     assert.notStrictEqual(store.get(`msg-${store.MAX_RECORDS + 1}`), null, 'newest kept');
 });
+
+// --- chain tapes -------------------------------------------------------
+// The tape belongs to the whole revision chain, not to one message. Storing
+// it per-message let a modifier-only revision clone the shorter tape into a
+// sibling record, and each sibling could then roll its own version of the
+// same added die — pick-the-best over as many siblings as you cared to mint.
+
+test('putTape then getTape round trips, keyed by the chain root', () => {
+    store._reset();
+    store.putTape('root-1', { '1-100': [47] });
+
+    assert.deepStrictEqual(store.getTape('root-1'), { '1-100': [47] });
+    assert.strictEqual(store.getTape('other-root'), null);
+});
+
+test('getTape distinguishes an empty tape from a missing one', () => {
+    store._reset();
+    store.putTape('root-1', {});
+
+    assert.deepStrictEqual(store.getTape('root-1'), {}, 'a roll that rolled no dice');
+    assert.strictEqual(store.getTape('nope'), null, 'no such chain');
+});
+
+test('every record in a chain sees the same tape, so a sibling cannot fork it', () => {
+    store._reset();
+    store.putTape('root-1', { '1-100': [47, 12] });
+    store.put('root-1', { rootId: 'root-1', userId: 'u1' });
+    store.put('sibling', { rootId: 'root-1', userId: 'u1' });
+
+    // The chain grows once, from whichever record the player clicked.
+    store.putTape('root-1', { '1-100': [47, 12, 88] });
+
+    const fromRoot = store.getTape(store.get('root-1').rootId);
+    const fromSibling = store.getTape(store.get('sibling').rootId);
+    assert.deepStrictEqual(fromRoot, fromSibling, 'siblings must not hold their own copy');
+    assert.deepStrictEqual(fromSibling, { '1-100': [47, 12, 88] });
+});
+
+test('re-writing a chain tape does not extend its expiry', () => {
+    store._reset();
+    const now = Date.now();
+    store.putTape('root-1', { '1-100': [47] }, now);
+
+    store.putTape('root-1', { '1-100': [47, 88] });   // a later revision grows it
+
+    assert.notStrictEqual(store.getTape('root-1', now + store.TTL_MS - 1000), null);
+    assert.strictEqual(
+        store.getTape('root-1', now + store.TTL_MS + 1000), null,
+        'growing the tape must not buy the chain another full TTL'
+    );
+});
+
+test('sweep drops expired chain tapes', () => {
+    store._reset();
+    const now = Date.now();
+    store.putTape('old', { '1-100': [1] }, now - store.TTL_MS - 1);
+    store.putTape('new', { '1-100': [2] }, now);
+
+    store.sweep(now);
+
+    assert.strictEqual(store.getTape('old', now), null);
+    assert.notStrictEqual(store.getTape('new', now), null);
+});
+
+test('_reset clears chain tapes as well as records', () => {
+    store.putTape('root-1', { '1-100': [47] });
+    store._reset();
+    assert.strictEqual(store.getTape('root-1'), null);
+});

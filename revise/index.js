@@ -28,8 +28,14 @@ const { EMBED_COLORS } = require('../commands/constants');
 const MODAL_PREFIX = 'revise_modal:';
 const MAX_INPUT_LENGTH = 4000;   // Discord's text input value limit
 
+// Only the "fewer dice" direction is refused now, so the message says so.
+// It also fires on an ordinary-looking edit: once any revision in a chain adds
+// dice, the ORIGINAL message's button still prefills the original command,
+// which uses fewer dice than the chain now holds. Nothing about that command
+// changed, so the message has to explain the chain rather than blame the edit.
 const DICE_MISMATCH =
-    'This change needs a different number of dice than the original roll. Make a fresh roll instead.';
+    'This uses fewer dice than the roll now has, and dropping a die that is already on screen is not allowed. ' +
+    'If this chain has had dice added, revise the most recent version instead. Otherwise make a fresh roll.';
 
 // EMBED_COLORS.error is the string 'Red'. A built embed stores the resolved
 // number, so compare numbers. 15548997 is discord.js's 'Red'; the offense red
@@ -141,9 +147,23 @@ async function onModalSubmit(interaction) {
         return ephemeral(interaction, 'The command cannot be empty.');
     }
 
+    // The dice belong to the whole revision chain. Reading them from the chain
+    // rather than from this record is what stops a sibling — a record made by
+    // an earlier modifier-only revision, still holding the shorter tape — from
+    // rolling its own version of a die another sibling already published.
+    const rootId = record.rootId || messageId;
+    const chainTape = store.getTape(rootId);
+
+    // A record without a chain tape is a chain we no longer know about. Treat
+    // it as expired rather than as "rolled no dice", or it would hand out
+    // fresh dice for a roll whose originals are still on screen.
+    if (chainTape === null) {
+        return ephemeral(interaction, 'This roll can no longer be revised.');
+    }
+
     // An original that rolled nothing has no result to protect, so fresh dice
     // are allowed. That makes Revise the natural fix for a typed rank.
-    const originalHadDice = !tape.isEmpty(record.tape);
+    const originalHadDice = !tape.isEmpty(chainTape);
 
     const oldName = (oldArgs[0] || '').toLowerCase();
     const newName = args[0].toLowerCase();
@@ -209,7 +229,7 @@ async function onModalSubmit(interaction) {
         // Always replay, even from an empty tape: take() returns null when a
         // die was never recorded, and roll() then rolls it fresh. That folds
         // the old empty-seed special case into the ordinary path.
-        cursor = startReplay(record.tape);
+        cursor = startReplay(chainTape);
 
         await handler(adapter, args, comment);
 
@@ -250,7 +270,7 @@ async function onModalSubmit(interaction) {
         return ephemeral(interaction, DICE_MISMATCH);
     }
 
-    const diceAdded = tape.countDice(producedTape) - tape.countDice(record.tape);
+    const diceAdded = tape.countDice(producedTape) - tape.countDice(chainTape);
 
     const suffix = nextCount === 1 ? '(revised)' : `(revised ${nextCount}x)`;
     embed.setTitle(`${embed.data.title ?? ''} ${suffix}`.trim());
@@ -284,32 +304,22 @@ async function onModalSubmit(interaction) {
     }
 
     // producedTape is exactly the dice this run used: the replayed ones plus
-    // any the revision added. Storing it locks the added dice in, so a later
-    // revision replays them rather than rolling new ones.
-    const usedTape = producedTape || {};
+    // any the revision added. It goes to the CHAIN, in one place, so every
+    // record in the chain sees the grown tape at once. There is no second copy
+    // to fork from, which is the whole point of keying tapes by root id.
+    // putTape keeps the chain's original createdAt, so growing it does not buy
+    // another full TTL.
+    store.putTape(rootId, producedTape || {});
 
     store.put(sent.id, {
         commandText: newText,
-        tape: usedTape,
+        rootId,
         userId: record.userId,
         channelId: sent.channelId,
         rootUrl: record.rootUrl,
         revisionCount: nextCount,
         createdAt: Date.now()
     });
-
-    // Re-seed the ROOT too. The clicked button reads the record at messageId,
-    // so if that record still held the shorter tape, every click would roll
-    // the added dice fresh again — an unlimited reroll of exactly the dice the
-    // player chose to add. The tape only ever grows, since removing dice is
-    // refused above. Preserve createdAt so re-seeding does not extend the TTL.
-    if (diceAdded > 0) {
-        store.put(messageId, {
-            ...record,
-            tape: usedTape,
-            createdAt: record.createdAt
-        });
-    }
 }
 
 module.exports = { onButton, onModalSubmit, MODAL_PREFIX };
