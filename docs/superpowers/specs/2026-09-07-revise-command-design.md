@@ -90,7 +90,8 @@ Removing dice is still refused, by `hasLeftovers()`.
 
 #### `revise/store.js`
 
-In-memory `Map` keyed by the bot reply message id.
+Two in-memory `Map`s: records keyed by the bot reply message id, and dice
+tapes keyed by the chain's ROOT message id.
 
 Record shape:
 
@@ -100,7 +101,7 @@ Record shape:
   rootId: "789...",                       // the chain this record belongs to.
                                            // The dice tape lives in the chain
                                            // map under this id, NOT here — see
-                                           // "Chain-scoped tapes" below.
+                                           // "Chain-scoped dice tapes" below.
   userId: "123...",                       // original roller
   channelId: "456...",
   rootUrl: "https://discord.com/...",     // the FIRST roll in the chain
@@ -109,7 +110,8 @@ Record shape:
 }
 ```
 
-Exports `put`, `get` (returns `null` when missing or expired), and `sweep`.
+Exports `put`, `get`, `putTape`, `getTape` (both getters return `null` when
+missing or expired) and `sweep`, which covers both maps.
 Expiry is 72 hours. A size cap with oldest-first eviction bounds memory.
 Sweep runs on an interval and lazily on `get`.
 
@@ -221,7 +223,8 @@ Two new routes in `interactionCreate`:
            tape.startRecording()
   handleAttack: roll(1,100) -> 47, recorded as "1-100": [47]
   sendReply: send embed + [Copy Result] [Revise Command]
-             store.put(sent.id, { commandText, tape, userId,
+             store.putTape(sent.id, tape)          // a first roll is its own root
+             store.put(sent.id, { commandText, rootId: sent.id, userId,
                                   rootUrl: sent.url, revisionCount: 0 })
 ```
 
@@ -253,7 +256,7 @@ submit "attack a s 10 5 # Lethal Combat Focus"
   cursor = tape.startReplay(chainTape)
   run handler against a CaptureAdapter (collects the payload, sends nothing)
 
-    cursor.hasLeftovers()   -> same refusal
+    cursor.hasLeftovers()   -> ephemeral DICE_MISMATCH (fewer dice than the chain holds)
       (hasLeftovers is vacuous on an empty tape, not skipped)
     captured embed colour is EMBED_COLORS.error
                             -> ephemeral, show the error text, post nothing
@@ -262,18 +265,19 @@ submit "attack a s 10 5 # Lethal Combat Focus"
   decorate: title + " (revised)"  when n === 1
             title + " (revised " + n + "x)"  when n >= 2
             description + "\n\nRevised from [original roll](record.rootUrl)"
+  store.putTape(rootId, producedTape)        // the CHAIN's tape, ONE place,
+                                             // committed BEFORE the awaits so
+                                             // two concurrent submits cannot
+                                             // both sample a fresh die
   interaction.deferUpdate()
   channel.send(payload)
     throws                  -> followUp ephemeral "Could not post the revised roll here."
                                (reply is impossible: the defer already acknowledged)
-  store.putTape(rootId, producedTape)        // the CHAIN's tape, one place
+                               (the dice stay committed: unseen, and the next
+                                revision replays them — the fail-closed way)
   store.put(newMsg.id, { commandText: newText, rootId,
                          userId, channelId, rootUrl,
                          revisionCount: record.revisionCount + 1 })
-  !originalHadDice        -> store.put(messageId, { ...record,
-                                                    rootId,
-                                                    createdAt: record.createdAt })
-                             so the ROOT button replays instead of rerolling
 ```
 
 `rootUrl` is copied forward unchanged, so the tenth revision still links to
@@ -399,6 +403,13 @@ added. Node 22 supplies `node --test`.
 - put then get returns the record
 - get past the 72h expiry returns `null`
 - exceeding the size cap evicts the oldest record
+- putTape then getTape round trips, keyed by the chain root
+- getTape distinguishes an empty tape (`{}`, a roll that rolled no dice) from a
+  missing one (`null`, a chain we no longer know about)
+- every record in a chain reads the same tape, so a sibling cannot fork it
+- re-writing a chain tape does not extend its expiry
+- sweep drops expired chain tapes
+- `_reset` clears chain tapes as well as records
 
 Run: `node --test` (bare — a directory argument crashes on Node 22.14 Windows)
 

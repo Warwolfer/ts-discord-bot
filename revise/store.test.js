@@ -5,7 +5,7 @@ const store = require('./store');
 function makeRecord(overrides = {}) {
     return {
         commandText: 'attack a s 10',
-        tape: { '1-100': [47] },
+        rootId: 'msg-1',
         userId: 'user-1',
         channelId: 'chan-1',
         rootUrl: 'https://discord.com/channels/1/2/3',

@@ -97,6 +97,13 @@ async function onButton(interaction) {
     if (!checkPermissions(interaction)) {
         return ephemeral(interaction, 'Rolls cannot be revised in this channel.');
     }
+    // The record can outlive its chain tape: records are re-stamped on every
+    // revision while the chain keeps its original createdAt, and the two maps
+    // evict independently. onModalSubmit refuses this anyway, but checking
+    // here saves the player filling in a modal that cannot be submitted.
+    if (store.getTape(record.rootId || interaction.message.id) == null) {
+        return ephemeral(interaction, 'This roll can no longer be revised.');
+    }
 
     // Short, not Paragraph: a command is one line, parseCommandString splits on
     // a literal space, and a stray newline would surface as "Invalid Rank" with
@@ -157,7 +164,9 @@ async function onModalSubmit(interaction) {
     // A record without a chain tape is a chain we no longer know about. Treat
     // it as expired rather than as "rolled no dice", or it would hand out
     // fresh dice for a roll whose originals are still on screen.
-    if (chainTape === null) {
+    // Loose ==: this one check is what stands between a chain and unlocking
+    // every rank/DC refusal, so it must catch undefined as well as null.
+    if (chainTape == null) {
         return ephemeral(interaction, 'This roll can no longer be revised.');
     }
 
@@ -272,6 +281,18 @@ async function onModalSubmit(interaction) {
 
     const diceAdded = tape.countDice(producedTape) - tape.countDice(chainTape);
 
+    // Commit the grown tape to the CHAIN here, BEFORE the two awaits below.
+    // deferUpdate and channel.send are Discord round trips; leaving the
+    // read-modify-write open across them lets two submits on the same message
+    // both read the pre-growth tape, both roll their own extra die, and the
+    // later write replace a die the earlier one already published on screen.
+    // Committing first makes the loser replay the winner's dice and post a
+    // duplicate instead. If the send then fails, the dice are locked in unseen
+    // — the fail-closed direction, since the next revision replays them.
+    // One place, so there is no second copy to fork from: that is the whole
+    // point of keying tapes by root id rather than by message.
+    store.putTape(rootId, producedTape || {});
+
     const suffix = nextCount === 1 ? '(revised)' : `(revised ${nextCount}x)`;
     embed.setTitle(`${embed.data.title ?? ''} ${suffix}`.trim());
     // Say so when the revision rolled dice the original never had. The player
@@ -302,14 +323,6 @@ async function onModalSubmit(interaction) {
             flags: MessageFlags.Ephemeral
         }).catch(() => {});
     }
-
-    // producedTape is exactly the dice this run used: the replayed ones plus
-    // any the revision added. It goes to the CHAIN, in one place, so every
-    // record in the chain sees the grown tape at once. There is no second copy
-    // to fork from, which is the whole point of keying tapes by root id.
-    // putTape keeps the chain's original createdAt, so growing it does not buy
-    // another full TTL.
-    store.putTape(rootId, producedTape || {});
 
     store.put(sent.id, {
         commandText: newText,

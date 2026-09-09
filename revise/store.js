@@ -73,7 +73,10 @@ function getTape(rootId, now = Date.now()) {
         chainTapes.delete(rootId);
         return null;
     }
-    return entry.tape;
+    // Never hand back a nullish tape. Callers gate on "is this null" to decide
+    // whether the chain still exists, and an `undefined` slipping through that
+    // gate would read as "rolled no dice" and unlock the rank and DC refusals.
+    return entry.tape ?? null;
 }
 
 /** Drops every expired record and chain tape. */
