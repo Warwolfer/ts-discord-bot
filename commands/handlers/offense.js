@@ -15,6 +15,7 @@ const {
     isReplaying
 } = require('../../helpers');
 const { RANK_DATA, EMBED_COLORS } = require('../constants');
+const { computeRiskyConversion, formatRiskyNote } = require('../riskyConversion');
 
 // --- OFFENSIVE HANDLERS ---
 
@@ -549,12 +550,16 @@ async function handleSharp(message, args, comment) {
     }
   }
 
-  // If not forcedRisky, compute Risky from mods (if active)
+  // If not forcedRisky, compute Risky from mods (if active).
+  // The pool is mods + NG1, and the leftover carries the NG bonus with it, so
+  // ngBonus must not be added a second time in the total below.
+  let ngFolded = false;
   if (!forcedRisky && riskyActive) {
-    const riskyCount = Math.floor(Math.max(0, modsTotal) / 40);
-    for (let i = 0; i < riskyCount; i++) riskyRolls.push(roll(1, 100));
-    riskyFromMods = riskyCount > 0;
-    remainder = modsTotal - (riskyRolls.length * 40);
+    const conversion = computeRiskyConversion(modsTotal + ngBonus);
+    for (let i = 0; i < conversion.dice; i++) riskyRolls.push(roll(1, 100));
+    riskyFromMods = conversion.dice > 0;
+    remainder = conversion.remainder;
+    ngFolded = true;
   } else if (forcedRisky) {
     remainder = modsTotal;
   }
@@ -594,16 +599,13 @@ async function handleSharp(message, args, comment) {
 
   // Totals
   const riskySum = riskyRolls.reduce((a, b) => a + b, 0);
-  const riskyTally = riskyRolls.length
-  ? ` (${riskySum})`
-  : '';
   const totalBeforeMult =
     kept +
     riskySum +
     (mrData.value || 0) +
     (wrData.value || 0) +
     (forcedRisky || riskyActive ? remainder : (modifiers.total || 0)) +
-    ngBonus;
+    (ngFolded ? 0 : ngBonus);
 
   const finalTotal = Math.round(totalBeforeMult * multiplier);
 
@@ -622,7 +624,19 @@ async function handleSharp(message, args, comment) {
   } else if (hasMods && modsClean.length > 0) {
     parts.push(`${modsClean} (mods)`);
   }
-  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
+  // Folded into the Risky pool, NG1 is already inside (mods⋅R).
+  if (ngBonus > 0 && !ngFolded) parts.push(`${ngBonus} (NG⋅1)`);
+
+  const riskyNote = (forcedRisky || riskyActive)
+    ? `${formatRiskyNote({
+        dice: riskyRolls.length,
+        diceSum: riskySum,
+        remainder,
+        converted: convertedMods,
+        ngBonus: ngFolded ? ngBonus : 0,
+        forced: forcedRisky
+      })}\n`
+    : '';
 
   const calculation = parts.join(' + ');
   const calcWithMult = `${calculation} ×${multiplier}`;
@@ -643,11 +657,7 @@ async function handleSharp(message, args, comment) {
     `\n\`${calcWithMult}\`\n${passiveDisplay}\n` +
     `**${finalTotal} total**${resultTag ? ` ${resultTag}` : ''}\n` +
     (triggeredLine ? `${triggeredLine}\n` : '') +
-    (forcedRisky
-      ? `Risky (TEST) activated: generated ${riskyRolls.length} test d100; remainder ${remainder}.\n`
-      : (riskyActive
-          ? `Risky activated: converted ${convertedMods} into ${riskyRolls.length}d100 ${riskyTally}, remainder: +${remainder}.\n`
-          : '')) +
+    riskyNote +
     (ngNote ? `${ngNote}\n` : '') +
     (testScenario ? testNote : '');
 
@@ -792,11 +802,15 @@ async function handleReckless(message, args, comment) {
     }
   }
 
-  // If not forcedRisky, compute Risky from mods (if active)
+  // If not forcedRisky, compute Risky from mods (if active).
+  // The pool is mods + NG1, and the leftover carries the NG bonus with it, so
+  // ngBonus must not be added a second time in the total below.
+  let ngFolded = false;
   if (!forcedRisky && riskyActive) {
-    const riskyCount = Math.floor(Math.max(0, modsTotal) / 40);
-    for (let i = 0; i < riskyCount; i++) riskyRolls.push(roll(1, 100));
-    remainder = modsTotal - (riskyRolls.length * 40);
+    const conversion = computeRiskyConversion(modsTotal + ngBonus);
+    for (let i = 0; i < conversion.dice; i++) riskyRolls.push(roll(1, 100));
+    remainder = conversion.remainder;
+    ngFolded = true;
   } else if (forcedRisky) {
     remainder = modsTotal;
   }
@@ -854,9 +868,6 @@ async function handleReckless(message, args, comment) {
 
   // --- Totals ---
   const riskySum = riskyRolls.reduce((a, b) => a + b, 0);
-  const riskyTally = riskyRolls.length
-  ? ` (${riskySum})`
-  : '';
   const d100Sum = baseHundreds.reduce((a, b) => a + b, 0);
   const sPairKeptVal = (isS && sPairKept !== null) ? sPairKept : 0;
 
@@ -868,7 +879,7 @@ async function handleReckless(message, args, comment) {
     (mrData.value || 0) +
     (wrData.value || 0) +
     (riskyActive ? remainder : (modifiers.total || 0)) +
-    ngBonus;
+    (ngFolded ? 0 : ngBonus);
 
   const finalTotal = Math.round(totalBeforeMult * multiplier);
 
@@ -893,7 +904,19 @@ async function handleReckless(message, args, comment) {
   } else if (hasMods && modsClean.length > 0) {
     parts.push(`${modsClean} (mods)`);
   }
-  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
+  // Folded into the Risky pool, NG1 is already inside (mods⋅R).
+  if (ngBonus > 0 && !ngFolded) parts.push(`${ngBonus} (NG⋅1)`);
+
+  const riskyNote = riskyActive
+    ? `${formatRiskyNote({
+        dice: riskyRolls.length,
+        diceSum: riskySum,
+        remainder,
+        converted: convertedMods,
+        ngBonus: ngFolded ? ngBonus : 0,
+        forced: forcedRisky
+      })}\n`
+    : '';
 
   const calculation = parts.join(' + ');
   const calcWithMult = `${calculation} ×${multiplier}`;
@@ -915,9 +938,7 @@ async function handleReckless(message, args, comment) {
     `**${finalTotal} total**${resultTag ? ` ${resultTag}` : ''}\n` +
     (triggeredLine ? `${triggeredLine}\n` : '') +
     (`You are vulnerable.\n`) +
-    (riskyActive
-      ? `Risky activated: converted ${convertedMods} into ${riskyRolls.length}d100 ${riskyTally}, remainder: +${remainder}.\n`
-      : '') +
+    riskyNote +
     (ngNote ? `${ngNote}\n` : '') +
     (testScenario || /(?:d200|r200)/i.test(comment || '') ? testNote : '');
 
