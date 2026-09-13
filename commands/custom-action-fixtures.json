@@ -1,0 +1,42 @@
+{
+  "note": "Pinned by test/custom-action-codec.test.js in ts-builder and by commands/custom-action-codec.test.js in ts-discord-bot. The two files must stay byte-identical; a difference means the two copies of the codec have drifted.",
+  "smash": {
+    "action": {
+      "v": 1,
+      "n": "Enraged Tidal Smash",
+      "d": "Make a Reflex Save Roll to time the wave.",
+      "k": ["reflex"],
+      "g": [
+        [20, "Take 40 damage"],
+        [40, "Take 35 damage"],
+        [60, "Take 30 damage"],
+        [80, "Take 25 damage"],
+        [100, "Take 20 damage"],
+        [120, "Take 10 damage"],
+        [null, "No damage"]
+      ]
+    },
+    "importCode": "1Tc3BCoJAFIXhV7mc9RCOWcTsW9ZC3Q0uLsxNxdEBMwuid48Ch9l-_JzzxgqjFSYYnKeZW3FU9449VSPfOyg4GFx4EGIq5eblRRWvQmXwnpZASz8KLZ3Qk1fZQWGAsZj_JRqFFsbaPFOofxtFRo5HbgWNssWm-0Oix6hpe9o0T1udRU5jHf90ytPDe4VriNR8vg",
+    "rollCode": "1q1YqU7Iy1FHKU7JScs0rSkxPTVEIyUxJzFEIzk0szlDSUUpXsoqONjLQUQpJzE5VMDFQSEnMTUxPVYrViTaBiRqbIomawUWR1VrARI2Q1RoawIWRFRvC7TNEFs4rzcnRUfLLhwvF1gIA"
+  },
+  "splitter": {
+    "action": {
+      "v": 1,
+      "n": "Enraged Tide Splitter",
+      "d": "Take 20d20 damage, then make a Fortitude Save and consult the chart.",
+      "p": [["Base damage", "20d20"]],
+      "k": ["fortitude"],
+      "g": [
+        [40, "Take an additional 20d20 damage"],
+        [60, "Take an additional 12d20 damage"],
+        [80, "Take an additional 10d20 damage"],
+        [100, "Take an additional 8d20 damage"],
+        [120, "Take an additional 6d20 damage"],
+        [140, "Take an additional 4d20 damage"],
+        [null, "Take an additional 2d20 damage"]
+      ]
+    },
+    "importCode": "1dc_PCoJAEAbwVxm-8xAqEbLHoF4gb7KHwd1scV3F1i7Ru4f9gRS7Dr_5Zr47blApI0DhEAapraHCGUun3rsY7QCGgUIhjaUsMVlCRlqpLVO82EDtNBc6dkN0cZz25GZJgqGqC9fRx4lRdZEhbsDoocoSe7naTwwYr1RozWigSpy_UdCMevLbhN_3JZAY46LrgvjZN9Bc7tZZms1Z_oct0tJk3eULlq2z3YL96bCdszB6v9711-nHEw",
+    "rollCode": "1dc_BCgIhGATgV5E5_weVZVk8Bj1BexMPPygimS2bdYnePQqCVtzzfDMwTzxgFKHA4FhWjsGLOfkgTktOtYYVhAXGWhz4FoTnC8cAgpZeSzhHiJ90kISZz0FwEex9qulaOIuv-pUc2bHPlN6yaYc1a0r23dQw3Wdjw3Y-DFtW7jn3v_4793oD"
+  }
+}
