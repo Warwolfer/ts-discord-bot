@@ -52,6 +52,22 @@
 
     const ACTION_KEYS = ["v", "n", "d", "p", "k", "g"];
     const SCREEN_KEYS = ["v", "id", "name", "cycles", "createdAt", "updatedAt"];
+    const CYCLE_KEYS = ["id", "name", "actions"];
+    const ENTRY_KEYS = ["id", "action"];
+
+    // A DM types these; a pasted code carries them to an embed and a card.
+    // Control characters have no honest use, and a newline inside a name or a
+    // degree text would misalign both, so only the description may hold one.
+    const CONTROL_CHARS = /[\u0000-\u0008\u000b-\u001f\u007f]/;
+    const NEWLINES = /[\n\r]/;
+
+    function textProblem(value, what, max, allowNewlines) {
+        if (typeof value !== "string") return `${what} must be text.`;
+        if (value.length > max) return `${what} is longer than ${max} characters.`;
+        if (CONTROL_CHARS.test(value)) return `${what} has control characters in it.`;
+        if (!allowNewlines && NEWLINES.test(value)) return `${what} must be one line.`;
+        return null;
+    }
 
     // Thrown by the async half. A distinct class so a caller can tell "this
     // code is not valid" from a genuine bug in its own code.
@@ -122,9 +138,8 @@
             if (typeof text !== "string" || trimmed(text).length === 0) {
                 return `Degree ${i + 1} needs some text.`;
             }
-            if (text.length > MAX_TEXT) {
-                return `Degree ${i + 1}'s text is longer than ${MAX_TEXT} characters.`;
-            }
+            const textIssue = textProblem(text, `Degree ${i + 1}'s text`, MAX_TEXT, false);
+            if (textIssue) return textIssue;
         }
         return null;
     }
@@ -143,15 +158,17 @@
             }
         }
 
+        if (obj.v === undefined) return "That code has no version.";
         if (obj.v !== VERSION) return `That code is version ${obj.v}; this one reads version ${VERSION}.`;
 
         const name = trimmed(obj.n);
         if (typeof obj.n !== "string" || name.length === 0) return "An action needs a name.";
-        if (obj.n.length > MAX_NAME) return `The name is longer than ${MAX_NAME} characters.`;
+        const nameProblem = textProblem(name, "The name", MAX_NAME, false);
+        if (nameProblem) return nameProblem;
 
         if (obj.d !== undefined) {
-            if (typeof obj.d !== "string") return "The description must be text.";
-            if (obj.d.length > MAX_DESC) return `The description is longer than ${MAX_DESC} characters.`;
+            const descProblem = textProblem(obj.d, "The description", MAX_DESC, true);
+            if (descProblem) return descProblem;
         }
 
         if (obj.p !== undefined) {
@@ -162,9 +179,8 @@
                 if (!Array.isArray(row) || row.length !== 2) {
                     return `Dice row ${i + 1} should be a label and a dice string.`;
                 }
-                if (typeof row[0] !== "string" || row[0].length > MAX_LABEL) {
-                    return `Dice row ${i + 1}'s label is longer than ${MAX_LABEL} characters.`;
-                }
+                const labelProblem = textProblem(row[0], `Dice row ${i + 1}'s label`, MAX_LABEL, false);
+                if (labelProblem) return labelProblem;
                 const problem = diceProblem(row[1]);
                 if (problem) return `Dice row ${i + 1}: ${problem}`;
             }
@@ -197,11 +213,21 @@
             }
         }
 
+        if (obj.v === undefined) return "That code has no version.";
         if (obj.v !== VERSION) return `That code is version ${obj.v}; this one reads version ${VERSION}.`;
+
+        if (typeof obj.id !== "string" || obj.id.length === 0) return "The screen needs an id.";
+        if (obj.id.length > 64) return "The screen id is too long.";
+
         if (typeof obj.name !== "string" || trimmed(obj.name).length === 0) {
             return "The screen needs a name.";
         }
-        if (obj.name.length > MAX_NAME) return `The screen name is longer than ${MAX_NAME} characters.`;
+        const nameProblem = textProblem(obj.name, "The screen name", MAX_NAME, false);
+        if (nameProblem) return nameProblem;
+
+        if (!isInt(obj.createdAt) || obj.createdAt < 0 || !isInt(obj.updatedAt) || obj.updatedAt < 0) {
+            return "The screen's timestamps must be numbers.";
+        }
 
         if (!Array.isArray(obj.cycles) || obj.cycles.length === 0) {
             return "The screen needs at least one cycle.";
@@ -211,9 +237,22 @@
         for (let c = 0; c < obj.cycles.length; c++) {
             const cycle = obj.cycles[c];
             if (!isObject(cycle)) return `Cycle ${c + 1} is not a cycle.`;
+
+            const cycleKeys = Object.keys(cycle);
+            for (let i = 0; i < cycleKeys.length; i++) {
+                if (CYCLE_KEYS.indexOf(cycleKeys[i]) === -1) {
+                    return `A cycle has no field called "${cycleKeys[i]}".`;
+                }
+            }
+
+            if (typeof cycle.id !== "string" || cycle.id.length === 0 || cycle.id.length > 64) {
+                return `Cycle ${c + 1} needs an id.`;
+            }
             if (typeof cycle.name !== "string" || trimmed(cycle.name).length === 0) {
                 return `Cycle ${c + 1} needs a name.`;
             }
+            const cycleNameProblem = textProblem(cycle.name, `Cycle ${c + 1}'s name`, MAX_NAME, false);
+            if (cycleNameProblem) return cycleNameProblem;
             if (!Array.isArray(cycle.actions)) return `Cycle ${c + 1} has no action list.`;
             if (cycle.actions.length > MAX_CYCLE_ACTIONS) {
                 return `Cycle ${c + 1} has more than ${MAX_CYCLE_ACTIONS} actions.`;
@@ -221,6 +260,18 @@
             for (let a = 0; a < cycle.actions.length; a++) {
                 const entry = cycle.actions[a];
                 if (!isObject(entry)) return `Cycle ${c + 1}, action ${a + 1} is not an action.`;
+
+                const entryKeys = Object.keys(entry);
+                for (let i = 0; i < entryKeys.length; i++) {
+                    if (ENTRY_KEYS.indexOf(entryKeys[i]) === -1) {
+                        return `An action entry has no field called "${entryKeys[i]}".`;
+                    }
+                }
+
+                if (typeof entry.id !== "string" || entry.id.length === 0 || entry.id.length > 64) {
+                    return `Cycle ${c + 1}, action ${a + 1} needs an id.`;
+                }
+
                 const problem = validateAction(entry.action);
                 if (problem) return problem;
             }
@@ -240,6 +291,14 @@
         if (Array.isArray(action.p) && action.p.length) out.p = action.p;
         out.g = action.g;
         return out;
+    }
+
+    // The one thing that tells a roll payload from an import code: stripForRoll
+    // always drops `k`, and the DM's editor never lets an import code go out
+    // without at least one kind. The sheet's importer uses this to refuse a
+    // roll payload pasted where an import code belongs.
+    function isRollPayload(action) {
+        return !!action && typeof action === "object" && action.k === undefined;
     }
 
     /** Index of the degree a total lands in. */
@@ -293,13 +352,23 @@
     //
     // Compression goes through CompressionStream, which Node 22 and every
     // current browser have, so both copies of this file run the same path. zlib
-    // is kept only as a fallback for a Node older than 18; its output was
-    // measured byte-identical to CompressionStream's for these payloads.
+    // is kept only as a fallback for a Node older than 18; its output is
+    // identical for the pinned fixtures; correctness never depends on it
+    // because the bot only decodes.
 
     const ACTION_PREFIX = "1";
     const LIST_PREFIX = "L1";
     const SCREEN_PREFIX = "S1";
-    const MAX_BYTES = 4000;
+
+    // Inflated-JSON caps, by kind. An action must fit inside a Discord
+    // command, so its cap is tight. A list is a cycle's worth of actions and a
+    // screen is a DM's whole campaign; their caps exist only to bound what a
+    // pasted code can make a page allocate.
+    const MAX_BYTES = 4000;                  // one action
+    const CAPS = {};
+    CAPS[ACTION_PREFIX] = MAX_BYTES;
+    CAPS[LIST_PREFIX] = 400000;              // 100 actions at the action cap
+    CAPS[SCREEN_PREFIX] = 2000000;           // 50 cycles of those would be 20 MB; nobody has that
 
     const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     const B64_INDEX = (function () {
@@ -335,7 +404,7 @@
             if (value === undefined) {
                 throw new CodecError("That code has characters that do not belong in it.");
             }
-            // bits never exceeds 13 before this shift, so no overflow.
+            // bits never exceeds 12 before this shift, so no overflow.
             buffer = (buffer << 6) | value;
             bits += 6;
             if (bits >= 8) {
@@ -391,11 +460,11 @@
             return readAll(cs.readable, null);
         }
         const zlib = nodeZlib();
-        if (zlib) return new Uint8Array(zlib.deflateRawSync(Buffer.from(bytes), { level: 9 }));
+        if (zlib) return new Uint8Array(zlib.deflateRawSync(Buffer.from(bytes)));
         throw new CodecError("This browser cannot make custom action codes. Please update it.");
     }
 
-    async function inflate(bytes) {
+    async function inflate(bytes, cap) {
         if (typeof DecompressionStream === "function") {
             const ds = new DecompressionStream("deflate-raw");
             const writer = ds.writable.getWriter();
@@ -403,22 +472,22 @@
             // this stray promise must not be left to reject unobserved.
             writer.write(bytes).catch(function () {});
             writer.close().catch(function () {});
-            return readAll(ds.readable, MAX_BYTES);
+            return readAll(ds.readable, cap);
         }
         const zlib = nodeZlib();
         if (zlib) {
-            return new Uint8Array(zlib.inflateRawSync(Buffer.from(bytes), { maxOutputLength: MAX_BYTES }));
+            return new Uint8Array(zlib.inflateRawSync(Buffer.from(bytes), { maxOutputLength: cap }));
         }
         throw new CodecError("This browser cannot read custom action codes. Please update it.");
     }
 
     const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder("utf-8", { fatal: true });
 
     /** Encodes without validating. Exported for tests that need a tampered code. */
     async function encodeUnchecked(prefix, value) {
         const bytes = encoder.encode(JSON.stringify(value));
-        if (bytes.length > MAX_BYTES) {
+        if (bytes.length > CAPS[prefix]) {
             throw new CodecError("That is too long to turn into a code.");
         }
         return prefix + bytesToBase64url(await deflate(bytes));
@@ -439,21 +508,25 @@
         return null;
     }
 
-    async function decodeUnchecked(prefix, code) {
+    // Checks a code's prefix against the one expected and returns its body.
+    function bodyOf(prefix, code) {
         const text = String(code == null ? "" : code).trim();
         const found = kindOf(text);
-        if (found === null) {
-            throw new CodecError("That does not look like a code.");
-        }
+        if (found === null) throw new CodecError("That does not look like a code.");
         if (found !== prefix) {
             throw new CodecError(`That is ${PREFIX_NAMES[found]} code, not ${PREFIX_NAMES[prefix]} code.`);
         }
         const body = text.slice(prefix.length);
         if (body.length === 0) throw new CodecError("That code is empty.");
+        return body;
+    }
+
+    async function decodeUnchecked(prefix, code) {
+        const body = bodyOf(prefix, code);
 
         let json;
         try {
-            json = decoder.decode(await inflate(base64urlToBytes(body)));
+            json = decoder.decode(await inflate(base64urlToBytes(body), CAPS[prefix]));
         } catch (e) {
             if (e instanceof CodecError) throw e;
             throw new CodecError("That code is damaged; ask for it again.");
@@ -481,6 +554,31 @@
         return value;
     }
 
+    /**
+     * Synchronous decode of an action code. Node only: it needs zlib, which a
+     * browser does not have, and the browser never needs this because only the
+     * bot's roll handlers are forbidden from awaiting mid-roll.
+     */
+    function decodeActionSync(code) {
+        const zlib = nodeZlib();
+        if (!zlib) throw new CodecError("Synchronous decoding is only available in Node.");
+        const body = bodyOf(ACTION_PREFIX, code);
+        let value;
+        try {
+            const bytes = zlib.inflateRawSync(Buffer.from(base64urlToBytes(body)),
+                { maxOutputLength: CAPS[ACTION_PREFIX] });
+            value = JSON.parse(decoder.decode(new Uint8Array(bytes)));
+        } catch (e) {
+            if (e instanceof CodecError) throw e;
+            if (e && e.code === "ERR_BUFFER_TOO_LARGE") {
+                throw new CodecError("That code holds more than a chart should.");
+            }
+            throw new CodecError("That code is damaged; ask for it again.");
+        }
+        refuse(validateAction(value));
+        return value;
+    }
+
     async function encodeList(actions) {
         if (!Array.isArray(actions) || actions.length === 0) {
             throw new CodecError("There is nothing to export.");
@@ -492,6 +590,7 @@
     async function decodeList(code) {
         const value = await decodeUnchecked(LIST_PREFIX, code);
         if (!Array.isArray(value)) throw new CodecError("That code is damaged; ask for it again.");
+        if (value.length === 0) throw new CodecError("That list is empty.");
         for (let i = 0; i < value.length; i++) refuse(validateAction(value[i]));
         return value;
     }
@@ -522,6 +621,7 @@
         validateAction: validateAction,
         validateScreen: validateScreen,
         stripForRoll: stripForRoll,
+        isRollPayload: isRollPayload,
         matchDegree: matchDegree,
         rangeLabel: rangeLabel,
         diceIn: diceIn,
@@ -530,13 +630,15 @@
         LIST_PREFIX: LIST_PREFIX,
         SCREEN_PREFIX: SCREEN_PREFIX,
         MAX_BYTES: MAX_BYTES,
+        CAPS: CAPS,
         encodeAction: encodeAction,
         decodeAction: decodeAction,
+        decodeActionSync: decodeActionSync,
         encodeList: encodeList,
         decodeList: decodeList,
         encodeScreen: encodeScreen,
         decodeScreen: decodeScreen,
         decodeAny: decodeAny,
-        encodeUnchecked: encodeUnchecked,
+        encodeUnchecked: encodeUnchecked, // tests only: bypasses validation
     };
 });

@@ -86,3 +86,25 @@ test("the module loads without a browser and without discord.js", () => {
     assert.strictEqual(typeof Codec.decodeAction, "function");
     assert.strictEqual(typeof window, "undefined");
 });
+
+test("decodeActionSync is what the handler will call, and it agrees with the async decode", async () => {
+    for (const key of ["smash", "splitter"]) {
+        assert.deepStrictEqual(Codec.decodeActionSync(FIXTURES[key].rollCode),
+            await Codec.decodeAction(FIXTURES[key].rollCode), `${key} roll code`);
+        assert.deepStrictEqual(Codec.decodeActionSync(FIXTURES[key].importCode),
+            FIXTURES[key].action, `${key} import code`);
+    }
+});
+
+test("decodeActionSync refuses junk with a CodecError, never a raw throw", () => {
+    for (const junk of ["", "1", "1AAAA", "hello", "L1zzzz"]) {
+        assert.throws(() => Codec.decodeActionSync(junk), (e) => e.name === "CodecError", junk);
+    }
+});
+
+test("a full import code pasted as the payload still decodes; the bot just ignores k", () => {
+    const action = Codec.decodeActionSync(FIXTURES.splitter.importCode);
+    assert.deepStrictEqual(action.k, ["fortitude"]);
+    assert.strictEqual(Codec.isRollPayload(action), false);
+    assert.strictEqual(Codec.isRollPayload(Codec.decodeActionSync(FIXTURES.splitter.rollCode)), true);
+});
