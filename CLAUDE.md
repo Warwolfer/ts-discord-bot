@@ -104,6 +104,24 @@ ts-discord-bot/
    - Routes commands to appropriate handlers
    - Provides help system and error handling
 
+### Custom Action Codec
+
+`commands/custom-action-codec.js` reads the codes the build sheet produces for a
+DM's custom action (a name, dice everyone takes, a save or check, and a chart of
+degrees). It is **a byte-identical copy of `ts-builder/shared/custom-action-codec.js`**
+in a separate git repo, so nothing enforces that but a test: `commands/custom-action-fixtures.json`
+is the same file as `ts-builder/test/fixtures/custom-actions.json`, and both
+suites pin the same encoded strings. Edit one copy and you must copy it across.
+
+It has no dependencies — `CompressionStream` with a `zlib` fallback, and a
+hand-rolled base64url — which matters because this repo has no `package.json`
+and no `node_modules`, and `node --test` must keep working.
+
+The handler-facing surface is `decodeAction(code)`, `matchDegree(g, total)`,
+`rangeLabel(g, index)` and `diceIn(text)`: decode the payload, find the band the
+total landed in, name it for the embed, and roll whatever dice the DM wrote into
+that band's text.
+
 ### Command Pattern
 
 All commands follow this structure:
