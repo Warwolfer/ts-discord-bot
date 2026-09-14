@@ -262,6 +262,12 @@ Rules, all enforced in `revise/index.js`:
   `null` when a bucket runs dry and `roll()` rolls a fresh one.
   The preprocessor stays skipped for those added dice, or a revision could add
   a trigger phrase and conjure the die it acts on in one edit.
+- **Exception: `custom` may drop dice.** Its outcome dice belong to the degree
+  the total landed in, and a modifier edit can move the total into a degree
+  that rolls fewer. The base and check dice still replay from the tape, so
+  nothing on screen changes; only dice from a degree that no longer applies
+  are dropped. Decided in `revise/policy.js` (`mayDropDice`), which is the
+  only place a per-command revise exception lives.
 - **The dice tape belongs to the revision CHAIN, not to any one message.** It
   lives in `revise/store.js` keyed by the chain's root message id; records carry
   a `rootId` and no tape of their own. `currentTape` records every die a run
@@ -348,6 +354,9 @@ Tests: `node --test`
 
 **Generic Rolling:**
 - `XdY` - Generic dice roll (e.g., `?r 2d6`, `?r 1d100`)
+
+**Custom Actions (DM charts):**
+- `custom <payload> <kind> [adv|dis] <bonus|rank> [mods...]` - Rolls a DM's custom action from the code the build sheet produced: base dice, then a save (`fortitude`, `reflex`, `will`, bonus is a number) or a check (`mastery`, `expertise`, then a rank letter), then the degree the total lands in and the dice written into that degree's text. Pure core in `commands/customRoll.js` and `commands/d100Check.js`; glue in `handlers/basic.js`.
 
 **Combat - Offensive:**
 - `attack` / `atk` - Standard attack roll
@@ -470,6 +479,7 @@ TEST_CHANNEL_ID=
    - category: "alter" → handlers/alter.js
 2. Create handler function in appropriate handlers/*.js file: `async function handleNewCommand(message, args, comment)`
 3. Parse arguments and validate input
+   - Do not `await` anything before the handler's dice are rolled. `runRoll` sets the roll context and then calls the handler; an `await` in between lets a concurrent roll swap the tape (see the `currentTape` comment in `helpers.js`). If you need to decode or look something up, do it synchronously — the custom action codec has `decodeActionSync` for exactly this.
 4. Calculate results using helper functions and rank data from constants.js
 5. Build EmbedBuilder with color-coded results
 6. If attack/support action, call `getPassiveModifiers(actionType, comment)` to detect passive tags
