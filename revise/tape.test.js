@@ -99,3 +99,26 @@ test('isEmpty distinguishes no dice from some dice', () => {
     tape.record(t, 1, 6, 4);
     assert.strictEqual(tape.isEmpty(t), false);
 });
+
+test("merge keeps the longer queue in every bucket", () => {
+    const chain = { "1-20": [5, 6, 7, 8], "1-100": [59] };
+    const produced = { "1-20": [5, 6], "1-100": [59] };
+    assert.deepStrictEqual(tape.merge(chain, produced), { "1-20": [5, 6, 7, 8], "1-100": [59] });
+    assert.deepStrictEqual(tape.merge(produced, chain), { "1-20": [5, 6, 7, 8], "1-100": [59] });
+});
+
+test("merge takes a bucket the other tape does not have", () => {
+    assert.deepStrictEqual(tape.merge({ "1-20": [3] }, { "1-6": [4] }), { "1-20": [3], "1-6": [4] });
+});
+
+test("merge copies rather than aliasing either input", () => {
+    const chain = { "1-20": [1, 2] };
+    const out = tape.merge(chain, {});
+    out["1-20"].push(99);
+    assert.deepStrictEqual(chain["1-20"], [1, 2]);
+});
+
+test("merge tolerates a missing tape on either side", () => {
+    assert.deepStrictEqual(tape.merge(null, { "1-20": [1] }), { "1-20": [1] });
+    assert.deepStrictEqual(tape.merge({ "1-20": [1] }, null), { "1-20": [1] });
+});

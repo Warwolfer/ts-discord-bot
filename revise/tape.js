@@ -34,6 +34,29 @@ function isEmpty(tape) {
 }
 
 /**
+ * The union of two tapes, keeping the longer queue in each bucket.
+ *
+ * A revision may legitimately use fewer dice than the chain holds (see
+ * revise/policy.js: a custom roll's outcome dice belong to the degree its
+ * total landed in, and a modifier edit can move it to a smaller degree).
+ * The chain tape must still never shrink: the dropped dice are on screen in
+ * the original message, and a later revision back to the first modifier has
+ * to replay them rather than roll new ones. Since a run replays each bucket
+ * from the front, a shorter bucket is always a prefix of the longer one, so
+ * keeping the longer is lossless.
+ */
+function merge(chain, produced) {
+    const out = {};
+    const keys = new Set([...Object.keys(chain || {}), ...Object.keys(produced || {})]);
+    for (const key of keys) {
+        const a = (chain || {})[key] || [];
+        const b = (produced || {})[key] || [];
+        out[key] = b.length >= a.length ? b.slice() : a.slice();
+    }
+    return out;
+}
+
+/**
  * Returns a cursor that hands back the recorded values in order.
  * The queues are copied, so the stored tape is never consumed and can be
  * replayed any number of times.
@@ -59,4 +82,4 @@ function startReplay(tape) {
     };
 }
 
-module.exports = { createTape, record, countDice, isEmpty, startReplay };
+module.exports = { createTape, record, countDice, isEmpty, startReplay, merge };

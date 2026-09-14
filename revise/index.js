@@ -55,6 +55,12 @@ function ephemeral(interaction, content) {
  * Normalizes args[1] to an advantage mode. Revisions may not change it: the
  * dice count stays the same, so no other refusal fires, but the player would
  * be picking the better of two numbers already on screen.
+ *
+ * Note this reads args[1] and so does not cover `custom`, whose adv/dis word
+ * sits at args[3] behind the payload. That is safe: lockedArgs locks every
+ * non-numeric argument, the adv/dis word included, so a custom revision that
+ * changed it is refused there instead — with the generic locked-args message
+ * rather than this specific one.
  */
 function advantageMode(args) {
     const arg = String(args[1] ?? '').toLowerCase();
@@ -298,7 +304,10 @@ async function onModalSubmit(interaction) {
     // dice" on every later revision and unlock every rank/flag and DC refusal
     // for the whole chain. Unreachable today — setRollContext always allocates
     // one — but the fallback should fail closed, not open.
-    store.putTape(rootId, producedTape || chainTape);
+    // Never shrink the chain: a custom revision may use fewer dice, but the
+    // dice it dropped are still on screen in the original message and a later
+    // revision has to replay them. See tape.merge.
+    store.putTape(rootId, producedTape ? tape.merge(chainTape, producedTape) : chainTape);
 
     const suffix = nextCount === 1 ? '(revised)' : `(revised ${nextCount}x)`;
     embed.setTitle(`${embed.data.title ?? ''} ${suffix}`.trim());
