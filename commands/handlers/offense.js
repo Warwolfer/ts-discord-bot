@@ -381,11 +381,18 @@ async function handleCritical(message, args, comment) {
     multiplier = 3;
     resultTag = '(perfect crit!)';
     triggeredLine = `**Perfect Crit (100).** Multiplier ×3.`;
+  } else if (crit85 && any1) {
+    // One die in the crit range, the other a natural 1. The 85+ stands: a die
+    // that hit the crit range crits, and the 1 only adds its own event, the
+    // same way Reckless pays a Schrodinger crit in full.
+    multiplier = CRIT_MULT_BY_RANK[mrRank] ?? BASE_MULT;
+    resultTag = '(schrodinger crit!)';
+    triggeredLine = `**Crit (85+) with a Nat 1** Multiplier ×${multiplier} (${mrData.rank.toUpperCase()}-ranked mastery); chance for Nat1 event.`;
   } else if (is1_1) {
     resultTag = '(WORLD ENDER)';
     triggeredLine = `**WORLD ENDER (1,1).** Nat1+ event.`;
   } else if (any1) {
-    // exactly one die is 1 (since 1,1 handled above)
+    // exactly one die is 1, and it did not reach the crit range
     resultTag = '(crit fail...)';
     triggeredLine = `Crit Fail (1): Chance for Nat1 event.`;
   } else if (crit85) {
