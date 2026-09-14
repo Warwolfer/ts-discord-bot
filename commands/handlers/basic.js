@@ -5,6 +5,7 @@ const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDi
 const { EMBED_COLORS } = require('../constants');
 const Codec = require('../custom-action-codec');
 const { parseCustomArgs, rollCustom, describe } = require('../customRoll');
+const { advantageAt, rollD100, checkParts } = require('../d100Check');
 
 // Import resource files
 const masteries = require('../resources/masteries');
@@ -183,54 +184,16 @@ async function handleRange(message, args, comment) {
 async function handleSave(message, args, comment) {
   const displayName = getDisplayName(message);
 
-  // Parse advantage/disadvantage and bonus
-  let hasAdvantage = false;
-  let hasDisadvantage = false;
-  let bonusIndex = 1;
+  const adv = advantageAt(args, 1);
+  const modifiers = parseModifiers(args, adv.next);
 
-  // Check if first arg is advantage/disadvantage
-  if (args[1]) {
-    const arg1Lower = args[1].toLowerCase();
-    if (arg1Lower === 'adv' || arg1Lower === 'advantage') {
-      hasAdvantage = true;
-      bonusIndex = 2;
-    } else if (arg1Lower === 'dis' || arg1Lower === 'disadvantage') {
-      hasDisadvantage = true;
-      bonusIndex = 2;
-    }
-  }
-
-  // Parse bonus modifier
-  const modifiers = parseModifiers(args, bonusIndex);
-
-  // Parse NG trigger
   const ng = parseNGTrigger(comment);
   const ngBonus = ng.bonus;
   const ngNote = ng.note;
 
-  // Roll dice
-  let roll1 = roll(1, 100);
-  let roll2 = 0;
-  let rollDisplay = `1d100 (${roll1})`;
-
-  if (hasAdvantage) {
-    roll2 = roll(1, 100);
-    rollDisplay = `2d100kh1 (${roll1}, ${roll2})`;
-    roll1 = Math.max(roll1, roll2);
-  } else if (hasDisadvantage) {
-    roll2 = roll(1, 100);
-    rollDisplay = `2d100kl1 (${roll1}, ${roll2})`;
-    roll1 = Math.min(roll1, roll2);
-  }
-
-  // Calculate total
-  const total = roll1 + modifiers.total + ngBonus;
-
-  // Build calculation string
-  const parts = [rollDisplay];
-  if (modifiers.total !== 0) parts.push(`${modifiers.total} (mods)`);
-  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
-  const calculation = parts.join(' + ');
+  const d100 = rollD100(roll, adv.mode);
+  const total = d100.kept + modifiers.total + ngBonus;
+  const calculation = checkParts(d100.display, null, modifiers.total, ngBonus).join(' + ');
 
   // Parse save type from comment
   const commentString = typeof comment === 'string' ? comment : '';
@@ -268,24 +231,9 @@ async function handleSave(message, args, comment) {
 async function handleExpertise(message, args, comment) {
   const displayName = getDisplayName(message);
 
-  // Parse advantage/disadvantage and rank
-  let hasAdvantage = false;
-  let hasDisadvantage = false;
-  let rankIndex = 1;
+  const adv = advantageAt(args, 1);
+  const rankIndex = adv.next;
 
-  // Check if first arg is advantage/disadvantage
-  if (args[1]) {
-    const arg1Lower = args[1].toLowerCase();
-    if (arg1Lower === 'adv' || arg1Lower === 'advantage') {
-      hasAdvantage = true;
-      rankIndex = 2;
-    } else if (arg1Lower === 'dis' || arg1Lower === 'disadvantage') {
-      hasDisadvantage = true;
-      rankIndex = 2;
-    }
-  }
-
-  // Get rank data
   const mrData = getRankData(args[rankIndex], 'mastery');
   if (!mrData) {
     const embed = new EmbedBuilder()
@@ -295,37 +243,15 @@ async function handleExpertise(message, args, comment) {
     return sendReply(message, embed, '');
   }
 
-  // Parse additional modifiers (if any)
   const modifiers = parseModifiers(args, rankIndex + 1);
 
-  // Parse NG trigger
   const ng = parseNGTrigger(comment);
   const ngBonus = ng.bonus;
   const ngNote = ng.note;
 
-  // Roll dice
-  let roll1 = roll(1, 100);
-  let roll2 = 0;
-  let rollDisplay = `1d100 (${roll1})`;
-
-  if (hasAdvantage) {
-    roll2 = roll(1, 100);
-    rollDisplay = `2d100kh1 (${roll1}, ${roll2})`;
-    roll1 = Math.max(roll1, roll2);
-  } else if (hasDisadvantage) {
-    roll2 = roll(1, 100);
-    rollDisplay = `2d100kl1 (${roll1}, ${roll2})`;
-    roll1 = Math.min(roll1, roll2);
-  }
-
-  // Calculate total
-  const total = roll1 + mrData.value + modifiers.total + ngBonus;
-
-  // Build calculation string
-  const parts = [rollDisplay, `${mrData.value} (MR-${mrData.rank})`];
-  if (modifiers.total !== 0) parts.push(`${modifiers.total} (mods)`);
-  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
-  const calculation = parts.join(' + ');
+  const d100 = rollD100(roll, adv.mode);
+  const total = d100.kept + mrData.value + modifiers.total + ngBonus;
+  const calculation = checkParts(d100.display, { value: mrData.value, letter: mrData.rank }, modifiers.total, ngBonus).join(' + ');
 
   // Detect expertise name from comment
   const commentString = typeof comment === 'string' ? comment : '';
@@ -357,24 +283,9 @@ async function handleExpertise(message, args, comment) {
 async function handleMastery(message, args, comment) {
   const displayName = getDisplayName(message);
 
-  // Parse advantage/disadvantage and rank
-  let hasAdvantage = false;
-  let hasDisadvantage = false;
-  let rankIndex = 1;
+  const adv = advantageAt(args, 1);
+  const rankIndex = adv.next;
 
-  // Check if first arg is advantage/disadvantage
-  if (args[1]) {
-    const arg1Lower = args[1].toLowerCase();
-    if (arg1Lower === 'adv' || arg1Lower === 'advantage') {
-      hasAdvantage = true;
-      rankIndex = 2;
-    } else if (arg1Lower === 'dis' || arg1Lower === 'disadvantage') {
-      hasDisadvantage = true;
-      rankIndex = 2;
-    }
-  }
-
-  // Get rank data
   const mrData = getRankData(args[rankIndex], 'mastery');
   if (!mrData) {
     const embed = new EmbedBuilder()
@@ -384,37 +295,15 @@ async function handleMastery(message, args, comment) {
     return sendReply(message, embed, '');
   }
 
-  // Parse additional modifiers (if any)
   const modifiers = parseModifiers(args, rankIndex + 1);
 
-  // Parse NG trigger
   const ng = parseNGTrigger(comment);
   const ngBonus = ng.bonus;
   const ngNote = ng.note;
 
-  // Roll dice
-  let roll1 = roll(1, 100);
-  let roll2 = 0;
-  let rollDisplay = `1d100 (${roll1})`;
-
-  if (hasAdvantage) {
-    roll2 = roll(1, 100);
-    rollDisplay = `2d100kh1 (${roll1}, ${roll2})`;
-    roll1 = Math.max(roll1, roll2);
-  } else if (hasDisadvantage) {
-    roll2 = roll(1, 100);
-    rollDisplay = `2d100kl1 (${roll1}, ${roll2})`;
-    roll1 = Math.min(roll1, roll2);
-  }
-
-  // Calculate total
-  const total = roll1 + mrData.value + modifiers.total + ngBonus;
-
-  // Build calculation string
-  const parts = [rollDisplay, `${mrData.value} (MR-${mrData.rank})`];
-  if (modifiers.total !== 0) parts.push(`${modifiers.total} (mods)`);
-  if (ngBonus > 0) parts.push(`${ngBonus} (NG⋅1)`);
-  const calculation = parts.join(' + ');
+  const d100 = rollD100(roll, adv.mode);
+  const total = d100.kept + mrData.value + modifiers.total + ngBonus;
+  const calculation = checkParts(d100.display, { value: mrData.value, letter: mrData.rank }, modifiers.total, ngBonus).join(' + ');
 
   // Detect mastery name and break type from comment
   const commentString = typeof comment === 'string' ? comment : '';
