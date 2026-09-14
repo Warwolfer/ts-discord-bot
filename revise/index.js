@@ -13,6 +13,7 @@ const {
 
 const store = require('./store');
 const tape = require('./tape');
+const { mayDropDice } = require('./policy');
 const { CaptureAdapter } = require('./captureAdapter');
 const { parseCommandString } = require('../commands/parseCommand');
 const { resolveHandler } = require('../commands/commandHandlers');
@@ -275,7 +276,9 @@ async function onModalSubmit(interaction) {
     // one is how you would discard a bad result. Adding dice is allowed — it is
     // cleaner than rolling a separate 1d100 by hand — and the added dice are
     // recorded below, so a later revision replays them instead of rerolling.
-    if (cursor.hasLeftovers()) {
+    // See revise/policy.js: a custom roll's outcome dice belong to a degree
+    // that a modifier edit can legitimately leave behind.
+    if (cursor.hasLeftovers() && !mayDropDice(newName)) {
         return ephemeral(interaction, DICE_MISMATCH);
     }
 
