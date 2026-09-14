@@ -21,6 +21,7 @@ const commandHandlers = {
     'surge': basicHandlers.handleSurge,
     'immortal': basicHandlers.handleImmortal,
     'twice': basicHandlers.handleTwice,
+    'custom': basicHandlers.handleCustom,
 
     // Offense handlers
     'stable': offenseHandlers.handleStable,

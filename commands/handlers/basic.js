@@ -3,6 +3,8 @@
 const { EmbedBuilder } = require('discord.js');
 const { roll, getRankData, parseModifiers, sendReply, getPassiveModifiers, getDisplayName, parseTriggers, finalizeAndSend, parseNGTrigger, validateMinimumRank } = require('../../helpers');
 const { EMBED_COLORS } = require('../constants');
+const Codec = require('../custom-action-codec');
+const { parseCustomArgs, rollCustom, describe } = require('../customRoll');
 
 // Import resource files
 const masteries = require('../resources/masteries');
@@ -521,6 +523,92 @@ async function handleTwice(message, args, comment) {
 }
 
 
+/**
+ * ?r custom <payload> <kind> [adv|dis] <bonus|rank> [mods...] # comment
+ *
+ * A DM's custom action: base dice everyone takes, a save or check, the degree
+ * the total lands in, and the dice written into that degree's text, all in
+ * one embed. The payload is the code the build sheet produced.
+ *
+ * The decode is synchronous on purpose. A handler must not await between
+ * setRollContext and its dice — see the currentTape comment in helpers.js —
+ * and decodeAction is async, so the codec provides decodeActionSync for the
+ * bot alone. Nothing here awaits before sendReply.
+ */
+async function handleCustom(message, args, comment) {
+  const displayName = getDisplayName(message);
+
+  const parsed = parseCustomArgs(args);
+  if (parsed.error) {
+    const embed = new EmbedBuilder()
+      .setColor(EMBED_COLORS.error)
+      .setTitle('Invalid Custom Action')
+      .setDescription(parsed.error);
+    return sendReply(message, embed, '');
+  }
+
+  let action;
+  try {
+    action = Codec.decodeActionSync(parsed.payload);
+  } catch (e) {
+    const why = e instanceof Codec.CodecError ? e.message : 'That code could not be read.';
+    const embed = new EmbedBuilder()
+      .setColor(EMBED_COLORS.error)
+      .setTitle('Invalid Custom Action')
+      .setDescription(why);
+    return sendReply(message, embed, '');
+  }
+
+  // A save takes a number, which parseModifiers sums with any other mods, as
+  // handleSave has always done. A mastery or expertise check takes a rank
+  // letter first, then mods.
+  let rank = null;
+  let modsStart = parsed.bonusIndex;
+  if (parsed.needsRank) {
+    const mrData = getRankData(args[parsed.bonusIndex], 'mastery');
+    if (!mrData) {
+      const embed = new EmbedBuilder()
+        .setColor(EMBED_COLORS.error)
+        .setTitle('Invalid Rank')
+        .setDescription('Please provide a valid Mastery Rank (E-S).');
+      return sendReply(message, embed, '');
+    }
+    rank = { value: mrData.value, letter: mrData.rank };
+    modsStart = parsed.bonusIndex + 1;
+  }
+
+  const modifiers = parseModifiers(args, modsStart);
+  const ng = parseNGTrigger(comment);
+
+  const result = rollCustom({
+    action,
+    kind: parsed.kind,
+    mode: parsed.mode,
+    rank,
+    modsTotal: modifiers.total,
+    ngBonus: ng.bonus,
+    roll,
+  });
+
+  let description = describe(result);
+  if (ng.note) description += `\n${ng.note}`;
+  description += '\n';
+
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLORS.utility)
+    .setAuthor({ name: `${displayName}'s Roll`, iconURL: message.author.displayAvatarURL() })
+    .setTitle(action.n)
+    .setThumbnail('https://terrarp.com/db/action/roll.png')
+    .setDescription(description);
+
+  if (comment) {
+    embed.setDescription(embed.data.description + comment);
+  }
+
+  return sendReply(message, embed);
+}
+
+
 module.exports = {
     handleAttack,
     handleRush,
@@ -530,5 +618,6 @@ module.exports = {
     handleMastery,
     handleSurge,
     handleImmortal,
-    handleTwice
+    handleTwice,
+    handleCustom
 };
