@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 
 const Codec = require("./custom-action-codec");
-const { KIND_TITLES, parseCustomArgs, rollCustom, describe, escapeMarkdown } = require("./customRoll");
+const { KIND_TITLES, parseCustomArgs, rollCustom, describe, escapeMarkdown, MAX_DESCRIPTION } = require("./customRoll");
 
 const FIXTURES = JSON.parse(fs.readFileSync(path.join(__dirname, "custom-action-fixtures.json"), "utf8"));
 const SPLITTER = Codec.decodeActionSync(FIXTURES.splitter.rollCode);
@@ -190,13 +190,16 @@ test("describe collapses every dice list when the full text would pass 3800 char
     for (let i = 0; i < 100; i++) values.push(1000);
     const r = rollCustom({ action, kind: "fortitude", mode: "none", rank: null, modsTotal: 0, ngBonus: 0, roll: scripted(values) });
     const text = describe(r);
-    assert.ok(text.length < 4000, `description is ${text.length} characters`);
+    assert.ok(text.length <= MAX_DESCRIPTION, `description is ${text.length} characters`);
     assert.match(text, /Row 0: `100d1000 \(100 dice\)` = \*\*100000\*\*/);
     assert.match(text, /Outcome: `100d1000 \(100 dice\)` = \*\*100000\*\*/);
 });
 
 test("escapeMarkdown covers every character Discord treats as formatting", () => {
     assert.strictEqual(escapeMarkdown("a*b_c~d`e|f>g\\h"), "a\\*b\\_c\\~d\\`e\\|f\\>g\\\\h");
+    assert.strictEqual(escapeMarkdown("[terrarp.com](https://evil.example)"),
+        "\\[terrarp.com\\](https://evil.example)");
+    assert.strictEqual(escapeMarkdown("# Reward - take it"), "\\# Reward \\- take it");
     assert.strictEqual(escapeMarkdown("plain text 12d20"), "plain text 12d20");
     assert.strictEqual(escapeMarkdown(""), "");
 });

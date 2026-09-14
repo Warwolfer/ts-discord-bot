@@ -356,7 +356,7 @@ Tests: `node --test`
 - `XdY` - Generic dice roll (e.g., `?r 2d6`, `?r 1d100`)
 
 **Custom Actions (DM charts):**
-- `custom <payload> <kind> [adv|dis] <bonus|rank> [mods...]` - Rolls a DM's custom action from the code the build sheet produced: base dice, then a save (`fortitude`, `reflex`, `will`, bonus is a number) or a check (`mastery`, `expertise`, then a rank letter), then the degree the total lands in and the dice written into that degree's text. Pure core in `commands/customRoll.js` and `commands/d100Check.js`; glue in `handlers/basic.js`.
+- `custom <payload> <kind> [adv|dis] <bonus|rank> [mods...]` - Rolls a DM's custom action from the code the build sheet produced: base dice, then a save (`fortitude`, `reflex`, `will`, bonus is a number) or a check (`mastery`, `expertise`, then a rank letter), then the degree the total lands in and the dice written into that degree's text. Pure core in `commands/customRoll.js` and `commands/d100Check.js`; glue in `handlers/basic.js`. A very large chart can encode to a payload longer than Discord's 2000-character message limit, in which case the command cannot be sent at all — the build sheet is where that has to be caught, not here.
 
 **Combat - Offensive:**
 - `attack` / `atk` - Standard attack roll

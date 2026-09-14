@@ -23,9 +23,12 @@ const KIND_TITLES = {
 // These two take a rank letter where a save takes a number.
 const RANKED_KINDS = { mastery: true, expertise: true };
 
-// Past this the embed description (limit 4096) is at risk once the NG note and
-// the comment are appended, so the dice lists collapse to a count.
-const MAX_DESCRIPTION = 3800;
+// Discord's embed description limit is 4096. The handler appends the NG note,
+// the player's comment and, on a revision, a "Revised from" line, so the
+// rendered dice lists have to leave room for all of it. Collapsing early
+// costs almost nothing: the collapsed form of even a maximal chart is about
+// 2.5k characters.
+const MAX_DESCRIPTION = 2000;
 
 /**
  * ?r custom <payload> <kind> [adv|dis] <bonus|rank> [mods...]
@@ -120,9 +123,12 @@ function rollCustom(o) {
 
 // Everything Discord renders as formatting inside an embed description. The
 // DM's labels and degree texts are free text and go through this; the
-// numbers and the band label are ours and do not.
+// numbers and the band label are ours and do not. This also covers the link
+// brackets `[` and `]` (unescaped, a DM's free text could carry a masked
+// link inside a bot-authored embed) and the line-start heading/bullet
+// characters `#` and `-` (a row label can sit at the start of a line).
 function escapeMarkdown(text) {
-    return String(text == null ? "" : text).replace(/[\\*_~`|>]/g, "\\$&");
+    return String(text == null ? "" : text).replace(/[\\*_~`|>\[\]#-]/g, "\\$&");
 }
 
 function diceList(rolls, collapsed) {
@@ -151,4 +157,4 @@ function describe(result, collapsed) {
     return text;
 }
 
-module.exports = { KIND_TITLES, parseCustomArgs, rollCustom, describe, escapeMarkdown };
+module.exports = { KIND_TITLES, parseCustomArgs, rollCustom, describe, escapeMarkdown, MAX_DESCRIPTION };
