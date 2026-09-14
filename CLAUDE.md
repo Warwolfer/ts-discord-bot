@@ -135,6 +135,20 @@ Examples:
 - `?r heal c 15 # healing with C rank`
 - `?r attack a s 25 # Lethal Combat Focus` - Using passive ability tags
 
+### Critical Attack's crit ladder
+
+`handleCritical` resolves in this order: double 100 (×7), a 100 with a 1
+(Schrödinger, ×3), a lone 100 (×3), **an 85+ with a 1 (Schrödinger, the rank
+multiplier)**, double 1 (World Ender), a lone 1 (crit fail), then a plain 85+
+(the rank multiplier).
+
+The fourth branch was added after a review: a natural 1 used to cancel an 85+
+on the other die, which made a crit-range die pay the baseline ×1.2. The rule
+is that a die reaching the crit range crits; the 1 only adds its own Nat1
+event. Reckless has always worked this way for a 100 beside a 1, so the two
+now agree. `ts-builder/shared/plan-result.js` states the odds as `1 - 0.84²`
+= 29.4%, which is only true while this holds — change one and change both.
+
 ### Passive Ability Tag System
 
 Attack and support actions can detect passive ability tags in comments for display purposes. The tags are **display-only** and do not calculate bonuses automatically - users must manually add bonus values as modifiers.
