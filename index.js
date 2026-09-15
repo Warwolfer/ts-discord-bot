@@ -4,6 +4,7 @@ const http = require('node:http');
 require('dotenv').config();
 const revise = require('./revise');
 const { toBBCode } = require('./revise/bbcode');
+const rollIndex = require('./revise/rollIndex');
 
 // --- Environment Variable Setup ---
 // Destructure variables from .env for clarity and to catch missing ones early.
@@ -82,6 +83,7 @@ function canUseCommandInChannel(message) {
 
 client.once('ready', () => {
     console.log(`Ready! Logged in as ${client.user.tag}`);
+    rollIndex.startPruning();
 });
 
 client.on('guildMemberAdd', member => {

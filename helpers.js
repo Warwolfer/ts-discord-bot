@@ -15,6 +15,8 @@ const {
 const { parseCommandString } = require('./commands/parseCommand');
 const tape = require('./revise/tape');
 const store = require('./revise/store');
+const rollIndex = require('./revise/rollIndex');
+const { commentFromCommandText, tagsFromComment } = require('./commands/collectCore');
 const { buildRollButtons, buildCopyOnlyButtons } = require('./revise/components');
 
 const path = require('path');
@@ -266,6 +268,18 @@ async function sendReply(message, embed, comment, options = {}) {
                 // the tenth revision still links to the very first roll.
                 rootUrl: ctx.rootUrl || sent.url,
                 revisionCount: ctx.revisionCount || 0,
+                createdAt: Date.now()
+            });
+            // Same branch as store.put on purpose: the help and
+            // unknown-command replies take the skipRevise path, so they are
+            // never indexed. Not awaited — a slow disk must not hold up the
+            // reply, and append swallows its own errors.
+            rollIndex.append({
+                messageId: sent.id,
+                channelId: sent.channelId,
+                guildId: sent.guildId || null,
+                userId: ctx.userId,
+                tags: tagsFromComment(commentFromCommandText(ctx.commandText)),
                 createdAt: Date.now()
             });
         }
