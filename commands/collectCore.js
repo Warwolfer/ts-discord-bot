@@ -32,11 +32,19 @@ function tagsFromComment(raw) {
 }
 
 // Discord's message limit is 2000. A chunk is wrapped in a code fence and
-// nothing else, so 1900 leaves room for the fence and a stray newline.
+// nothing else, so 1900 leaves room for the fence and a stray newline. This
+// is a target, not a guarantee: chunkBlocks emits a lone over-limit block
+// whole rather than mangling it, so a chunk can still come out longer than
+// this — needsAttachment is what actually protects the 2000 cap.
 const MAX_CHUNK = 1900;
 // Past this many chunks the DM becomes a wall of messages, so the whole thing
 // goes as one file instead.
 const MAX_CHUNKS = 6;
+// Discord's hard per-message character limit.
+const DISCORD_MESSAGE_LIMIT = 2000;
+// buildPayloads wraps each chunk as "```\n" + chunk + "\n```" — 4 characters
+// of fence before the content, 4 after.
+const CHUNK_FRAME_OVERHEAD = 8;
 
 /**
  * Does this index entry belong to the asked-for character and thread, in this
@@ -74,7 +82,8 @@ function commentFromDescription(description) {
  * Joins BBCode blocks with one blank line and cuts the result into pieces no
  * longer than `limit`, always at a block boundary — a roll split down the
  * middle is not pasteable. A single block over the limit is emitted whole
- * rather than mangled; the caller's file path handles that case. A non-array
+ * rather than mangled; the caller must route that chunk to the file path —
+ * see needsAttachment(), which is what actually decides that. A non-array
  * `blocks` (e.g. null/undefined) yields no chunks rather than throwing.
  * @param {string[]} blocks
  * @param {number} [limit] - defaults to MAX_CHUNK
@@ -97,6 +106,65 @@ function chunkBlocks(blocks, limit) {
     }
     if (current) chunks.push(current);
     return chunks;
+}
+
+/**
+ * Whether the delivery must go as a file attachment instead of one message
+ * per chunk. True past MAX_CHUNKS chunks (too many separate DMs), but also
+ * true when any single chunk would exceed Discord's real 2000-character
+ * message limit once framed in a code block — chunkBlocks emits a lone
+ * over-limit block whole rather than mangling it, so that case has to be
+ * caught here, not assumed away by MAX_CHUNK already leaving headroom.
+ * @param {string[]} chunks
+ * @returns {boolean}
+ */
+function needsAttachment(chunks) {
+    if (!Array.isArray(chunks)) return false;
+    if (chunks.length > MAX_CHUNKS) return true;
+    return chunks.some(function (chunk) {
+        return String(chunk).length + CHUNK_FRAME_OVERHEAD > DISCORD_MESSAGE_LIMIT;
+    });
+}
+
+/**
+ * Keeps one entry per `messageId`, first occurrence wins, order preserved.
+ * Repairs an index that was already doubled by two overlapping scans, and
+ * makes a read idempotent regardless of how many times the same message id
+ * was appended.
+ * @param {Array<object>} entries
+ * @returns {Array<object>}
+ */
+function dedupeByMessageId(entries) {
+    if (!Array.isArray(entries)) return [];
+    const seen = new Set();
+    const out = [];
+    for (const entry of entries) {
+        const id = entry && entry.messageId;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        out.push(entry);
+    }
+    return out;
+}
+
+/**
+ * Drops any entry whose `messageId` is named in another entry's `supersedes`
+ * field, so a chain of revisions collapses to just the newest. Only looks
+ * within the given array — a message superseded by an entry that did not
+ * itself match this query is left alone, since there is nothing newer to
+ * prefer among the matches.
+ * @param {Array<object>} entries
+ * @returns {Array<object>}
+ */
+function dropSuperseded(entries) {
+    if (!Array.isArray(entries)) return [];
+    const superseded = new Set();
+    for (const entry of entries) {
+        if (entry && entry.supersedes != null) superseded.add(entry.supersedes);
+    }
+    return entries.filter(function (entry) {
+        return !(entry && superseded.has(entry.messageId));
+    });
 }
 
 /**
@@ -131,8 +199,13 @@ module.exports = {
     entryMatches: entryMatches,
     commentFromDescription: commentFromDescription,
     chunkBlocks: chunkBlocks,
+    needsAttachment: needsAttachment,
+    dedupeByMessageId: dedupeByMessageId,
+    dropSuperseded: dropSuperseded,
     attachmentName: attachmentName,
     noHitsMessage: noHitsMessage,
     MAX_CHUNK: MAX_CHUNK,
     MAX_CHUNKS: MAX_CHUNKS,
+    DISCORD_MESSAGE_LIMIT: DISCORD_MESSAGE_LIMIT,
+    CHUNK_FRAME_OVERHEAD: CHUNK_FRAME_OVERHEAD,
 };

@@ -13,6 +13,7 @@ const {
 
 const store = require('./store');
 const tape = require('./tape');
+const rollIndex = require('./rollIndex');
 const { mayDropDice } = require('./policy');
 const { CaptureAdapter } = require('./captureAdapter');
 const { parseCommandString } = require('../commands/parseCommand');
@@ -24,6 +25,7 @@ const {
     getCurrentTape,
     checkPermissions
 } = require('../helpers');
+const { commentFromCommandText, tagsFromComment } = require('../commands/collectCore');
 const { EMBED_COLORS } = require('../commands/constants');
 
 const MODAL_PREFIX = 'revise_modal:';
@@ -348,6 +350,26 @@ async function onModalSubmit(interaction) {
         rootUrl: record.rootUrl,
         revisionCount: nextCount,
         createdAt: Date.now()
+    });
+
+    // Index this revision the same way sendReply indexes an original roll
+    // (see helpers.js) — same field names, tags built the same way, plus
+    // `supersedes` naming the message it replaces. Without this, /collect's
+    // index fast path would keep handing out the roll this one just
+    // replaced, forever, since only sendReply's sends were ever indexed.
+    // Not awaited: append swallows its own errors, and nothing here should
+    // hold up the interaction, which is already answered above. This also
+    // sits well clear of the setRollContext/roll() window — that window
+    // closed at clearRollContext() in the finally block above, long before
+    // this point — so it does not touch that ordering rule.
+    rollIndex.append({
+        messageId: sent.id,
+        channelId: sent.channelId,
+        guildId: sent.guildId || null,
+        userId: record.userId,
+        tags: tagsFromComment(commentFromCommandText(newText)),
+        createdAt: Date.now(),
+        supersedes: messageId
     });
 }
 

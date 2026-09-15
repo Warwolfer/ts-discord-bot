@@ -147,3 +147,98 @@ test("the no-hits message names both inputs", () => {
         "No rolls found for Lune · 2768C1 in this channel in the last 14 days.",
     );
 });
+
+// needsAttachment ------------------------------------------------------
+
+test("a chunk right at the framed limit does not need an attachment", () => {
+    // 2000 - 8 (fence overhead) = 1992, so the framed message lands exactly
+    // on Discord's limit.
+    const chunk = "x".repeat(core.DISCORD_MESSAGE_LIMIT - core.CHUNK_FRAME_OVERHEAD);
+    assert.strictEqual(core.needsAttachment([chunk]), false);
+});
+
+test("a chunk one character past the framed limit needs an attachment", () => {
+    const chunk = "x".repeat(core.DISCORD_MESSAGE_LIMIT - core.CHUNK_FRAME_OVERHEAD + 1);
+    assert.strictEqual(core.needsAttachment([chunk]), true);
+});
+
+test("seven small chunks need an attachment on count alone", () => {
+    const chunks = new Array(7).fill("small");
+    assert.strictEqual(chunks.length > core.MAX_CHUNKS, true);
+    assert.strictEqual(core.needsAttachment(chunks), true);
+});
+
+test("an empty chunk list never needs an attachment", () => {
+    assert.strictEqual(core.needsAttachment([]), false);
+});
+
+test("a non-array chunks value never needs an attachment", () => {
+    assert.strictEqual(core.needsAttachment(null), false);
+    assert.strictEqual(core.needsAttachment(undefined), false);
+});
+
+// dedupeByMessageId ------------------------------------------------------
+
+test("dedupeByMessageId keeps one entry per messageId, first wins", () => {
+    const entries = [
+        { messageId: "1", tags: ["a"] },
+        { messageId: "2", tags: ["b"] },
+        { messageId: "1", tags: ["a-dup"] },
+    ];
+    const out = core.dedupeByMessageId(entries);
+    assert.deepStrictEqual(out.map((e) => e.messageId), ["1", "2"]);
+    assert.deepStrictEqual(out[0].tags, ["a"]);
+});
+
+test("dedupeByMessageId on an already-doubled index comes back clean", () => {
+    const entries = [
+        { messageId: "1" }, { messageId: "2" }, { messageId: "3" },
+        { messageId: "1" }, { messageId: "2" }, { messageId: "3" },
+    ];
+    assert.deepStrictEqual(
+        core.dedupeByMessageId(entries).map((e) => e.messageId),
+        ["1", "2", "3"],
+    );
+});
+
+test("dedupeByMessageId on an empty or non-array input yields an empty list", () => {
+    assert.deepStrictEqual(core.dedupeByMessageId([]), []);
+    assert.deepStrictEqual(core.dedupeByMessageId(null), []);
+    assert.deepStrictEqual(core.dedupeByMessageId(undefined), []);
+});
+
+// dropSuperseded ------------------------------------------------------
+
+test("dropSuperseded removes an entry named in another's supersedes", () => {
+    const entries = [
+        { messageId: "1" },
+        { messageId: "2", supersedes: "1" },
+    ];
+    assert.deepStrictEqual(
+        core.dropSuperseded(entries).map((e) => e.messageId),
+        ["2"],
+    );
+});
+
+test("dropSuperseded collapses a chain of revisions to just the newest", () => {
+    const entries = [
+        { messageId: "1" },
+        { messageId: "2", supersedes: "1" },
+        { messageId: "3", supersedes: "2" },
+    ];
+    assert.deepStrictEqual(
+        core.dropSuperseded(entries).map((e) => e.messageId),
+        ["3"],
+    );
+});
+
+test("dropSuperseded leaves entries alone when nothing supersedes them", () => {
+    const entries = [{ messageId: "1" }, { messageId: "2" }];
+    assert.deepStrictEqual(core.dropSuperseded(entries), entries);
+});
+
+test("dropSuperseded on an empty or non-array input yields an empty list", () => {
+    assert.deepStrictEqual(core.dropSuperseded([]), []);
+    assert.deepStrictEqual(core.dropSuperseded(null), []);
+    assert.deepStrictEqual(core.dropSuperseded(undefined), []);
+});

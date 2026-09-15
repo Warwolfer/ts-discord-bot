@@ -4,9 +4,12 @@
 // BBCode, delivered by DM.
 //
 // The index (revise/rollIndex.js) answers instantly when it has the rolls. It
-// only knows about rolls made since the bot last started, so a miss falls back
-// to reading the channel, and what that finds is written to the index so the
-// next call is instant again.
+// is a JSONL file on disk with 14-day retention, so it survives a bot
+// restart — it does not merely remember what happened since this process
+// started. A miss falls back to reading the channel; what that scan finds is
+// written back to the index so the next call is instant again, but only when
+// the scan completed cleanly. A scan that found nothing, or that hit an
+// error partway through, leaves the index untouched.
 const { SlashCommandBuilder, MessageFlags, AttachmentBuilder } = require('discord.js');
 const { InteractionAdapter } = require('../../adapters/interactionAdapter');
 const { checkPermissions } = require('../../helpers');
@@ -17,16 +20,25 @@ const core = require('../collectCore');
 const SCAN_PAGES = 3;         // 3 x 100 = the last 300 messages
 const SCAN_PAGE_SIZE = 100;
 
-/** Reads the channel backwards and returns the bot's matching roll messages. */
+/**
+ * Reads the channel backwards and returns the bot's matching roll messages.
+ * @returns {Promise<{hits: Array<import('discord.js').Message>, complete: boolean}>}
+ *   `complete` is false when a page fetch failed partway through, meaning
+ *   `hits` may be an incomplete set — the caller must not write that back to
+ *   the index (it would silently stick for the whole retention window) and
+ *   must tell the player the result may be short.
+ */
 async function scanChannel(channel, botId, character, thread) {
     const hits = [];
     let before;
+    let complete = true;
     for (let page = 0; page < SCAN_PAGES; page++) {
         let batch;
         try {
             batch = await channel.messages.fetch({ limit: SCAN_PAGE_SIZE, before: before });
         } catch (err) {
             console.error('[collect] channel scan failed:', err.message);
+            complete = false;
             break;
         }
         if (!batch || batch.size === 0) break;
@@ -49,18 +61,20 @@ async function scanChannel(channel, botId, character, thread) {
         before = batch.lastKey();
         if (batch.size < SCAN_PAGE_SIZE) break;   // a partial page is the end of the channel
     }
-    return hits;
+    return { hits: hits, complete: complete };
 }
 
 /**
  * Builds the delivery payloads once, so the DM attempt and the ephemeral
  * fallback (when DMs are closed) send identical content. Past MAX_CHUNKS
- * chunks that would be too many separate DMs, so it becomes one file
- * instead — in either destination.
+ * chunks that would be too many separate DMs, or when any one chunk would
+ * exceed Discord's message limit once framed in a code block (see
+ * core.needsAttachment), it becomes one file instead — in either
+ * destination.
  * @returns {Array<{content?: string, files?: import('discord.js').AttachmentBuilder[]}>}
  */
 function buildPayloads(chunks, fileName, whole) {
-    if (chunks.length > core.MAX_CHUNKS) {
+    if (core.needsAttachment(chunks)) {
         const file = new AttachmentBuilder(Buffer.from(whole, 'utf8'), { name: fileName });
         return [{ files: [file] }];
     }
@@ -99,13 +113,19 @@ module.exports = {
         const botId = interaction.client.user.id;
 
         try {
-            // 1. The index first.
-            const indexed = (await rollIndex.read()).filter(function (entry) {
-                return core.entryMatches(entry, channel.id, character, thread);
-            });
+            // 1. The index first. Read it unfiltered too, so the scan branch
+            // below can tell which ids it already knows about, regardless of
+            // this query's character/thread.
+            const allIndexed = await rollIndex.read();
+            const indexed = core.dropSuperseded(core.dedupeByMessageId(
+                allIndexed.filter(function (entry) {
+                    return core.entryMatches(entry, channel.id, character, thread);
+                })
+            ));
 
             let messages = [];
             let missing = 0;
+            let incomplete = false;
 
             if (indexed.length) {
                 indexed.sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
@@ -133,24 +153,45 @@ module.exports = {
             } else {
                 // 2. Nothing indexed — read the channel. The scan returns the
                 // message objects themselves, so they are not fetched again.
-                const found = await scanChannel(channel, botId, character, thread);
+                const scan = await scanChannel(channel, botId, character, thread);
+                const found = scan.hits;
                 found.sort(function (a, b) { return a.createdTimestamp - b.createdTimestamp; });
                 messages = found;
-                // Write them back so the next call skips the scan.
-                for (const message of found) {
-                    rollIndex.append({
-                        messageId: message.id,
-                        channelId: message.channelId,
-                        guildId: message.guildId || null,
-                        userId: message.interaction?.user?.id || null,
-                        tags: core.tagsFromComment(core.commentFromDescription(message.embeds[0].description)),
-                        createdAt: message.createdTimestamp
-                    });
+                incomplete = !scan.complete;
+
+                // Only write back a scan that ran to completion. A scan that
+                // hit an error partway through returns a partial set; writing
+                // that to the index would make every later /collect for this
+                // character and thread answer from the index and never scan
+                // again, silently truncating the result for the whole 14-day
+                // retention window.
+                if (scan.complete) {
+                    // Skip ids the index already holds (from another run that
+                    // scanned and appended first), so a re-scan does not keep
+                    // growing the file with duplicates of the same roll.
+                    const existingIds = new Set(allIndexed.map(function (e) { return e.messageId; }));
+                    for (const message of found) {
+                        if (existingIds.has(message.id)) continue;
+                        rollIndex.append({
+                            messageId: message.id,
+                            channelId: message.channelId,
+                            guildId: message.guildId || null,
+                            userId: message.interaction?.user?.id || null,
+                            tags: core.tagsFromComment(core.commentFromDescription(message.embeds[0].description)),
+                            createdAt: message.createdTimestamp
+                        });
+                    }
                 }
             }
 
+            const missingTail = missing ? ` ${missing} could not be fetched.` : '';
+            const incompleteTail = incomplete
+                ? ' The channel scan hit an error partway through, so this may be incomplete.'
+                : '';
+            const tail = missingTail + incompleteTail;
+
             if (!messages.length) {
-                return interaction.editReply({ content: core.noHitsMessage(character, thread) });
+                return await interaction.editReply({ content: core.noHitsMessage(character, thread) + tail });
             }
 
             // Every message here is confirmed bot-authored, with exactly one
@@ -161,14 +202,13 @@ module.exports = {
             });
             const whole = blocks.join('\n\n');
             const chunks = core.chunkBlocks(blocks, core.MAX_CHUNK);
-            const tail = missing ? ` ${missing} could not be fetched.` : '';
             const payloads = buildPayloads(chunks, core.attachmentName(character, thread), whole);
 
             try {
                 for (const payload of payloads) {
                     await interaction.user.send(payload);
                 }
-                return interaction.editReply({
+                return await interaction.editReply({
                     content: `Sent ${messages.length} rolls to your DMs.${tail}`
                 });
             } catch (err) {
