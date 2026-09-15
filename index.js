@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 require('dotenv').config();
 const revise = require('./revise');
+const { toBBCode } = require('./revise/bbcode');
 
 // --- Environment Variable Setup ---
 // Destructure variables from .env for clarity and to catch missing ones early.
@@ -233,37 +234,7 @@ client.on('interactionCreate', async interaction => {
             if (!embed) {
                 return interaction.reply({ content: 'No result found.', flags: MessageFlags.Ephemeral });
             }
-            let lines = [];
-            if (embed.title) lines.push(`[b]${embed.title}[/b]`);
-            if (embed.description) {
-                let desc = embed.description;
-                // The custom command escapes markdown in a DM's free text so
-                // Discord renders it literally (see commands/customRoll.js
-                // escapeMarkdown). Undo that first: BBCode needs the plain
-                // characters, and a stray backslash would survive into the
-                // forum post.
-                desc = desc.replace(/\\([\\*_~`|>\[\]#-])/g, '$1');
-                // Convert markdown links [text](url) to [url='url']text[/url].
-                // This must run before the inline-code and bold replaces below:
-                // bold runs first would turn **(121-140)** into
-                // [b](121-140)[/b], which this regex would then eat.
-                desc = desc.replace(/\[([^\]]+)\]\(([^)]+)\)/g, "[url='$2']$1[/url]");
-                // Convert inline code `...` to [icode]...[/icode]
-                desc = desc.replace(/`([^`]+)`/g, '[icode]$1[/icode]');
-                // Convert bold **...** to [b]...[/b]
-                desc = desc.replace(/\*\*([^*]+)\*\*/g, '[b]$1[/b]');
-                // Convert italic *...* to [i]...[/i]
-                desc = desc.replace(/\*([^*]+)\*/g, '[i]$1[/i]');
-                // Convert blockquote lines (> ...) to [quote]...[/quote]
-                desc = desc.replace(/\n> (.+)$/gm, '\n[quote]$1[/quote]');
-                // Collapse double newlines
-                desc = desc.replace(/\n\n+/g, '\n');
-                lines.push(desc.trim());
-            }
-            if (interaction.message?.url) {
-                lines.push(`\n[url='${interaction.message.url}']Roll Link[/url]`);
-            }
-            const bbcode = lines.join('\n');
+            const bbcode = toBBCode(embed, interaction.message?.url);
             // Wrap in code block so Discord doesn't re-format the BBCode
             return interaction.reply({ content: `\`\`\`\n${bbcode}\n\`\`\``, flags: MessageFlags.Ephemeral });
         } catch (e) {
