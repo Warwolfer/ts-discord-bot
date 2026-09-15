@@ -94,10 +94,17 @@ test("blocks under the limit come back as one chunk", () => {
 });
 
 test("chunking cuts at block boundaries, never inside a block", () => {
-    const out = core.chunkBlocks(["a".repeat(30), "b".repeat(30), "c".repeat(30)], 70);
+    const blocks = ["a".repeat(30), "b".repeat(30), "c".repeat(30)];
+    const out = core.chunkBlocks(blocks, 70);
     assert.strictEqual(out.length, 2);
     assert.ok(out.every((c) => c.length <= 70));
     assert.ok(out[0].startsWith("a"));
+    // The property the test name claims: every chunk, split back on the
+    // blank-line join, must be made up only of whole original blocks. A
+    // naive character slicer (e.g. joined.match(/.{1,70}/g)) would pass the
+    // assertions above too, but would fail this one by cutting mid-block.
+    const pieces = out.flatMap((chunk) => chunk.split("\n\n"));
+    assert.ok(pieces.every((piece) => blocks.includes(piece)));
 });
 
 test("a single block longer than the limit is still emitted whole", () => {
@@ -108,6 +115,11 @@ test("a single block longer than the limit is still emitted whole", () => {
 
 test("no blocks means no chunks", () => {
     assert.deepStrictEqual(core.chunkBlocks([], 100), []);
+});
+
+test("a non-array blocks value yields no chunks rather than throwing", () => {
+    assert.deepStrictEqual(core.chunkBlocks(null, 100), []);
+    assert.deepStrictEqual(core.chunkBlocks(undefined, 100), []);
 });
 
 test("the attachment name uses the inputs when they are tame", () => {

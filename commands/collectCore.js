@@ -74,12 +74,14 @@ function commentFromDescription(description) {
  * Joins BBCode blocks with one blank line and cuts the result into pieces no
  * longer than `limit`, always at a block boundary — a roll split down the
  * middle is not pasteable. A single block over the limit is emitted whole
- * rather than mangled; the caller's file path handles that case.
+ * rather than mangled; the caller's file path handles that case. A non-array
+ * `blocks` (e.g. null/undefined) yields no chunks rather than throwing.
  * @param {string[]} blocks
  * @param {number} [limit] - defaults to MAX_CHUNK
  * @returns {string[]}
  */
 function chunkBlocks(blocks, limit) {
+    if (!Array.isArray(blocks)) return [];
     const max = limit || MAX_CHUNK;
     const chunks = [];
     let current = "";
