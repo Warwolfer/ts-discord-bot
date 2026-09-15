@@ -16,11 +16,31 @@ const FILE = "roll-index.jsonl";
 const DEFAULT_DIR = path.join(__dirname, "..", "data");
 const RETENTION_MS = 14 * 24 * 60 * 60 * 1000;   // 14 days
 const PRUNE_INTERVAL_MS = 60 * 60 * 1000;        // hourly
+const MAX_TAGS = 20;
+const MAX_TAG_LENGTH = 100;
 
 let timer = null;
 
 function filePath(dir) {
     return path.join(dir || DEFAULT_DIR, FILE);
+}
+
+/**
+ * Caps a tags array to MAX_TAGS entries of at most MAX_TAG_LENGTH characters
+ * each. There is no length cap on a roll comment anywhere upstream
+ * (`commands/parseCommand.js` takes everything after the first `#` verbatim,
+ * bounded only by Discord's ~2000-character message limit), so without this
+ * a single entry's tags could grow the line past the point where an
+ * `O_APPEND` write is still atomic. No real character name or thread code
+ * comes close to either bound, so this never affects matching.
+ * @param {*} tags
+ * @returns {*} the capped array, or the input unchanged if it is not an array
+ */
+function capTags(tags) {
+    if (!Array.isArray(tags)) return tags;
+    return tags.slice(0, MAX_TAGS).map(function (t) {
+        return typeof t === "string" ? t.slice(0, MAX_TAG_LENGTH) : t;
+    });
 }
 
 /**
@@ -33,8 +53,11 @@ function filePath(dir) {
  */
 async function append(entry, dir) {
     try {
+        // Cap tags before stringifying — see capTags() for why the line
+        // needs to stay small.
+        const capped = Object.assign({}, entry, { tags: capTags(entry.tags) });
         await fs.mkdir(dir || DEFAULT_DIR, { recursive: true });
-        await fs.appendFile(filePath(dir), JSON.stringify(entry) + "\n", "utf8");
+        await fs.appendFile(filePath(dir), JSON.stringify(capped) + "\n", "utf8");
     } catch (err) {
         console.error("[rollIndex] append failed:", err.message);
     }
@@ -59,7 +82,9 @@ async function read(dir) {
         if (!trimmed) continue;
         try {
             const parsed = JSON.parse(trimmed);
-            if (parsed && typeof parsed === "object") out.push(parsed);
+            // typeof [] === "object" and [] is truthy, so an array literal
+            // would otherwise slip through as if it were an entry.
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) out.push(parsed);
         } catch (err) {
             // A torn or hand-edited line. Skip it.
         }

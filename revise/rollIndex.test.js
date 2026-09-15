@@ -83,10 +83,38 @@ test("prune leaves no temp file behind", async () => {
     );
 });
 
-test("append never throws on an unwritable directory", async () => {
-    await assert.doesNotReject(() => rollIndex.append(entry(), path.join(tempDir(), "nope", "deeper")));
+test("append never throws when the directory path is blocked by a file", async () => {
+    // A plain nested path under a writable temp dir just gets created by
+    // `fs.mkdir(..., {recursive: true})`, so it never reaches append's catch
+    // block. Blocking the path with a regular file forces `mkdir` to fail
+    // with ENOTDIR, which is what actually exercises the try/catch.
+    const dir = tempDir();
+    const blocker = path.join(dir, "blocker");
+    fs.writeFileSync(blocker, "not a directory");
+    await assert.doesNotReject(() => rollIndex.append(entry(), path.join(blocker, "sub")));
 });
 
 test("read never throws on a directory that is not there", async () => {
     assert.deepStrictEqual(await rollIndex.read(path.join(tempDir(), "nope")), []);
+});
+
+test("an array line is skipped along with other malformed values", async () => {
+    const dir = tempDir();
+    fs.writeFileSync(
+        path.join(dir, rollIndex.FILE),
+        ["5", "null", "[]", JSON.stringify(entry({ messageId: "good" }))].join("\n") + "\n",
+    );
+    const all = await rollIndex.read(dir);
+    assert.deepStrictEqual(all.map((e) => e.messageId), ["good"]);
+});
+
+test("append caps tags to 20 entries of at most 100 characters", async () => {
+    const dir = tempDir();
+    const longTags = [];
+    for (let i = 0; i < 50; i++) longTags.push("x".repeat(500));
+    await rollIndex.append(entry({ tags: longTags }), dir);
+    const all = await rollIndex.read(dir);
+    assert.strictEqual(all.length, 1);
+    assert.strictEqual(all[0].tags.length, 20);
+    for (const tag of all[0].tags) assert.ok(tag.length <= 100);
 });
