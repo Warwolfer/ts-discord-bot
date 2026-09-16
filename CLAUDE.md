@@ -364,6 +364,74 @@ Two things to keep in mind:
 
 Tests: `node --test`
 
+### `/collect` and the Roll Index
+
+`/collect character:<name> thread:<code>` gathers every roll the bot posted
+for that character and thread, in the channel it's run in, and DMs it back as
+one pasteable block of forum BBCode. The rules live in small modules that
+never `require("discord.js")` so they stay testable; `commands/slash/collect.js`
+is glue only.
+
+**`revise/bbcode.js` is the one embed→BBCode converter.** Copy Result
+(`index.js`'s `copy_result` handler) and `/collect` both call its `toBBCode`,
+so a bug fixed once stays fixed everywhere — this converter has already been
+fixed twice for bugs a second copy would have kept. **The order of its
+replaces is load-bearing:**
+- The markdown-link replace (`[text](url)` → `[url='url']text[/url]`) runs
+  *before* the bold replace, because bold running first turns
+  `**(121-140)**` into `[b](121-140)[/b]`, which the link regex would then eat.
+- Backslash-escaped characters — from `commands/customRoll.js`'s
+  `escapeMarkdown`, which a DM's free text is run through so Discord renders
+  it literally instead of as formatting — are parked behind a sentinel before
+  any conversion runs, and restored only at the very end. A restored `[` is
+  wrapped in XenForo's `[plain][[/plain]` rather than left bare, because the
+  output here **is** BBCode, and any `[` surviving from untrusted text would
+  open a real tag on the forum post. The original code un-escaped first and
+  handed the plain text to the conversions and the forum's own parser, so
+  `[url='http://evil.example']click me[/url]` came out live.
+  **`toBBCode` only neutralises text a caller already ran through
+  `escapeMarkdown`** — every caller must pass a bot-authored embed built that
+  way; the function does not sanitise arbitrary input on its own.
+
+`revise/rollIndex.js` writes `data/roll-index.jsonl` (`data/` is gitignored),
+an append-only JSON Lines index so `/collect` can usually answer from a file
+read instead of crawling the channel. It's appended to from `sendReply`
+(`helpers.js`, for every stored roll) and from `revise/index.js` (for a posted
+revision — see below), and pruned to 14 days. **Pruning is started only from
+the root `index.js`'s `ready` handler, never at import** — a module that
+starts an hourly `setInterval` at require time keeps `node --test` alive
+forever. Tags are capped at 20 entries of 100 characters each (`capTags`):
+there's no length cap on a roll comment anywhere upstream, so without this a
+single entry's tags could grow a line past the point where the `appendFile`
+write is still atomic.
+
+**`/collect` defers its reply before doing anything else**
+(`interaction.deferReply`), because the channel scan it falls back to (up to
+three pages of 100 messages) routinely outlives Discord's three-second
+interaction deadline.
+
+**Revisions are indexed too, carrying `supersedes`.** `revise/index.js`
+appends an index entry for a posted revision the same way `sendReply` indexes
+an original roll, naming the replaced message id in `supersedes`. Without
+this, `/collect`'s index fast path would keep handing out the roll a revision
+just replaced, forever — only `sendReply`'s sends were ever indexed, so the
+corrected roll would never surface. Reading the index, `collectCore.js` first
+runs `dedupeByMessageId` (first occurrence per `messageId` wins — repairs an
+index doubled by two overlapping scans) and then `dropSuperseded`, which
+collects every `supersedes` value into a set and drops any entry whose
+`messageId` is in it, collapsing a revision chain down to its newest entry. It
+only looks within the entries it's given, so a message superseded by an entry
+outside this query's matches is left alone.
+
+**An incomplete channel scan is never written back to the index.**
+`scanChannel` in `commands/slash/collect.js` returns `{hits, complete}`;
+`complete` is false when a page fetch fails partway through, which makes
+`hits` a partial set. `/collect` only appends a completed scan's hits to the
+index — writing a partial result would make every later `/collect` for that
+character and thread answer from the index and never scan again, silently
+truncating the result for the whole 14-day retention window. The reply still
+tells the player the result may be incomplete.
+
 ### Available Roll Commands
 
 **Generic Rolling:**
@@ -438,6 +506,14 @@ Tests: `node --test`
 
 **Utility:**
 - `version` - Display bot version
+
+### Slash Commands
+
+Registered by `deploy-commands.js` from `commands/slash/*.js`: `/attack`,
+`/heal`, `/r` (generic dice roll), `/rush`, `/save`, and `/collect`
+(`character:<name> thread:<code>` — every roll for that character and thread
+in this channel, DMed as forum BBCode; see "`/collect` and the Roll Index"
+above).
 
 ### Permission System
 
