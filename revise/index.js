@@ -367,6 +367,10 @@ async function onModalSubmit(interaction) {
         channelId: sent.channelId,
         guildId: sent.guildId || null,
         userId: record.userId,
+        // Same two fields, same reason, as helpers.js sendReply: comment is
+        // what /collect's matching searches now, tags is the pre-comment
+        // fallback for older entries.
+        comment: commentFromCommandText(newText),
         tags: tagsFromComment(commentFromCommandText(newText)),
         createdAt: Date.now(),
         supersedes: messageId

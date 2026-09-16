@@ -18,6 +18,10 @@ const RETENTION_MS = 14 * 24 * 60 * 60 * 1000;   // 14 days
 const PRUNE_INTERVAL_MS = 60 * 60 * 1000;        // hourly
 const MAX_TAGS = 20;
 const MAX_TAG_LENGTH = 100;
+// Same reason as capTags below: no length cap exists upstream on a roll
+// comment, and a comment is one line of a roll, so 300 characters is ample
+// headroom while still keeping an appended line small enough to stay atomic.
+const MAX_COMMENT_LENGTH = 300;
 
 let timer = null;
 
@@ -44,6 +48,16 @@ function capTags(tags) {
 }
 
 /**
+ * Caps a comment string to MAX_COMMENT_LENGTH characters, for the same
+ * unbounded-upstream-length reason as capTags.
+ * @param {*} comment
+ * @returns {*} the capped string, or the input unchanged if it is not a string
+ */
+function capComment(comment) {
+    return typeof comment === "string" ? comment.slice(0, MAX_COMMENT_LENGTH) : comment;
+}
+
+/**
  * Records one roll. Never throws: a full disk or a read-only mount must cost
  * a /collect hit, not the roll the player is waiting for.
  * @param {{messageId: string, channelId: string, guildId: string|null,
@@ -53,9 +67,12 @@ function capTags(tags) {
  */
 async function append(entry, dir) {
     try {
-        // Cap tags before stringifying — see capTags() for why the line
-        // needs to stay small.
-        const capped = Object.assign({}, entry, { tags: capTags(entry.tags) });
+        // Cap tags and comment before stringifying — see capTags()/capComment()
+        // for why the line needs to stay small.
+        const capped = Object.assign({}, entry, {
+            tags: capTags(entry.tags),
+            comment: capComment(entry.comment),
+        });
         await fs.mkdir(dir || DEFAULT_DIR, { recursive: true });
         await fs.appendFile(filePath(dir), JSON.stringify(capped) + "\n", "utf8");
     } catch (err) {

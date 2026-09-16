@@ -46,6 +46,62 @@ test("an empty comment yields no tags", () => {
     assert.deepStrictEqual(core.tagsFromComment(null), []);
 });
 
+// commentHas ------------------------------------------------------
+
+test("commentHas finds a needle not touching the build sheet's separator", () => {
+    // The user's actual case: a period instead of the middle dot leaves
+    // tagsFromComment with one unsplittable tag, but commentHas still finds
+    // the name and the thread code inside it.
+    assert.strictEqual(core.commentHas("Astor . 1234C2", "Astor"), true);
+    assert.strictEqual(core.commentHas("Astor . 1234C2", "1234C2"), true);
+});
+
+test("commentHas keeps the cycle-suffix distinction: 1234 does not match 1234C2", () => {
+    assert.strictEqual(core.commentHas("Astor . 1234C2", "1234"), false);
+});
+
+test("commentHas does not require adjacency to the build sheet's dot separator", () => {
+    assert.strictEqual(
+        core.commentHas("Aeromancy · Elemental · Character Name · Lethal · Code", "Character Name"),
+        true,
+    );
+});
+
+test("commentHas is case-insensitive", () => {
+    assert.strictEqual(core.commentHas("Fortitude · Lune · 2768", "lune"), true);
+});
+
+test("commentHas does not match a needle that is only a prefix of a word", () => {
+    assert.strictEqual(core.commentHas("Lunetta · 2768", "Lune"), false);
+});
+
+test("commentHas does not match a needle that is only a suffix of a word", () => {
+    assert.strictEqual(core.commentHas("x2768", "2768"), false);
+});
+
+test("commentHas matches a needle that is the whole comment", () => {
+    assert.strictEqual(core.commentHas("2768", "2768"), true);
+});
+
+test("commentHas uses a unicode-aware boundary, not ASCII \\w", () => {
+    assert.strictEqual(core.commentHas("Lünë · 2768", "Lünë"), true);
+});
+
+test("commentHas escapes regex metacharacters in the needle", () => {
+    assert.strictEqual(core.commentHas("C++ · 2768", "C++"), true);
+});
+
+test("commentHas treats the needle as literal text, not a pattern", () => {
+    // "a.c" would match /abc/ only if "." were a wildcard.
+    assert.strictEqual(core.commentHas("a.c · 2768", "abc"), false);
+});
+
+test("commentHas never throws on bad input", () => {
+    assert.strictEqual(core.commentHas(null, "x"), false);
+    assert.strictEqual(core.commentHas("x", ""), false);
+    assert.strictEqual(core.commentHas("x", null), false);
+});
+
 const entry = {
     messageId: "1",
     channelId: "c1",
@@ -75,6 +131,36 @@ test("a wrong character never hits", () => {
 
 test("an entry with no tags never hits", () => {
     assert.strictEqual(core.entryMatches({ channelId: "c1" }, "c1", "lune", "2768c1"), false);
+});
+
+test("entryMatches prefers entry.comment and matches an unusual separator", () => {
+    const withComment = {
+        channelId: "c1",
+        comment: "Astor . 1234C2",
+        // No tags: this entry is the shape a comment-carrying write produces.
+    };
+    assert.strictEqual(core.entryMatches(withComment, "c1", "Astor", "1234C2"), true);
+});
+
+test("entryMatches falls back to tags for an entry written before comments were kept", () => {
+    // No comment field at all — this is what pre-change entries look like on
+    // disk. The fallback joins tags with " · " and searches that instead.
+    const oldEntry = { channelId: "c1", tags: ["Fortitude", "Lune", "NG1", "2768C1"] };
+    assert.strictEqual(core.entryMatches(oldEntry, "c1", "Lune", "2768C1"), true);
+});
+
+test("entryMatches keeps the cycle-suffix distinction through the comment path", () => {
+    const withComment = { channelId: "c1", comment: "Fortitude · Lune · 2768C1" };
+    assert.strictEqual(core.entryMatches(withComment, "c1", "lune", "2768"), false);
+});
+
+// Note: "a thread code is matched whole, so 2768 does not match 2768C1"
+// (above) already covers the tags-fallback path via the shared `entry`
+// fixture, which carries no `comment` field.
+
+test("entryMatches still fails on the wrong channel when the entry carries a comment", () => {
+    const withComment = { channelId: "c1", comment: "Astor . 1234C2" };
+    assert.strictEqual(core.entryMatches(withComment, "c2", "Astor", "1234C2"), false);
 });
 
 test("the comment is read off the last quoted line of a description", () => {

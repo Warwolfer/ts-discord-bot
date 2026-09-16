@@ -279,6 +279,10 @@ async function sendReply(message, embed, comment, options = {}) {
                 channelId: sent.channelId,
                 guildId: sent.guildId || null,
                 userId: ctx.userId,
+                // Both fields ride along: comment is what /collect's matching
+                // actually searches now (see collectCore.js entryMatches),
+                // tags stays for entries indexed before comments were kept.
+                comment: commentFromCommandText(ctx.commandText),
                 tags: tagsFromComment(commentFromCommandText(ctx.commandText)),
                 createdAt: Date.now()
             });

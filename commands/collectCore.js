@@ -47,9 +47,50 @@ const DISCORD_MESSAGE_LIMIT = 2000;
 const CHUNK_FRAME_OVERHEAD = 8;
 
 /**
+ * Escapes a string for literal use inside a RegExp. Written by hand rather
+ * than imported — this repo has no node_modules, and it is a five-line
+ * function.
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whether `needle` appears in `comment` as a whole word-ish unit: not
+ * touching a letter or a digit on either side. This is what lets
+ * `# Astor . 1234C2` (a period, not the build sheet's middle dot) still be
+ * found by searching for "Astor" or "1234C2" directly in the comment text,
+ * while still keeping "2768" from matching inside "2768C1" — a cycle suffix
+ * makes it a different collection.
+ *
+ * `\p{L}`/`\p{N}` (with the `u` flag) are used instead of `\w`, which is
+ * ASCII-only and would treat a name like "Lünë" as a boundary in the middle
+ * of itself. The needle is regex-escaped first, so a name or code containing
+ * regex metacharacters (`C++`, a thread code with a `.`) is matched
+ * literally.
+ * @param {string} comment
+ * @param {string} needle
+ * @returns {boolean} always false, never throws, for non-string or empty input
+ */
+function commentHas(comment, needle) {
+    if (typeof comment !== "string") return false;
+    if (typeof needle !== "string" || needle.length === 0) return false;
+    const pattern = "(?<![\\p{L}\\p{N}])" + escapeRegExp(needle) + "(?![\\p{L}\\p{N}])";
+    return new RegExp(pattern, "iu").test(comment);
+}
+
+/**
  * Does this index entry belong to the asked-for character and thread, in this
- * channel? Tags are matched whole and case-insensitively, so "2768" does not
- * match a "2768C1" cycle collection.
+ * channel? Matches against the entry's raw comment text via commentHas, so
+ * neither the name nor the thread code need to sit next to each other or be
+ * separated by the build sheet's `·` — see commentHas for the boundary rule
+ * that still keeps "2768" from matching "2768C1".
+ *
+ * Falls back to `(entry.tags || []).join(" · ")` when the entry has no
+ * `comment` field: entries written before comments were recorded are already
+ * on disk with only `tags`, and a 14-day index has to keep matching them.
  * @param {object} entry
  * @param {string} channelId
  * @param {string} character
@@ -58,10 +99,10 @@ const CHUNK_FRAME_OVERHEAD = 8;
  */
 function entryMatches(entry, channelId, character, thread) {
     if (!entry || entry.channelId !== channelId) return false;
-    if (!Array.isArray(entry.tags)) return false;
-    const lower = entry.tags.map(function (t) { return String(t).trim().toLowerCase(); });
-    return lower.indexOf(String(character).trim().toLowerCase()) !== -1 &&
-        lower.indexOf(String(thread).trim().toLowerCase()) !== -1;
+    const comment = entry.comment
+        ? entry.comment
+        : (Array.isArray(entry.tags) ? entry.tags.join(" · ") : "");
+    return commentHas(comment, character) && commentHas(comment, thread);
 }
 
 /**
@@ -196,6 +237,7 @@ function noHitsMessage(character, thread) {
 module.exports = {
     commentFromCommandText: commentFromCommandText,
     tagsFromComment: tagsFromComment,
+    commentHas: commentHas,
     entryMatches: entryMatches,
     commentFromDescription: commentFromDescription,
     chunkBlocks: chunkBlocks,

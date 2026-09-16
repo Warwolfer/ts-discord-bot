@@ -49,7 +49,11 @@ async function scanChannel(channel, botId, character, thread) {
             const comment = core.commentFromDescription(message.embeds[0].description);
             if (!comment) continue;
             const tags = core.tagsFromComment(comment);
-            if (core.entryMatches({ channelId: message.channelId, tags: tags },
+            // comment goes in too, or this throwaway entry would match by the
+            // tags-fallback rule instead of the same comment-text rule the
+            // index uses, and a scan could turn up different hits than an
+            // index read for the same query.
+            if (core.entryMatches({ channelId: message.channelId, comment: comment, tags: tags },
                                   message.channelId, character, thread)) {
                 hits.push(message);
             }
@@ -172,12 +176,14 @@ module.exports = {
                     const existingIds = new Set(allIndexed.map(function (e) { return e.messageId; }));
                     for (const message of found) {
                         if (existingIds.has(message.id)) continue;
+                        const comment = core.commentFromDescription(message.embeds[0].description);
                         rollIndex.append({
                             messageId: message.id,
                             channelId: message.channelId,
                             guildId: message.guildId || null,
                             userId: message.interaction?.user?.id || null,
-                            tags: core.tagsFromComment(core.commentFromDescription(message.embeds[0].description)),
+                            comment: comment,
+                            tags: core.tagsFromComment(comment),
                             createdAt: message.createdTimestamp
                         });
                     }
