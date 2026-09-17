@@ -16,6 +16,7 @@ const { parseCommandString } = require('./commands/parseCommand');
 const tape = require('./revise/tape');
 const store = require('./revise/store');
 const rollIndex = require('./revise/rollIndex');
+const { clampDescription } = require('./commands/embedLimits');
 const { commentFromCommandText, tagsFromComment } = require('./commands/collectCore');
 const { buildRollButtons, buildCopyOnlyButtons } = require('./revise/components');
 
@@ -240,6 +241,9 @@ async function sendReply(message, embed, comment, options = {}) {
             const currentDescription = embed.data.description || "";
             embed.setDescription(currentDescription + comment);
         }
+        // After every append: a handler may have added the comment itself
+        // (handleCustom does) and passed no comment argument here.
+        clampDescription(embed);
 
         // Snapshot the roll context and tape BEFORE the await. message.reply is a
         // network round trip, and a concurrent roll calling setRollContext during
