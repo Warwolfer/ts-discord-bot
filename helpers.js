@@ -253,7 +253,12 @@ async function sendReply(message, embed, comment, options = {}) {
 
         const sent = await message.reply({
             embeds: [embed],
-            components: [options.skipRevise ? buildCopyOnlyButtons() : buildRollButtons()]
+            components: [options.skipRevise ? buildCopyOnlyButtons() : buildRollButtons()],
+            // If the message being replied to has gone — a moderator removing a
+            // paste part-way through a bulk run is the case that matters — post
+            // as a plain channel message rather than letting Discord reject the
+            // reply outright and lose the roll.
+            failIfNotExists: false
         });
 
         if (message.capturesOnly) return;
@@ -292,11 +297,18 @@ async function sendReply(message, embed, comment, options = {}) {
             });
         }
 
-        setTimeout(() => {
-            message.delete().catch(() => {
-                // Already gone (deleted by a moderator, say). Nothing to do.
-            });
-        }, REPLY_DELETE_TIMEOUT);
+        // A bulk run posts many replies to one paste and schedules a single
+        // delete of its own when the last roll has landed (see commands/r.js).
+        // Without this guard the first roll's timer would remove the paste five
+        // seconds in, and every later reply would be answering a message that
+        // no longer exists.
+        if (!message.suppressDelete) {
+            setTimeout(() => {
+                message.delete().catch(() => {
+                    // Already gone (deleted by a moderator, say). Nothing to do.
+                });
+            }, REPLY_DELETE_TIMEOUT);
+        }
 
     } catch (err) {
         console.error("Failed to send reply or schedule deletion:", err);
